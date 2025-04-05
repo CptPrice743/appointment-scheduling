@@ -1,4 +1,3 @@
-// client/src/components/AppointmentList.jsx
 import React from 'react';
 
 function AppointmentList({ appointments }) {

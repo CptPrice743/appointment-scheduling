@@ -1,32 +1,49 @@
-// client/src/App.js
 import React, { useEffect, useState } from 'react';
+import AppointmentList from './components/AppointmentList';
+import AppointmentForm from './components/AppointmentForm';
 
 function App() {
   const [appointments, setAppointments] = useState([]);
 
-  useEffect(() => {
-    // Fetch appointments from the backend API
-    fetch('/api/appointments')
+  // Fetch appointments from the backend API
+  const fetchAppointments = () => {
+    fetch('http://localhost:5000/api/appointments')
       .then((res) => res.json())
       .then((data) => setAppointments(data))
       .catch((error) => console.error('Error fetching appointments:', error));
+  };
+
+  // Load appointments when the component mounts
+  useEffect(() => {
+    fetchAppointments();
   }, []);
+
+  // Function to add a new appointment
+  const addAppointment = (appointmentData) => {
+    fetch('http://localhost:5000/api/appointments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(appointmentData),
+    })
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error('Failed to schedule appointment');
+        }
+        return res.json();
+      })
+      .then((result) => {
+        console.log(result.message);
+        // Refresh the appointment list after adding
+        fetchAppointments();
+      })
+      .catch((error) => console.error('Error adding appointment:', error));
+  };
 
   return (
     <div style={{ padding: '20px' }}>
       <h1>Doctor Appointment Scheduling</h1>
-      <h2>Appointments</h2>
-      {appointments.length === 0 ? (
-        <p>Loading appointments...</p>
-      ) : (
-        <ul>
-          {appointments.map((apt) => (
-            <li key={apt.id}>
-              <strong>{apt.doctor}</strong> with {apt.patient} at {apt.time}
-            </li>
-          ))}
-        </ul>
-      )}
+      <AppointmentForm addAppointment={addAppointment} />
+      <AppointmentList appointments={appointments} />
     </div>
   );
 }
