@@ -1,21 +1,29 @@
 const express = require('express');
 const router = express.Router();
 const Appointment = require('../models/appointment');
+const { protect } = require('../middleware/authMiddleware');
 
-// Get all appointments
-router.get('/', async (req, res) => {
+// Get all appointments - modified to filter by userId if authenticated
+router.get('/', protect, async (req, res) => {
   try {
-    const appointments = await Appointment.find();
+    const appointments = await Appointment.find({ userId: req.user.id });
     res.json(appointments);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });
 
-// Create a new appointment with time conflict validation
-router.post('/', async (req, res) => {
+// Create a new appointment with time conflict validation - protected
+router.post('/', protect, async (req, res) => {
   console.log('Received appointment data:', req.body);
-  const appointment = new Appointment(req.body);
+  
+  // Add userId to the appointment data
+  const appointmentData = {
+    ...req.body,
+    userId: req.user.id
+  };
+  
+  const appointment = new Appointment(appointmentData);
   
   try {
     // Parse request appointment date and time
@@ -60,13 +68,38 @@ router.post('/', async (req, res) => {
   }
 });
 
-// Get appointment by ID
-router.get('/:id', getAppointment, (req, res) => {
+// Get appointment by ID - check ownership if authenticated
+router.get('/:id', async (req, res, next) => {
+  try {
+    const appointment = await Appointment.findById(req.params.id);
+    
+    if (appointment == null) {
+      return res.status(404).json({ message: 'Appointment not found' });
+    }
+    
+    // If authenticated, check ownership
+    if (req.user && req.user.id && appointment.userId) {
+      if (appointment.userId.toString() !== req.user.id.toString()) {
+        return res.status(403).json({ message: 'Not authorized to access this appointment' });
+      }
+    }
+    
+    res.appointment = appointment;
+    next();
+  } catch (err) {
+    return res.status(500).json({ message: err.message });
+  }
+}, (req, res) => {
   res.json(res.appointment);
 });
 
-// Update appointment
-router.patch('/:id', getAppointment, async (req, res) => {
+// Update appointment - protected
+router.patch('/:id', protect, getAppointment, async (req, res) => {
+  // Check ownership
+  if (res.appointment.userId && res.appointment.userId.toString() !== req.user.id.toString()) {
+    return res.status(403).json({ message: 'Not authorized to update this appointment' });
+  }
+  
   // Skip validation for the current appointment being updated
   const currentAppointmentId = res.appointment._id;
   
@@ -138,8 +171,13 @@ router.patch('/:id', getAppointment, async (req, res) => {
   }
 });
 
-// Delete appointment
-router.delete('/:id', getAppointment, async (req, res) => {
+// Delete appointment - protected
+router.delete('/:id', protect, getAppointment, async (req, res) => {
+  // Check ownership
+  if (res.appointment.userId && res.appointment.userId.toString() !== req.user.id.toString()) {
+    return res.status(403).json({ message: 'Not authorized to delete this appointment' });
+  }
+  
   try {
     await res.appointment.deleteOne();
     res.json({ message: 'Appointment deleted' });

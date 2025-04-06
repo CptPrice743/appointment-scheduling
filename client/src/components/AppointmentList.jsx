@@ -1,16 +1,22 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import AuthContext from '../context/AuthContext';
 
 const AppointmentList = () => {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { token, user } = useContext(AuthContext);
 
   useEffect(() => {
     const fetchAppointments = async () => {
       try {
-        const res = await axios.get('http://localhost:8000/api/appointments');
+        const res = await axios.get('http://localhost:8000/api/appointments', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         setAppointments(res.data);
         setLoading(false);
       } catch (err) {
@@ -18,15 +24,27 @@ const AppointmentList = () => {
         setLoading(false);
       }
     };
-
-    fetchAppointments();
-  }, []);
+  
+    if (token) {
+      fetchAppointments();
+    } else {
+      setLoading(false);
+    }
+  }, [token]);
 
   const handleCancel = async (id) => {
     if (window.confirm('Are you sure you want to cancel this appointment?')) {
       try {
-        await axios.patch(`http://localhost:8000/api/appointments/${id}`, { status: 'cancelled' });
-        const res = await axios.get('http://localhost:8000/api/appointments');
+        await axios.patch(`http://localhost:8000/api/appointments/${id}`, { status: 'cancelled' }, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const res = await axios.get('http://localhost:8000/api/appointments', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         setAppointments(res.data);
       } catch (err) {
         console.error('Error cancelling appointment:', err);
@@ -43,7 +61,6 @@ const AppointmentList = () => {
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
-  // Filter appointments by status
   const scheduledAppointments = appointments.filter(apt => apt.status === 'scheduled');
   const otherAppointments = appointments.filter(apt => apt.status !== 'scheduled');
 
@@ -53,6 +70,9 @@ const AppointmentList = () => {
 
   return (
     <div className="appointment-list">
+      <h1 style={{ fontSize: '2.5rem', marginBottom: '20px', marginTop: '10px', color: '#2c3e50' }}>
+        Welcome, {user?.name}!
+      </h1>
       <h2>Scheduled Appointments</h2>
       {scheduledAppointments.length === 0 ? (
         <p>No appointments scheduled yet.</p>
@@ -78,8 +98,8 @@ const AppointmentList = () => {
           ))}
         </div>
       )}
-      
-      <h2>Past & Cancelled Appointments</h2>
+
+      <h2>History</h2>
       {otherAppointments.length === 0 ? (
         <p>No completed or cancelled appointments.</p>
       ) : (

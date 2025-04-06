@@ -34,6 +34,11 @@ const AppointmentSchema = new mongoose.Schema({
     enum: ['scheduled', 'completed', 'cancelled'],
     default: 'scheduled'
   },
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    // Not marking as required to maintain backward compatibility
+  },
   createdAt: {
     type: Date,
     default: Date.now

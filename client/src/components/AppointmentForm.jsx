@@ -1,18 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useContext } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
+import AuthContext from '../context/AuthContext';
 
 const AppointmentForm = () => {
   const location = useLocation();
   const appointment = location.state?.appointment;
   const navigate = useNavigate();
+  const { token } = useContext(AuthContext);
 
   const [formData, setFormData] = useState(appointment ? {
     patientName: appointment.patientName,
     patientEmail: appointment.patientEmail,
     patientPhone: appointment.patientPhone,
     doctorName: appointment.doctorName,
-    appointmentDate: appointment.appointmentDate.split('T')[0], // Format for date input
+    appointmentDate: appointment.appointmentDate.split('T')[0],
     appointmentTime: appointment.appointmentTime,
     reason: appointment.reason,
     status: appointment.status
@@ -32,7 +34,6 @@ const AppointmentForm = () => {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    // Clear error messages when form is modified
     setErrorMessage('');
     setSubmitMessage('');
   };
@@ -44,19 +45,25 @@ const AppointmentForm = () => {
 
     try {
       if (appointment) {
-        await axios.patch(`http://localhost:8000/api/appointments/${appointment._id}`, formData);
+        await axios.patch(`http://localhost:8000/api/appointments/${appointment._id}`, formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         setSubmitMessage('Appointment updated successfully!');
       } else {
-        await axios.post('http://localhost:8000/api/appointments', formData);
+        await axios.post('http://localhost:8000/api/appointments', formData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
         setSubmitMessage('Appointment scheduled successfully!');
       }
       setTimeout(() => {
-        navigate('/');
+        navigate('/appointments');
       }, 2000);
     } catch (err) {
       console.error('Error:', err);
-      
-      // Handle the specific conflict error
       if (err.response && err.response.data && err.response.data.message) {
         setErrorMessage(err.response.data.message);
       } else {
@@ -68,19 +75,19 @@ const AppointmentForm = () => {
   return (
     <div className="appointment-form-container">
       <h2>{appointment ? 'Edit Appointment' : 'Schedule New Appointment'}</h2>
-      
+
       {submitMessage && (
         <div className="message success">
           {submitMessage}
         </div>
       )}
-      
+
       {errorMessage && (
         <div className="message error">
           {errorMessage}
         </div>
       )}
-      
+
       <form onSubmit={handleSubmit} className="appointment-form">
         <div className="form-group">
           <label htmlFor="patientName">Patient Name</label>

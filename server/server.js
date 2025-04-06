@@ -2,13 +2,14 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const appointmentRoutes = require('./routes/appointmentRoutes');
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 8000;
 
 // Middleware
 app.use(cors({
-  origin: '*',  // During development, allow all origins
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -24,6 +25,7 @@ mongoose.connect('mongodb://localhost:27017/appointmentScheduler', {
 
 // Routes
 app.use('/api/appointments', appointmentRoutes);
+app.use('/api/auth', authRoutes);
 
 // Start server
 app.listen(PORT, () => {
