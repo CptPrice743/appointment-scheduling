@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const AppointmentList = () => {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchAppointments = async () => {
@@ -19,6 +21,22 @@ const AppointmentList = () => {
 
     fetchAppointments();
   }, []);
+
+  const handleDelete = async (id) => {
+    if (window.confirm('Are you sure you want to delete this appointment?')) {
+      try {
+        await axios.delete(`http://localhost:8000/api/appointments/${id}`);
+        const res = await axios.get('http://localhost:8000/api/appointments');
+        setAppointments(res.data);
+      } catch (err) {
+        console.error('Error deleting appointment:', err);
+      }
+    }
+  };
+
+  const handleEdit = (appointment) => {
+    navigate(`/edit/${appointment._id}`, { state: { appointment } });
+  };
 
   const formatDate = (dateString) => {
     const options = { year: 'numeric', month: 'long', day: 'numeric' };
@@ -47,6 +65,10 @@ const AppointmentList = () => {
               <p><strong>Time:</strong> {appointment.appointmentTime}</p>
               <p><strong>Reason:</strong> {appointment.reason}</p>
               <p><strong>Contact:</strong> {appointment.patientEmail}, {appointment.patientPhone}</p>
+              <div className="appointment-actions">
+                <button className="status-badge edit" onClick={() => handleEdit(appointment)}>Edit</button>
+                <button className="status-badge delete" onClick={() => handleDelete(appointment._id)}>Delete</button>
+              </div>
             </div>
           ))}
         </div>

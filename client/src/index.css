@@ -104,6 +104,42 @@ body {
   background-color: #f44336;
 }
 
+/* Style for the Edit button */
+.status-badge.edit {
+  background-color: blue; /* Distinct color for editing */
+  cursor: pointer; /* Indicates clickability */
+  border: 0px;
+}
+
+/* Style for the Delete button */
+.status-badge.delete {
+  background-color: red; /* Distinct color for deletion */
+  cursor: pointer; /* Indicates clickability */
+  border: 0px;
+}
+
+/* Hover effects for interactivity */
+.status-badge.edit:hover {
+  background-color: darkblue;
+}
+
+.status-badge.delete:hover {
+  background-color: darkred;
+}
+
+.status-badge.edit,
+.status-badge.delete {
+  position: static; /* Removes absolute positioning */
+  margin: 5px; /* Adds spacing between buttons */
+}
+
+.appointment-actions {
+  display: flex;
+  justify-content: flex-end; /* Aligns buttons to the right */
+  gap: 10px; /* Space between buttons */
+  margin-top: 10px; /* Distance from card content */
+}
+
 /* Appointment Form Styles */
 .appointment-form-container {
   max-width: 600px;

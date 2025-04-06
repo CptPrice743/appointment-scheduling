@@ -14,6 +14,7 @@ function App() {
           <Routes>
             <Route path="/" element={<AppointmentList />} />
             <Route path="/add" element={<AppointmentForm />} />
+            <Route path="/edit/:id" element={<AppointmentForm />} />
           </Routes>
         </div>
       </div>

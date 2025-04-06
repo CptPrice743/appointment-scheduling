@@ -1,9 +1,22 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 
 const AppointmentForm = () => {
-  const [formData, setFormData] = useState({
+  const location = useLocation();
+  const appointment = location.state?.appointment;
+  const navigate = useNavigate();
+
+  const [formData, setFormData] = useState(appointment ? {
+    patientName: appointment.patientName,
+    patientEmail: appointment.patientEmail,
+    patientPhone: appointment.patientPhone,
+    doctorName: appointment.doctorName,
+    appointmentDate: appointment.appointmentDate.split('T')[0], // Format for date input
+    appointmentTime: appointment.appointmentTime,
+    reason: appointment.reason,
+    status: appointment.status
+  } : {
     patientName: '',
     patientEmail: '',
     patientPhone: '',
@@ -13,9 +26,8 @@ const AppointmentForm = () => {
     reason: '',
     status: 'scheduled'
   });
-  
+
   const [submitMessage, setSubmitMessage] = useState('');
-  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -23,22 +35,27 @@ const AppointmentForm = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     try {
-      await axios.post('http://localhost:8000/api/appointments', formData);
-      setSubmitMessage('Appointment scheduled successfully!');
+      if (appointment) {
+        await axios.patch(`http://localhost:8000/api/appointments/${appointment._id}`, formData);
+        setSubmitMessage('Appointment updated successfully!');
+      } else {
+        await axios.post('http://localhost:8000/api/appointments', formData);
+        setSubmitMessage('Appointment scheduled successfully!');
+      }
       setTimeout(() => {
         navigate('/');
       }, 2000);
     } catch (err) {
-      console.error('Error scheduling appointment:', err);
-      setSubmitMessage('Error scheduling appointment. Please try again.');
+      console.error('Error:', err);
+      setSubmitMessage('Error. Please try again.');
     }
   };
 
   return (
     <div className="appointment-form-container">
-      <h2>Schedule New Appointment</h2>
+      <h2>{appointment ? 'Edit Appointment' : 'Schedule New Appointment'}</h2>
       {submitMessage && (
         <div className={`message ${submitMessage.includes('Error') ? 'error' : 'success'}`}>
           {submitMessage}
@@ -56,7 +73,7 @@ const AppointmentForm = () => {
             required
           />
         </div>
-        
+
         <div className="form-group">
           <label htmlFor="patientEmail">Email</label>
           <input
@@ -68,7 +85,7 @@ const AppointmentForm = () => {
             required
           />
         </div>
-        
+
         <div className="form-group">
           <label htmlFor="patientPhone">Phone</label>
           <input
@@ -80,7 +97,7 @@ const AppointmentForm = () => {
             required
           />
         </div>
-        
+
         <div className="form-group">
           <label htmlFor="doctorName">Doctor Name</label>
           <select
@@ -97,7 +114,7 @@ const AppointmentForm = () => {
             <option value="Dr. Brown">Dr. Brown</option>
           </select>
         </div>
-        
+
         <div className="form-group">
           <label htmlFor="appointmentDate">Appointment Date</label>
           <input
@@ -109,7 +126,7 @@ const AppointmentForm = () => {
             required
           />
         </div>
-        
+
         <div className="form-group">
           <label htmlFor="appointmentTime">Appointment Time</label>
           <input
@@ -121,7 +138,7 @@ const AppointmentForm = () => {
             required
           />
         </div>
-        
+
         <div className="form-group">
           <label htmlFor="reason">Reason for Visit</label>
           <textarea
@@ -132,8 +149,25 @@ const AppointmentForm = () => {
             required
           ></textarea>
         </div>
-        
-        <button type="submit" className="submit-btn">Schedule Appointment</button>
+
+        <div className="form-group">
+          <label htmlFor="status">Status</label>
+          <select
+            id="status"
+            name="status"
+            value={formData.status}
+            onChange={handleChange}
+            required
+          >
+            <option value="scheduled">Scheduled</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+        </div>
+
+        <button type="submit" className="submit-btn">
+          {appointment ? 'Update Appointment' : 'Schedule Appointment'}
+        </button>
       </form>
     </div>
   );
