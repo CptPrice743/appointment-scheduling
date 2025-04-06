@@ -64,6 +64,7 @@ body {
 /* Appointment List Styles */
 .appointment-list h2 {
   margin-bottom: 20px;
+  margin-top: 30px;
   color: #333;
 }
 
@@ -115,10 +116,10 @@ body {
   padding: 7px 12px;
 }
 
-/* Style for the Delete button */
-.status-badge.delete {
-  background-color: red; /* Distinct color for deletion */
-  cursor: pointer; /* Indicates clickability */
+/* Style for the Cancel button */
+.status-badge.cancel {
+  background-color: #f44336; /* Red color for cancel */
+  cursor: pointer;
   border: 0px;
   padding: 7px 12px;
 }
@@ -128,12 +129,12 @@ body {
   background-color: darkblue;
 }
 
-.status-badge.delete:hover {
+.status-badge.cancel:hover {
   background-color: darkred;
 }
 
 .status-badge.edit,
-.status-badge.delete {
+.status-badge.cancel {
   position: static;
   margin: 0;
 }
@@ -141,7 +142,7 @@ body {
 .appointment-actions {
   position: absolute;
   bottom: 10px; /* Padding from the bottom edge */
-  left: 20px; /* Aligns with the card’s internal padding */
+  left: 20px; /* Aligns with the card's internal padding */
   display: flex;
   gap: 10px; /* Space between buttons */
 }
