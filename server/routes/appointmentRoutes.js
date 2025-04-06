@@ -47,7 +47,7 @@ router.patch('/:id', getAppointment, async (req, res) => {
 // Delete appointment
 router.delete('/:id', getAppointment, async (req, res) => {
   try {
-    await res.appointment.remove();
+    await res.appointment.deleteOne();  // Change this line from remove() to deleteOne()
     res.json({ message: 'Appointment deleted' });
   } catch (err) {
     res.status(500).json({ message: err.message });

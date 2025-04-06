@@ -64,7 +64,8 @@ const AppointmentList = () => {
               <p><strong>Date:</strong> {formatDate(appointment.appointmentDate)}</p>
               <p><strong>Time:</strong> {appointment.appointmentTime}</p>
               <p><strong>Reason:</strong> {appointment.reason}</p>
-              <p><strong>Contact:</strong> {appointment.patientEmail}, {appointment.patientPhone}</p>
+              <p><strong>Email:</strong> {appointment.patientEmail}</p>
+              <p><strong>Phone:</strong> {appointment.patientPhone}</p>
               <div className="appointment-actions">
                 <button className="status-badge edit" onClick={() => handleEdit(appointment)}>Edit</button>
                 <button className="status-badge delete" onClick={() => handleDelete(appointment._id)}>Delete</button>
