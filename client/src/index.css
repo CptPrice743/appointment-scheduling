@@ -79,6 +79,8 @@ body {
   padding: 20px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   position: relative;
+  min-height: 200px; /* Minimum height to ensure space */
+  padding-bottom: 50px; /* Additional padding to reserve space for buttons */
 }
 
 .status-badge {
@@ -106,9 +108,10 @@ body {
 
 /* Style for the Edit button */
 .status-badge.edit {
-  background-color: blue; /* Distinct color for editing */
-  cursor: pointer; /* Indicates clickability */
+  background-color: blue;
+  cursor: pointer;
   border: 0px;
+  padding: 7px 12px;
 }
 
 /* Style for the Delete button */
@@ -116,6 +119,7 @@ body {
   background-color: red; /* Distinct color for deletion */
   cursor: pointer; /* Indicates clickability */
   border: 0px;
+  padding: 7px 12px;
 }
 
 /* Hover effects for interactivity */
@@ -129,15 +133,16 @@ body {
 
 .status-badge.edit,
 .status-badge.delete {
-  position: static; /* Removes absolute positioning */
-  margin: 5px; /* Adds spacing between buttons */
+  position: static;
+  margin: 0;
 }
 
 .appointment-actions {
+  position: absolute;
+  bottom: 10px; /* Padding from the bottom edge */
+  left: 20px; /* Aligns with the card’s internal padding */
   display: flex;
-  justify-content: flex-end; /* Aligns buttons to the right */
   gap: 10px; /* Space between buttons */
-  margin-top: 10px; /* Distance from card content */
 }
 
 /* Appointment Form Styles */
