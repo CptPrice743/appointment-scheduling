@@ -12,12 +12,47 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Create a new appointment
+// Create a new appointment with time conflict validation
 router.post('/', async (req, res) => {
   console.log('Received appointment data:', req.body);
   const appointment = new Appointment(req.body);
   
   try {
+    // Parse request appointment date and time
+    const reqDate = new Date(req.body.appointmentDate);
+    const [hours, minutes] = req.body.appointmentTime.split(':').map(Number);
+    const requestedDoctor = req.body.doctorName;
+    
+    // Set hours and minutes for requested appointment
+    reqDate.setHours(hours, minutes, 0, 0);
+    
+    // Check if any SCHEDULED appointment exists for the SAME DOCTOR within one hour before/after
+    const conflictingAppointments = await Appointment.find({
+      status: 'scheduled',  // Only check for scheduled appointments
+      doctorName: requestedDoctor, // Only check for the same doctor
+      appointmentDate: {
+        $gte: new Date(reqDate).setHours(0, 0, 0, 0),
+        $lt: new Date(reqDate).setHours(23, 59, 59, 999)
+      }
+    });
+    
+    // Check each appointment for time conflict
+    for (const existingAppt of conflictingAppointments) {
+      const existingDate = new Date(existingAppt.appointmentDate);
+      const [existingHours, existingMinutes] = existingAppt.appointmentTime.split(':').map(Number);
+      existingDate.setHours(existingHours, existingMinutes, 0, 0);
+      
+      // Calculate time difference in minutes
+      const timeDiff = Math.abs(existingDate - reqDate) / (1000 * 60);
+      
+      if (timeDiff < 60) {
+        return res.status(400).json({ 
+          message: `Time conflict: Dr. ${requestedDoctor.split(' ')[1]} already has a scheduled appointment within 1 hour of this time`
+        });
+      }
+    }
+    
+    // If no conflicts, save the appointment
     const newAppointment = await appointment.save();
     res.status(201).json(newAppointment);
   } catch (err) {
@@ -32,9 +67,68 @@ router.get('/:id', getAppointment, (req, res) => {
 
 // Update appointment
 router.patch('/:id', getAppointment, async (req, res) => {
-  Object.keys(req.body).forEach(key => {
-    res.appointment[key] = req.body[key];
-  });
+  // Skip validation for the current appointment being updated
+  const currentAppointmentId = res.appointment._id;
+  
+  // If status is being changed, no need for time validation
+  if (req.body.status && req.body.status !== 'scheduled') {
+    Object.keys(req.body).forEach(key => {
+      res.appointment[key] = req.body[key];
+    });
+  } else if (req.body.appointmentDate || req.body.appointmentTime || req.body.doctorName) {
+    // If changing time or doctor, validate conflicts
+    try {
+      // Use current values if not being updated
+      const appointmentDate = req.body.appointmentDate || res.appointment.appointmentDate;
+      const appointmentTime = req.body.appointmentTime || res.appointment.appointmentTime;
+      const doctorName = req.body.doctorName || res.appointment.doctorName;
+      
+      // Parse date and time
+      const reqDate = new Date(appointmentDate);
+      const [hours, minutes] = appointmentTime.split(':').map(Number);
+      
+      // Set time
+      reqDate.setHours(hours, minutes, 0, 0);
+      
+      // Find conflicting appointments
+      const conflictingAppointments = await Appointment.find({
+        _id: { $ne: currentAppointmentId }, // Exclude current appointment
+        status: 'scheduled',
+        doctorName: doctorName,
+        appointmentDate: {
+          $gte: new Date(reqDate).setHours(0, 0, 0, 0),
+          $lt: new Date(reqDate).setHours(23, 59, 59, 999)
+        }
+      });
+      
+      // Check conflicts
+      for (const existingAppt of conflictingAppointments) {
+        const existingDate = new Date(existingAppt.appointmentDate);
+        const [existingHours, existingMinutes] = existingAppt.appointmentTime.split(':').map(Number);
+        existingDate.setHours(existingHours, existingMinutes, 0, 0);
+        
+        const timeDiff = Math.abs(existingDate - reqDate) / (1000 * 60);
+        
+        if (timeDiff < 60) {
+          return res.status(400).json({ 
+            message: `Time conflict: Dr. ${doctorName.split(' ')[1]} already has a scheduled appointment within 1 hour of this time`
+          });
+        }
+      }
+      
+      // Update appointment fields
+      Object.keys(req.body).forEach(key => {
+        res.appointment[key] = req.body[key];
+      });
+    } catch (err) {
+      return res.status(400).json({ message: err.message });
+    }
+  } else {
+    // Update all other fields
+    Object.keys(req.body).forEach(key => {
+      res.appointment[key] = req.body[key];
+    });
+  }
   
   try {
     const updatedAppointment = await res.appointment.save();
@@ -47,7 +141,7 @@ router.patch('/:id', getAppointment, async (req, res) => {
 // Delete appointment
 router.delete('/:id', getAppointment, async (req, res) => {
   try {
-    await res.appointment.deleteOne();  // Change this line from remove() to deleteOne()
+    await res.appointment.deleteOne();
     res.json({ message: 'Appointment deleted' });
   } catch (err) {
     res.status(500).json({ message: err.message });

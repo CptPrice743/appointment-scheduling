@@ -28,13 +28,19 @@ const AppointmentForm = () => {
   });
 
   const [submitMessage, setSubmitMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    // Clear error messages when form is modified
+    setErrorMessage('');
+    setSubmitMessage('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMessage('');
+    setSubmitMessage('');
 
     try {
       if (appointment) {
@@ -49,18 +55,32 @@ const AppointmentForm = () => {
       }, 2000);
     } catch (err) {
       console.error('Error:', err);
-      setSubmitMessage('Error. Please try again.');
+      
+      // Handle the specific conflict error
+      if (err.response && err.response.data && err.response.data.message) {
+        setErrorMessage(err.response.data.message);
+      } else {
+        setErrorMessage('Error scheduling appointment. Please try again.');
+      }
     }
   };
 
   return (
     <div className="appointment-form-container">
       <h2>{appointment ? 'Edit Appointment' : 'Schedule New Appointment'}</h2>
+      
       {submitMessage && (
-        <div className={`message ${submitMessage.includes('Error') ? 'error' : 'success'}`}>
+        <div className="message success">
           {submitMessage}
         </div>
       )}
+      
+      {errorMessage && (
+        <div className="message error">
+          {errorMessage}
+        </div>
+      )}
+      
       <form onSubmit={handleSubmit} className="appointment-form">
         <div className="form-group">
           <label htmlFor="patientName">Patient Name</label>

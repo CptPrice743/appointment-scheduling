@@ -13,7 +13,7 @@ body {
 .container {
   max-width: 90%; /* Widens the container to 95% of the viewport */
   margin: 0 auto; /* Keeps the container centered */
-  padding: 10px;  /* Reduces padding for a more compact look */
+  padding: 10px; /* Reduces padding for a more compact look */
 }
 
 .navbar {
@@ -81,6 +81,7 @@ body {
   position: relative;
   min-height: 200px; /* Minimum height to ensure space */
   padding-bottom: 50px; /* Additional padding to reserve space for buttons */
+  
 }
 
 .status-badge {
