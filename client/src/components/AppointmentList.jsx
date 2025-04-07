@@ -61,12 +61,23 @@ const AppointmentList = () => {
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
+  const formatTime12Hour = (timeStr) => {
+    const [hour, minute] = timeStr.split(':');
+    const date = new Date();
+    date.setHours(+hour);
+    date.setMinutes(+minute);
+    return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+  };
+  
+
   const scheduledAppointments = appointments.filter(apt => apt.status === 'scheduled');
   const otherAppointments = appointments.filter(apt => apt.status !== 'scheduled');
 
   if (loading) {
     return <div className="loading">Loading appointments...</div>;
   }
+
+
 
   return (
     <div className="appointment-list">
@@ -86,7 +97,7 @@ const AppointmentList = () => {
               <h3>{appointment.patientName}</h3>
               <p><strong>Doctor:</strong> {appointment.doctorName}</p>
               <p><strong>Date:</strong> {formatDate(appointment.appointmentDate)}</p>
-              <p><strong>Time:</strong> {appointment.appointmentTime}</p>
+              <p><strong>Time:</strong> {formatTime12Hour(appointment.appointmentTime)}</p>
               <p><strong>Reason:</strong> {appointment.reason}</p>
               <p><strong>Email:</strong> {appointment.patientEmail}</p>
               <p><strong>Phone:</strong> {appointment.patientPhone}</p>
@@ -112,7 +123,7 @@ const AppointmentList = () => {
               <h3>{appointment.patientName}</h3>
               <p><strong>Doctor:</strong> {appointment.doctorName}</p>
               <p><strong>Date:</strong> {formatDate(appointment.appointmentDate)}</p>
-              <p><strong>Time:</strong> {appointment.appointmentTime}</p>
+              <p><strong>Time:</strong> {formatTime12Hour(appointment.appointmentTime)}</p>
               <p><strong>Reason:</strong> {appointment.reason}</p>
               <p><strong>Email:</strong> {appointment.patientEmail}</p>
               <p><strong>Phone:</strong> {appointment.patientPhone}</p>
