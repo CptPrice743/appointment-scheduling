@@ -83,7 +83,7 @@ Follow these steps to get the application running locally:
 
 1.  **Clone the Repository:**
     ```bash
-    git clone <your-repository-url>
+    git clone https://github.com/CptPrice743/appointment-scheduling.git
     cd appointment-scheduling-main
     ```
 
@@ -161,8 +161,3 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 3.  Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
 4.  Push to the Branch (`git push origin feature/AmazingFeature`)
 5.  Open a Pull Request
-
-## 📜 License
-
-Distributed under the MIT License. See `LICENSE` file for more information (if applicable).
-
