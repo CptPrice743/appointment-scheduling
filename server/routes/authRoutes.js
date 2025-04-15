@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
-const SECRET_KEY = 'your-secret-key'; // Replace with env variable ideally
+const SECRET_KEY = 'your-secret-key'; 
 
 
 // Register
@@ -36,7 +36,7 @@ router.post('/login', async (req, res) => {
         id: user._id,
         name: user.name,
         email: user.email
-      }
+      } 
     });
   } catch (err) {
     res.status(500).json({ message: 'Server error' });

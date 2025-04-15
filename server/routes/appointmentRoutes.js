@@ -15,7 +15,7 @@ router.get('/', protect, async (req, res) => {
 
 // Create a new appointment with time conflict validation - protected
 router.post('/', protect, async (req, res) => {
-  console.log('Received appointment data:', req.body);
+  // console.log('Received appointment data:', req.body);
   
   // Add userId to the appointment data
   const appointmentData = {
@@ -36,8 +36,8 @@ router.post('/', protect, async (req, res) => {
     
     // Check if any SCHEDULED appointment exists for the SAME DOCTOR within one hour before/after
     const conflictingAppointments = await Appointment.find({
-      status: 'scheduled',  // Only check for scheduled appointments
-      doctorName: requestedDoctor, // Only check for the same doctor
+      status: 'scheduled',  
+      doctorName: requestedDoctor, 
       appointmentDate: {
         $gte: new Date(reqDate).setHours(0, 0, 0, 0),
         $lt: new Date(reqDate).setHours(23, 59, 59, 999)
