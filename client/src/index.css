@@ -126,22 +126,29 @@ body {
 .appointment-card {
   background-color: white;
   border-radius: 8px;
-  padding: 20px; /* General padding */
+  /* MODIFIED: Reduced top padding */
+  padding: 20px 20px 20px 20px; /* Top: 10px, R/B/L: 20px */
+  /* Alternatively, for slightly more top space: */
+  /* padding: 15px 20px; */ /* Top/Bottom: 15px, Left/Right: 20px */
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  position: relative; /* Needed for absolute positioned action buttons */
+  position: relative;
   min-height: 200px;
   padding-bottom: 60px; /* Keep space for actions */
-  display: flex; /* Use flex for vertical layout */
-  flex-direction: column; /* Stack header, content, actions vertically */
+  display: flex;
+  flex-direction: column;
+}
+
+.schedule-view .appointment-card {
+  padding-top: 0px; /* Reduced top padding specifically for doctor view */
 }
 
 /* Card Header for Title/Badge Alignment */
 .card-header {
-  display: flex; /* Enable Flexbox */
-  justify-content: space-between; /* Push title left, badge right */
-  align-items: center; /* Vertically align items in the middle */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 15px; /* Space below the header */
-  gap: 10px; /* Space between title and badge if title wraps */
+  gap: 10px;
 }
 
 .appointment-card h3 {
