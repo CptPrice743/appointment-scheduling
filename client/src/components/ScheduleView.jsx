@@ -1,30 +1,35 @@
-import React, { useState, useEffect, useMemo, useContext } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useContext, useMemo } from "react";
 import AuthContext from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 // --- Helper Functions ---
 const formatDate = (dateString) => {
-  if (!dateString) return "N/A";
+  // Format YYYY-MM-DD for date input value, or readable format for display
+  if (!dateString) return "";
   try {
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return "Invalid Date";
-    const options = { year: "numeric", month: "long", day: "numeric" };
-    return date.toLocaleDateString(undefined, options);
+    // Format for display:
+    const displayOptions = { year: "numeric", month: "long", day: "numeric" };
+    return date.toLocaleDateString(undefined, displayOptions);
   } catch (e) {
     return "Invalid Date";
   }
 };
 
 const formatDateForInput = (dateString) => {
+  // Format YYYY-MM-DD specifically for date input
   if (!dateString) return "";
   try {
     const date = new Date(dateString);
-    if (isNaN(date.getTime())) return "";
+    if (isNaN(date.getTime())) return ""; // Return empty if invalid
+    // Use UTC methods to avoid timezone shifts when extracting parts
     const year = date.getUTCFullYear();
-    const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+    const month = String(date.getUTCMonth() + 1).padStart(2, "0"); // Month is 0-indexed
     const day = String(date.getUTCDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
   } catch (e) {
+    console.error("Error formatting date for input:", e);
     return "";
   }
 };
@@ -68,7 +73,7 @@ const getAppointmentDateTime = (appointment) => {
     )
       throw new Error("Invalid time parts");
     const dateTimeResult = new Date(dateObj);
-    dateTimeResult.setUTCHours(hours, minutes, 0, 0);
+    dateTimeResult.setUTCHours(hours, minutes, 0, 0); // Use UTC to avoid TZ issues
     if (isNaN(dateTimeResult.getTime()))
       throw new Error("Invalid date after setting time");
     return dateTimeResult;
@@ -91,89 +96,87 @@ const isToday = (someDate) => {
 };
 
 // --- Component ---
-const AppointmentList = () => {
-  const [allAppointments, setAllAppointments] = useState([]);
+const ScheduleView = () => {
+  const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const navigate = useNavigate();
   const { token, user, axiosInstance } = useContext(AuthContext);
+  const navigate = useNavigate();
 
   // --- Filter States ---
-  const [filterDoctor, setFilterDoctor] = useState("");
+  const [filterPatientName, setFilterPatientName] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterStartDate, setFilterStartDate] = useState("");
   const [filterEndDate, setFilterEndDate] = useState("");
-  const [doctorsList, setDoctorsList] = useState([]);
 
-  // Fetch doctors list (for filter dropdown)
-  useEffect(() => {
-    axiosInstance
-      .get("/doctors/list")
-      .then((res) => {
-        setDoctorsList(res.data || []);
-      })
-      .catch((err) => {
-        console.error("Error fetching doctor list for filter:", err);
-      });
-  }, [axiosInstance]);
-
-  // Fetch appointments
-  const fetchAppointments = async () => {
+  const fetchDoctorSchedule = async () => {
+    if (!user?.doctorProfile?._id) {
+      setError("Doctor profile not found.");
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     setError("");
     try {
-      const res = await axiosInstance.get("/appointments/my-appointments");
-      setAllAppointments(res.data || []);
+      const res = await axiosInstance.get("/doctors/appointments/my-schedule");
+      console.log("Fetched doctor schedule:", res.data);
+      setAppointments(res.data || []);
     } catch (err) {
-      console.error("Error fetching appointments:", err);
-      setError(err.response?.data?.message || "Failed to load appointments.");
+      console.error("Error fetching doctor's schedule:", err);
+      setError(err.response?.data?.message || "Failed to load schedule.");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (token && user?.role === "patient") {
-      fetchAppointments();
-    } else if (user?.role && user.role !== "patient") {
-      setError("Access denied. This view is for patients.");
-      setLoading(false);
-    } else if (!token || !user) {
-      setError("");
-      setAllAppointments([]);
+    if (token && user?.role === "doctor") {
+      fetchDoctorSchedule();
+    } else if (user?.role && user.role !== "doctor") {
+      setError("Not authorized. This view is for doctors.");
       setLoading(false);
     } else {
+      setAppointments([]); // Clear appointments if not doctor/logged in
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, user]);
 
-  // Filter, Categorize and Sort Appointments based on filters
+  // Filter, Categorize and Sort Appointments
   const categorizedAppointments = useMemo(() => {
     const now = new Date();
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
-    let filtered = allAppointments.filter((apt) => {
+    // Apply filters first
+    let filtered = appointments.filter((apt) => {
       const aptDateTime = getAppointmentDateTime(apt);
       if (isNaN(aptDateTime?.getTime())) {
+        // Include invalid dates if no date filter applied, otherwise exclude
         return !filterStartDate && !filterEndDate;
       }
       const aptDateOnly = new Date(aptDateTime);
       aptDateOnly.setHours(0, 0, 0, 0);
 
-      const doctorMatch = filterDoctor
-        ? apt.doctorId?._id === filterDoctor
+      const patientNameLower = (
+        apt.patientUserId?.name ||
+        apt.patientName ||
+        ""
+      ).toLowerCase();
+      const filterNameLower = filterPatientName.toLowerCase();
+
+      const nameMatch = filterNameLower
+        ? patientNameLower.includes(filterNameLower)
         : true;
       const statusMatch = filterStatus ? apt.status === filterStatus : true;
       const startDateMatch = filterStartDate
-        ? aptDateOnly >= new Date(filterStartDate + "T00:00:00Z")
+        ? aptDateOnly >= new Date(filterStartDate + "T00:00:00Z") // Compare using dates
         : true;
       const endDateMatch = filterEndDate
-        ? aptDateOnly <= new Date(filterEndDate + "T00:00:00Z")
+        ? aptDateOnly <= new Date(filterEndDate + "T00:00:00Z") // Compare using dates
         : true;
 
-      return doctorMatch && statusMatch && startDateMatch && endDateMatch;
+      return nameMatch && statusMatch && startDateMatch && endDateMatch;
     });
 
     const categories = {
@@ -186,244 +189,207 @@ const AppointmentList = () => {
     filtered.forEach((apt) => {
       const aptDateTime = getAppointmentDateTime(apt);
       if (isNaN(aptDateTime?.getTime())) {
-        categories.history.push(apt);
+        categories.history.push(apt); // Put invalid dates in history
         return;
       }
+
       const aptDateOnly = new Date(aptDateTime);
-      aptDateOnly.setHours(0, 0, 0, 0);
+      aptDateOnly.setHours(0, 0, 0, 0); // Use local time for comparison against todayStart
 
       if (apt.status === "scheduled") {
         if (isToday(aptDateOnly)) {
           if (aptDateTime >= now) {
             categories.today.push(apt);
           } else {
-            categories.pendingUpdate.push(apt);
+            categories.pendingUpdate.push(apt); // Scheduled today, but time passed
           }
         } else if (aptDateTime > now) {
           categories.upcoming.push(apt);
         } else {
-          categories.pendingUpdate.push(apt);
+          categories.pendingUpdate.push(apt); // Scheduled in the past
         }
       } else {
-        categories.history.push(apt);
+        categories.history.push(apt); // Completed, Cancelled, NoShow
       }
     });
 
+    // Sort sections
     categories.today.sort(
       (a, b) => getAppointmentDateTime(a) - getAppointmentDateTime(b)
-    );
+    ); // Asc
     categories.upcoming.sort(
       (a, b) => getAppointmentDateTime(a) - getAppointmentDateTime(b)
-    );
+    ); // Asc
     categories.pendingUpdate.sort(
       (a, b) => getAppointmentDateTime(b) - getAppointmentDateTime(a)
-    );
+    ); // Desc
     categories.history.sort(
       (a, b) => getAppointmentDateTime(b) - getAppointmentDateTime(a)
-    );
+    ); // Desc
 
     return categories;
   }, [
-    allAppointments,
-    filterDoctor,
+    appointments,
+    filterPatientName,
     filterStatus,
     filterStartDate,
     filterEndDate,
   ]);
 
   // --- Action Handlers ---
-  const handleCancel = async (id) => {
-    if (window.confirm("Are you sure you want to cancel this appointment?")) {
-      setError("");
+  const handleViewEdit = (appointmentId) => {
+    navigate(`/edit/${appointmentId}`); // Navigate to the form for editing/completing
+  };
+
+  const handleCancelByDoctor = async (appointmentId) => {
+    if (
+      window.confirm(
+        "Are you sure you want to cancel this patient's appointment?"
+      )
+    ) {
       setLoading(true);
+      setError("");
       try {
-        await axiosInstance.patch(`/appointments/${id}`, {
+        await axiosInstance.patch(`/appointments/${appointmentId}`, {
           status: "cancelled",
         });
-        await fetchAppointments(); // Refresh list
+        await fetchDoctorSchedule(); // Refresh schedule
       } catch (err) {
         console.error("Error cancelling appointment:", err);
         setError(
           err.response?.data?.message || "Failed to cancel appointment."
         );
-        setLoading(false); // Important on error
+        setLoading(false); // Ensure loading is off on error
       }
     }
   };
 
-  const handleReschedule = (appointmentId) => {
-    navigate(`/edit/${appointmentId}`);
-  };
-
-  // Handler for Book Again
-  const handleBookAgain = (appointment) => {
-    if (!appointment.doctorId?._id) {
-      console.error(
-        "Cannot rebook, doctor ID missing from appointment data:",
-        appointment
+  // --- Render Logic ---
+  const renderCard = (apt, section) => {
+    if (!apt || !apt._id) {
+      console.warn(
+        "Attempted to render invalid appointment card in ScheduleView",
+        apt
       );
-      setError("Could not prefill doctor information for rebooking.");
-      return;
+      return null;
     }
-    console.log("Navigating to /add with prefill:", {
-      doctorId: appointment.doctorId._id,
-      reason: appointment.reason,
-    });
-    navigate("/add", {
-      state: {
-        prefillData: {
-          doctorId: appointment.doctorId._id, // Pass doctor ID
-          reason: appointment.reason, // Pass reason
-        },
-      },
-    });
-  };
 
-  // --- Render Function for Cards ---
-  const renderAppointmentCard = (appointment, section) => {
-    if (!appointment || !appointment._id) return null;
     const isPastScheduled =
-      section === "pendingUpdate" && appointment.status === "scheduled";
+      section === "pendingUpdate" && apt.status === "scheduled";
 
-    let displayStatus = appointment.status
-      ? appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)
+    // Status display text
+    let displayStatus = apt.status
+      ? apt.status.charAt(0).toUpperCase() + apt.status.slice(1)
       : "Unknown";
     if (displayStatus === "Noshow") displayStatus = "No Show";
-    if (isPastScheduled) displayStatus = "Pending";
+    if (isPastScheduled) displayStatus = "Pending"; // Override for Pending section
 
-    let badgeClass = `status-${appointment.status}`;
+    // Badge class
+    let badgeClass = `status-${apt.status}`;
     if (isPastScheduled) badgeClass = "status-pending";
 
     return (
-      <div key={appointment._id} className="appointment-card">
+      <div key={apt._id} className="appointment-card">
+        {/* *** Card Header Wrapper Added *** */}
         <div className="card-header">
-          <h3>{appointment.doctorId?.name || "N/A"}</h3>
+          <h3>
+            Patient: {apt.patientUserId?.name || apt.patientName || "N/A"}
+          </h3>
           <span className={`status-badge ${badgeClass}`}>{displayStatus}</span>
         </div>
+
+        {/* Rest of the card content */}
+        {apt.patientUserId?.email && <p><strong>Email:</strong> {apt.patientUserId.email}</p>}
         <p>
-          <strong>Specialization:</strong>{" "}
-          {appointment.doctorId?.specialization || "N/A"}
+          <strong>Date:</strong> {formatDate(apt.appointmentDate)}
         </p>
         <p>
-          <strong>Date:</strong> {formatDate(appointment.appointmentDate)}
+          <strong>Time:</strong> {formatTime12Hour(apt.startTime)} -{" "}
+          {formatTime12Hour(apt.endTime)} ({apt.duration} mins)
         </p>
         <p>
-          <strong>Time:</strong> {formatTime12Hour(appointment.startTime)} -{" "}
-          {formatTime12Hour(appointment.endTime)} ({appointment.duration} mins)
+          <strong>Reason:</strong> {apt.reason}
         </p>
-        <p>
-          <strong>Reason:</strong> {appointment.reason}
-        </p>
-        {appointment.status === "completed" && appointment.remarks && (
+        {apt.remarks && (
           <p className="remarks">
-            <strong>Doctor's Remarks:</strong> {appointment.remarks}
+            <strong>Remarks:</strong> {apt.remarks}
           </p>
         )}
+        {/* Action Buttons */}
         <div className="appointment-actions">
-          {section === "pendingUpdate" && (
-            <>
-              <button
-                className="action-button reschedule"
-                onClick={() => handleReschedule(appointment._id)}
-              >
-                Reschedule
-              </button>
-              <button
-                className="action-button cancel"
-                onClick={() => handleCancel(appointment._id)}
-              >
-                Cancel
-              </button>
-            </>
-          )}
-          {(section === "today" || section === "upcoming") && (
+          {(section === "today" || section === "pendingUpdate") && (
             <>
               <button
                 className="action-button edit"
-                onClick={() => handleReschedule(appointment._id)}
+                onClick={() => handleViewEdit(apt._id)}
               >
-                Edit Details
+                Complete / Edit
               </button>
               <button
                 className="action-button cancel"
-                onClick={() => handleCancel(appointment._id)}
+                onClick={() => handleCancelByDoctor(apt._id)}
               >
                 Cancel
               </button>
             </>
           )}
-          {/* *** MODIFIED: History Section Buttons Logic *** */}
-          {section === "history" && (
+          {section === "upcoming" && (
             <>
-              {/* Show "Book Again" ONLY for cancelled or noshow */}
-              {(appointment.status === "cancelled" ||
-                appointment.status === "noshow") && (
-                <button
-                  className="action-button book-again"
-                  onClick={() => handleBookAgain(appointment)}
-                >
-                  Book Again
-                </button>
-              )}
-              {/* Show "View Details" for completed appointments */}
-              {appointment.status === "completed" && (
-                <button
-                  className="action-button view"
-                  onClick={() => handleReschedule(appointment._id)} // Still goes to edit form for viewing
-                >
-                  View Details
-                </button>
-              )}
-              {/* Optional: Add a fallback for other unexpected history statuses if needed */}
+              <button
+                className="action-button view" // Changed to view as per previous discussion
+                onClick={() => handleViewEdit(apt._id)}
+              >
+                View / Edit
+              </button>
+              <button
+                className="action-button cancel"
+                onClick={() => handleCancelByDoctor(apt._id)}
+              >
+                Cancel
+              </button>
             </>
+          )}
+          {section === "history" && (
+            <button
+              className="action-button view"
+              onClick={() => handleViewEdit(apt._id)}
+            >
+              View Details
+            </button>
           )}
         </div>
       </div>
     );
   };
 
-  // --- Main Render ---
-  if (loading && allAppointments.length === 0) {
-    return <div className="loading">Loading your appointments...</div>;
-  }
-  if (error) {
-    return <div className="message error">{error}</div>;
-  }
-  if (!token || !user || user.role !== "patient") {
-    return (
-      <div className="message error">
-        Please log in as a patient to view appointments.
-      </div>
-    );
+  // --- Main Component Render ---
+  if (loading && appointments.length === 0)
+    return <div className="loading">Loading schedule...</div>;
+  if (error) return <div className="message error">{error}</div>;
+  if (user?.role !== "doctor") {
+    return <div className="message error">This view is for doctors.</div>;
   }
 
-  const anyFiltersActive =
-    filterDoctor || filterStatus || filterStartDate || filterEndDate;
   const totalAppointments = Object.values(categorizedAppointments).reduce(
     (sum, cat) => sum + cat.length,
     0
   );
+  const anyFiltersActive =
+    filterPatientName || filterStatus || filterStartDate || filterEndDate;
 
   return (
-    <div className="appointment-list">
-      <h1>My Appointments</h1>
-
+    <div className="schedule-view">
       {/* Filters */}
       <div className="controls-container filter-controls">
         <div className="filter-group">
-          <label htmlFor="filterDoctor">Doctor:</label>
-          <select
-            id="filterDoctor"
-            value={filterDoctor}
-            onChange={(e) => setFilterDoctor(e.target.value)}
-          >
-            <option value="">All Doctors</option>
-            {doctorsList.map((doc) => (
-              <option key={doc._id} value={doc._id}>
-                {doc.name} ({doc.specialization})
-              </option>
-            ))}
-          </select>
+          <label htmlFor="filterPatientName">Patient Name:</label>
+          <input
+            type="text"
+            id="filterPatientName"
+            value={filterPatientName}
+            onChange={(e) => setFilterPatientName(e.target.value)}
+            placeholder="Search by patient name..."
+          />
         </div>
         <div className="filter-group">
           <label htmlFor="filterStatus">Status:</label>
@@ -455,7 +421,6 @@ const AppointmentList = () => {
             id="filterEndDate"
             value={filterEndDate}
             onChange={(e) => setFilterEndDate(e.target.value)}
-            max={formatDateForInput(new Date())}
           />
         </div>
       </div>
@@ -471,27 +436,16 @@ const AppointmentList = () => {
         <p style={{ marginTop: "20px", textAlign: "center" }}>
           {anyFiltersActive
             ? "No appointments match the current filters."
-            : "You have no appointments scheduled yet."}
+            : "No appointments found in your schedule."}
         </p>
-      )}
-
-      {!anyFiltersActive && totalAppointments === 0 && !loading && (
-        <div style={{ textAlign: "center", marginTop: "30px" }}>
-          <button
-            onClick={() => navigate("/add")}
-            className="cta-button primary"
-          >
-            Book New Appointment
-          </button>
-        </div>
       )}
 
       {categorizedAppointments.today.length > 0 && (
         <section>
-          <h2>Today</h2>
+          <h3>Today</h3>
           <div className="appointment-cards">
             {categorizedAppointments.today.map((apt) =>
-              renderAppointmentCard(apt, "today")
+              renderCard(apt, "today")
             )}
           </div>
         </section>
@@ -499,10 +453,10 @@ const AppointmentList = () => {
 
       {categorizedAppointments.pendingUpdate.length > 0 && (
         <section>
-          <h2>Pending Update</h2>
+          <h3>Pending Update</h3>
           <div className="appointment-cards">
             {categorizedAppointments.pendingUpdate.map((apt) =>
-              renderAppointmentCard(apt, "pendingUpdate")
+              renderCard(apt, "pendingUpdate")
             )}
           </div>
         </section>
@@ -510,10 +464,10 @@ const AppointmentList = () => {
 
       {categorizedAppointments.upcoming.length > 0 && (
         <section>
-          <h2>Upcoming</h2>
+          <h3>Upcoming</h3>
           <div className="appointment-cards">
             {categorizedAppointments.upcoming.map((apt) =>
-              renderAppointmentCard(apt, "upcoming")
+              renderCard(apt, "upcoming")
             )}
           </div>
         </section>
@@ -521,10 +475,10 @@ const AppointmentList = () => {
 
       {categorizedAppointments.history.length > 0 && (
         <section>
-          <h2>History</h2>
+          <h3>History</h3>
           <div className="appointment-cards">
             {categorizedAppointments.history.map((apt) =>
-              renderAppointmentCard(apt, "history")
+              renderCard(apt, "history")
             )}
           </div>
         </section>
@@ -533,4 +487,4 @@ const AppointmentList = () => {
   );
 };
 
-export default AppointmentList;
+export default ScheduleView;

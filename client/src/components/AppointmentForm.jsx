@@ -1,207 +1,323 @@
 import React, { useState, useEffect, useContext } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import axios from "axios";
+import { useNavigate, useParams, useLocation } from "react-router-dom"; // Added useLocation
 import AuthContext from "../context/AuthContext";
 
-// Placeholder for doctor data - replace with API call in a real app
-const doctors = [
-  { id: 1, name: "Dr. Smith", type: "Cardiologist" },
-  { id: 2, name: "Dr. Johnson", type: "Pediatrician" },
-  { id: 3, name: "Dr. Williams", type: "Dermatologist" },
-  { id: 4, name: "Dr. Brown", type: "General Practitioner" },
-];
+// --- Helper Functions ---
+const formatDate = (dateString) => {
+  if (!dateString) return "";
+  try {
+    return new Date(dateString).toISOString().split("T")[0];
+  } catch (e) {
+    return "";
+  }
+};
+// ---
 
 const AppointmentForm = () => {
-  const { id } = useParams(); // Get ID from URL for editing
+  const { id } = useParams();
   const navigate = useNavigate();
-  const { token } = useContext(AuthContext);
+  const location = useLocation(); // Get location object
+  const { user, axiosInstance } = useContext(AuthContext);
 
-  const [isEditing, setIsEditing] = useState(!!id);
+  const isEditing = !!id;
+  const isDoctorView = user?.role === "doctor";
+
+  // Extract prefill data from location state
+  const prefillData = location.state?.prefillData;
+
   const [formData, setFormData] = useState({
-    patientName: "",
-    patientEmail: "",
-    patientPhone: "",
-    doctorName: "",
     appointmentDate: "",
-    appointmentTime: "",
-    reason: "",
+    startTime: "",
+    reason: prefillData?.reason || "", // Use prefill data or default
     status: "scheduled",
-    remarks: "", // Remarks field still needed in state
+    remarks: "",
+    patientUserId: "",
+    patientName: isDoctorView ? "" : user?.name || "",
+    patientEmail: isDoctorView ? "" : user?.email || "",
+    patientPhone: "",
+    doctorId: prefillData?.doctorId || null, // Use prefill data or default
+    duration: "",
   });
+
+  const [doctors, setDoctors] = useState([]);
   const [loading, setLoading] = useState(false);
   const [submitMessage, setSubmitMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
+  // Fetch list of doctors (Needed for all modes now to get duration)
   useEffect(() => {
-    // If editing, fetch appointment data
+    // Don't run if editing, as doctor is fetched with appointment data
+    if (isEditing) return;
+
+    setLoading(true);
+    axiosInstance
+      .get("/doctors/list")
+      .then((res) => {
+        const fetchedDoctors = res.data || [];
+        setDoctors(fetchedDoctors);
+        // If doctorId was prefilled (meaning we are creating, not editing), find the duration
+        if (formData.doctorId && !isEditing && fetchedDoctors.length > 0) {
+          const selectedDoc = fetchedDoctors.find(
+            (doc) => doc._id === formData.doctorId
+          );
+          if (selectedDoc) {
+            setFormData((prev) => ({
+              ...prev,
+              duration: selectedDoc.appointmentDuration,
+            }));
+          }
+        }
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error("Error fetching doctors:", err);
+        setErrorMessage("Failed to load doctor list.");
+        setLoading(false);
+      });
+  }, [axiosInstance, formData.doctorId, isEditing]); // Re-run if doctorId changes or if switching between edit/create
+
+  // Fetch appointment data if editing
+  useEffect(() => {
     if (isEditing && id) {
       setLoading(true);
-      axios
-        .get(`http://localhost:8000/api/appointments/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
+      axiosInstance
+        .get(`/appointments/${id}`)
         .then((res) => {
-          const { appointmentDate, ...rest } = res.data;
-          setFormData({
+          const {
+            appointmentDate,
+            doctorId,
+            patientUserId,
+            startTime,
+            duration,
+            patientPhone,
+            ...rest
+          } = res.data;
+          // When editing, doctorId is populated, store the full object
+          setFormData((prev) => ({
+            ...prev,
             ...rest,
-            appointmentDate: appointmentDate.split("T")[0], // Format date for input
-            remarks: rest.remarks || "", // Ensure remarks is not undefined
-          });
+            appointmentDate: formatDate(appointmentDate),
+            startTime: startTime || "",
+            duration: duration || "",
+            doctorId: doctorId || null, // Store populated doctor object
+            patientUserId: patientUserId?._id || "",
+            patientName: rest.patientName || patientUserId?.name || "",
+            patientEmail: patientUserId?.email || "",
+            patientPhone: patientPhone || "",
+            remarks: rest.remarks || "",
+          }));
           setLoading(false);
         })
         .catch((err) => {
           console.error("Error fetching appointment:", err);
-          setErrorMessage("Failed to load appointment data.");
+          setErrorMessage(
+            err.response?.data?.message || "Failed to load appointment data."
+          );
           setLoading(false);
         });
     }
-  }, [id, isEditing, token]);
+  }, [id, isEditing, axiosInstance]);
 
+  // Handle form changes
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData((prev) => {
+      let newState = { ...prev, [name]: value };
+      // If patient changes doctor manually during creation/rebooking
+      if (!isEditing && !isDoctorView && name === "doctorId") {
+        const selectedDoctor = doctors.find((doc) => doc._id === value);
+        newState.duration = selectedDoctor
+          ? selectedDoctor.appointmentDuration
+          : "";
+      }
+      return newState;
+    });
     setErrorMessage("");
     setSubmitMessage("");
   };
 
+  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage("");
     setSubmitMessage("");
-    setLoading(true);
 
-    // Frontend check: Remarks required if setting status to completed (Only relevant when editing)
     if (
       isEditing &&
+      isDoctorView &&
       formData.status === "completed" &&
       (!formData.remarks || formData.remarks.trim() === "")
     ) {
       setErrorMessage(
-        "Remarks are required to mark an appointment as completed."
+        "Doctor's remarks are required to mark an appointment as completed."
       );
-      setLoading(false);
       return;
     }
 
-    // Prepare data, ensuring remarks is included only if editing or if it has a value
-    const dataToSend = { ...formData };
-    if (!isEditing) {
-      // Don't send an empty remarks field when creating
-      delete dataToSend.remarks;
+    setLoading(true);
+    let dataToSend = {};
+    let requestMethod = "patch";
+    let requestUrl = `/appointments/${id}`;
+
+    if (isEditing) {
+      dataToSend = {
+        appointmentDate: formData.appointmentDate,
+        startTime: formData.startTime,
+        reason: formData.reason,
+        ...(isDoctorView && { status: formData.status }),
+        ...(isDoctorView && { remarks: formData.remarks }),
+      };
+    } else {
+      // CREATION
+      requestMethod = "post";
+      requestUrl = "/appointments";
+      dataToSend = {
+        doctorId: formData.doctorId, // Send ID string
+        appointmentDate: formData.appointmentDate,
+        startTime: formData.startTime,
+        reason: formData.reason,
+        patientPhone: formData.patientPhone,
+      };
     }
 
     try {
+      let responseMessage = "";
       if (isEditing) {
-        await axios.patch(
-          `http://localhost:8000/api/appointments/${id}`,
-          dataToSend,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-        setSubmitMessage("Appointment updated successfully!");
+        await axiosInstance.patch(requestUrl, dataToSend);
+        responseMessage = "Appointment updated successfully!";
       } else {
-        await axios.post("http://localhost:8000/api/appointments", dataToSend, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        setSubmitMessage("Appointment scheduled successfully!");
+        await axiosInstance.post(requestUrl, dataToSend);
+        responseMessage = "Appointment scheduled successfully!";
       }
-      setTimeout(() => {
-        navigate("/appointments");
-      }, 1500);
+      setSubmitMessage(responseMessage);
+      const targetPath = isDoctorView ? "/doctor/dashboard" : "/appointments";
+      navigate(targetPath, { replace: true }); // Immediate navigation
     } catch (err) {
-      console.error("Error submitting form:", err);
-      if (err.response && err.response.data && err.response.data.message) {
-        setErrorMessage(err.response.data.message);
-      } else {
-        setErrorMessage(
-          `Error ${
-            isEditing ? "updating" : "scheduling"
-          } appointment. Please try again.`
-        );
-      }
-    } finally {
-      setLoading(false);
+      console.error(
+        `Error ${isEditing ? "updating" : "scheduling"} appointment:`,
+        err.response?.data || err.message || err
+      );
+      setErrorMessage(
+        err.response?.data?.message ||
+          `Error ${isEditing ? "updating" : "scheduling"} appointment.`
+      );
+      setLoading(false); // Set loading false only on error
     }
   };
 
-  if (loading && isEditing) {
-    return <div className="loading">Loading appointment details...</div>;
+  // --- Loading State ---
+  if (loading && !submitMessage && !errorMessage) {
+    return <div className="loading">Loading...</div>;
   }
 
-  // Disable 'Completed' status if editing and remarks are empty
   const isCompletedDisabled =
     isEditing &&
-    formData.status === "completed" &&
+    isDoctorView &&
     (!formData.remarks || formData.remarks.trim() === "");
 
+  // --- JSX Render ---
   return (
     <div className="appointment-form-container">
       <h2>{isEditing ? "Edit Appointment" : "Schedule New Appointment"}</h2>
 
       {submitMessage && <div className="message success">{submitMessage}</div>}
-
       {errorMessage && <div className="message error">{errorMessage}</div>}
 
       <form onSubmit={handleSubmit} className="appointment-form">
-        {/* Patient Details */}
-        <div className="form-group">
-          <label htmlFor="patientName">Patient Name</label>
-          <input
-            type="text"
-            id="patientName"
-            name="patientName"
-            value={formData.patientName}
-            onChange={handleChange}
-            required
-          />
-        </div>
-        <div className="form-group">
-          <label htmlFor="patientEmail">Email</label>
-          <input
-            type="email"
-            id="patientEmail"
-            name="patientEmail"
-            value={formData.patientEmail}
-            onChange={handleChange}
-            required
-          />
-        </div>
-        <div className="form-group">
-          <label htmlFor="patientPhone">Phone</label>
-          <input
-            type="tel"
-            id="patientPhone"
-            name="patientPhone"
-            value={formData.patientPhone}
-            onChange={handleChange}
-            required
-          />
-        </div>
+        {/* Patient Details Section */}
+        {isEditing && (
+          <>
+            <div className="form-group">
+              <label>Patient Name</label>
+              <input type="text" value={formData.patientName} disabled />
+            </div>
+            <div className="form-group">
+              <label>Patient Email</label>
+              <input type="email" value={formData.patientEmail} disabled />
+            </div>
+            <div className="form-group">
+              <label>Patient Phone</label>
+              <input
+                type="tel"
+                value={formData.patientPhone || "N/A"}
+                disabled
+              />
+            </div>
+          </>
+        )}
+        {!isDoctorView && !isEditing && (
+          <>
+            <div className="form-group">
+              <label htmlFor="patientName">Your Name</label>
+              <input
+                type="text"
+                id="patientName"
+                value={formData.patientName}
+                disabled
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="patientEmail">Your Email</label>
+              <input
+                type="email"
+                id="patientEmail"
+                value={formData.patientEmail}
+                disabled
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="patientPhone">Your Phone</label>
+              <input
+                type="tel"
+                id="patientPhone"
+                name="patientPhone"
+                value={formData.patientPhone}
+                onChange={handleChange}
+                required
+                placeholder="Enter your phone number"
+              />
+            </div>
+          </>
+        )}
 
-        {/* Doctor Selection */}
-        <div className="form-group">
-          <label htmlFor="doctorName">Doctor</label>
-          <select
-            id="doctorName"
-            name="doctorName"
-            value={formData.doctorName}
-            onChange={handleChange}
-            required
-          >
-            <option value="">Select a doctor</option>
-            {doctors.map((doc) => (
-              <option key={doc.id} value={doc.name}>
-                {doc.name} ({doc.type})
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* Doctor Section */}
+        {/* Only show dropdown if patient is creating/rebooking */}
+        {!isDoctorView && !isEditing && (
+          <div className="form-group">
+            <label htmlFor="doctorId">Doctor</label>
+            <select
+              id="doctorId"
+              name="doctorId"
+              value={formData.doctorId || ""} // Uses prefilled ID if available
+              onChange={handleChange}
+              required
+              disabled={loading} // Disable while doctors are loading
+            >
+              <option value="">Select a doctor</option>
+              {doctors.map((doc) => (
+                <option key={doc._id} value={doc._id}>
+                  {doc.name} ({doc.specialization}) - {doc.appointmentDuration}{" "}
+                  min slots
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        {/* Display doctor name when editing */}
+        {isEditing && (
+          <div className="form-group">
+            <label>Doctor</label>
+            <input
+              type="text"
+              value={`${formData.doctorId?.name || "N/A"} (${
+                formData.doctorId?.specialization || "N/A"
+              })`}
+              disabled
+            />
+          </div>
+        )}
 
-        {/* Date & Time */}
+        {/* Date, Time, Reason */}
         <div className="form-group">
           <label htmlFor="appointmentDate">Appointment Date</label>
           <input
@@ -214,18 +330,19 @@ const AppointmentForm = () => {
           />
         </div>
         <div className="form-group">
-          <label htmlFor="appointmentTime">Appointment Time</label>
+          <label htmlFor="startTime">Start Time</label>
           <input
             type="time"
-            id="appointmentTime"
-            name="appointmentTime"
-            value={formData.appointmentTime}
+            id="startTime"
+            name="startTime"
+            value={formData.startTime}
             onChange={handleChange}
             required
           />
+          {formData.duration && (
+            <small> (Duration: {formData.duration} minutes)</small>
+          )}
         </div>
-
-        {/* Reason */}
         <div className="form-group">
           <label htmlFor="reason">Reason for Visit</label>
           <textarea
@@ -237,8 +354,8 @@ const AppointmentForm = () => {
           ></textarea>
         </div>
 
-        {/* Remarks (Conditionally Rendered) */}
-        {isEditing && (
+        {/* Remarks (Doctor Edit View / Patient Read View) */}
+        {isEditing && isDoctorView && (
           <div className="form-group">
             <label htmlFor="remarks">Doctor's Remarks</label>
             <textarea
@@ -248,41 +365,76 @@ const AppointmentForm = () => {
               onChange={handleChange}
               rows="4"
               placeholder="Add remarks here (required for completion)..."
+              disabled={formData.status === "cancelled"}
             ></textarea>
           </div>
         )}
+        {isEditing && !isDoctorView && formData.remarks && (
+          <div className="form-group">
+            <label>Doctor's Remarks</label>
+            <textarea value={formData.remarks} rows="4" disabled></textarea>
+          </div>
+        )}
 
-        {/* Status */}
-        <div className="form-group">
-          <label htmlFor="status">Status</label>
-          <select
-            id="status"
-            name="status"
-            value={formData.status}
-            onChange={handleChange}
-            required
-          >
-            <option value="scheduled">Scheduled</option>
-            <option
-              value="completed"
-              disabled={isCompletedDisabled}
-              title={
-                isCompletedDisabled ? "Remarks are required to complete" : ""
-              }
+        {/* Status (Doctor Edit View / Patient Read View) */}
+        {isEditing && isDoctorView && (
+          <div className="form-group">
+            <label htmlFor="status">Status</label>
+            <select
+              id="status"
+              name="status"
+              value={formData.status}
+              onChange={handleChange}
+              required
+              disabled={formData.status === "cancelled"}
             >
-              Completed {isCompletedDisabled ? "(Remarks Required)" : ""}
-            </option>
-            <option value="cancelled">Cancelled</option>
-          </select>
-        </div>
+              <option value="scheduled">Scheduled</option>
+              <option
+                value="completed"
+                disabled={isCompletedDisabled}
+                title={isCompletedDisabled ? "Add remarks to complete" : ""}
+              >
+                Completed {isCompletedDisabled ? "(Remarks Required)" : ""}
+              </option>
+              <option value="noshow">No Show</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+        )}
+        {isEditing && !isDoctorView && (
+          <div className="form-group">
+            <label>Status</label>
+            <input
+              type="text"
+              value={
+                formData.status.charAt(0).toUpperCase() +
+                formData.status.slice(1)
+              }
+              disabled
+            />
+          </div>
+        )}
 
-        <button type="submit" className="submit-btn" disabled={loading}>
-          {loading
-            ? "Submitting..."
-            : isEditing
-            ? "Update Appointment"
-            : "Schedule Appointment"}
-        </button>
+        {/* Submit Button */}
+        {formData.status !== "cancelled" && (
+          <button
+            type="submit"
+            className="submit-btn"
+            disabled={
+              loading ||
+              (isDoctorView &&
+                isEditing &&
+                formData.status === "completed" &&
+                isCompletedDisabled)
+            }
+          >
+            {loading
+              ? "Submitting..."
+              : isEditing
+              ? "Update Appointment"
+              : "Schedule Appointment"}
+          </button>
+        )}
       </form>
     </div>
   );

@@ -1,233 +1,415 @@
+// server/routes/appointmentRoutes.js
 const express = require("express");
 const router = express.Router();
-const Appointment = require("../models/appointment"); // Corrected model name import
-const { protect } = require("../middleware/authMiddleware");
+const Appointment = require("../models/appointment");
+const Doctor = require("../models/Doctor");
+const { protect, isDoctor } = require("../middleware/authMiddleware");
 
-// Get all appointments - modified to filter by userId if authenticated
-router.get("/", protect, async (req, res) => {
+// --- Helper Functions (Keep existing ones like timeToMinutes, hasConflict) ---
+const timeToMinutes = (timeStr) => {
+  if (!timeStr || !timeStr.includes(":")) return NaN;
+  const [hours, minutes] = timeStr.split(":").map(Number);
+  if (
+    isNaN(hours) ||
+    isNaN(minutes) ||
+    hours < 0 ||
+    hours > 23 ||
+    minutes < 0 ||
+    minutes > 59
+  )
+    return NaN;
+  return hours * 60 + minutes;
+};
+
+const hasConflict = (
+  newApptStartTime,
+  newApptEndTime,
+  existingAppointments
+) => {
+  const newStartMinutes = timeToMinutes(newApptStartTime);
+  const newEndMinutes = timeToMinutes(newApptEndTime);
+  if (isNaN(newStartMinutes) || isNaN(newEndMinutes)) return true; // Treat invalid as conflict
+
+  for (const existing of existingAppointments) {
+    const existingStartMinutes = timeToMinutes(existing.startTime);
+    const existingEndMinutes = timeToMinutes(existing.endTime);
+    if (isNaN(existingStartMinutes) || isNaN(existingEndMinutes)) continue;
+    if (
+      newStartMinutes < existingEndMinutes &&
+      newEndMinutes > existingStartMinutes
+    ) {
+      return true; // Conflict found
+    }
+  }
+  return false; // No conflicts
+};
+// ---
+
+// --- PATIENT ROUTES ---
+// GET MY Appointments (for the logged-in PATIENT) - Stays the same
+router.get("/my-appointments", protect, async (req, res) => {
+  console.log(`--- HIT: GET /my-appointments ---`);
+  if (!req.user || !req.user.id) {
+    console.error(
+      "Error in /my-appointments: req.user or req.user.id is missing!"
+    );
+    return res
+      .status(401)
+      .json({ message: "User not properly authenticated." });
+  }
+  if (req.user.role !== "patient") {
+    console.log(`Access Denied: User role is ${req.user.role}`);
+    return res.status(403).json({ message: "Access denied. Patients only." });
+  }
+  console.log(`Workspaceing appointments for patientUserId: ${req.user.id}`);
   try {
-    const appointments = await Appointment.find({ userId: req.user.id }).sort({
-      appointmentDate: -1,
-      appointmentTime: -1,
-    }); // Sort by date/time
+    const appointments = await Appointment.find({ patientUserId: req.user.id })
+      .populate("doctorId", "name specialization")
+      .sort({ appointmentDate: -1, startTime: -1 });
+    console.log(
+      `Found ${appointments.length} appointments for patient ${req.user.id}`
+    );
     res.json(appointments);
   } catch (err) {
+    console.error(
+      `Error fetching patient appointments for ${req.user.id}:`,
+      err
+    );
     res.status(500).json({ message: err.message });
   }
 });
 
-// Create a new appointment with time conflict validation - protected
+// CREATE a new appointment (by a logged-in PATIENT) - Stays the same
 router.post("/", protect, async (req, res) => {
-  const appointmentData = {
-    ...req.body,
-    userId: req.user.id,
-    remarks: req.body.remarks || "", // Ensure remarks field exists
-  };
-
-  // Prevent setting status to 'completed' without remarks on creation
-  if (
-    appointmentData.status === "completed" &&
-    (!appointmentData.remarks || appointmentData.remarks.trim() === "")
-  ) {
+  if (req.user.role !== "patient") {
     return res
-      .status(400)
-      .json({ message: "Remarks are required to complete an appointment." });
+      .status(403)
+      .json({ message: "Only patients can book appointments." });
   }
-
-  const appointment = new Appointment(appointmentData);
+  const { doctorId, appointmentDate, startTime, reason, patientPhone } =
+    req.body;
+  if (!doctorId || !appointmentDate || !startTime || !reason) {
+    return res.status(400).json({ message: "Missing required fields." });
+  }
 
   try {
-    const reqDate = new Date(req.body.appointmentDate);
-    const [hours, minutes] = req.body.appointmentTime.split(":").map(Number);
-    const requestedDoctor = req.body.doctorName;
+    const doctor = await Doctor.findById(doctorId);
+    if (!doctor) return res.status(404).json({ message: "Doctor not found." });
 
-    reqDate.setHours(hours, minutes, 0, 0);
+    const appointmentDuration = doctor.appointmentDuration || 60;
+    const startMinutes = timeToMinutes(startTime);
+    if (isNaN(startMinutes))
+      return res.status(400).json({ message: "Invalid start time format." });
 
-    const conflictingAppointments = await Appointment.find({
-      status: "scheduled",
-      doctorName: requestedDoctor,
-      appointmentDate: {
-        $gte: new Date(reqDate).setHours(0, 0, 0, 0),
-        $lt: new Date(reqDate).setHours(23, 59, 59, 999),
-      },
-    });
+    const endMinutes = startMinutes + appointmentDuration;
+    const endTime = `${String(Math.floor(endMinutes / 60)).padStart(
+      2,
+      "0"
+    )}:${String(endMinutes % 60).padStart(2, "0")}`;
 
-    for (const existingAppt of conflictingAppointments) {
-      const existingDate = new Date(existingAppt.appointmentDate);
-      const [existingHours, existingMinutes] = existingAppt.appointmentTime
-        .split(":")
-        .map(Number);
-      existingDate.setHours(existingHours, existingMinutes, 0, 0);
+    const requestedDate = new Date(appointmentDate);
+    const reqDateOnly = new Date(
+      Date.UTC(
+        requestedDate.getUTCFullYear(),
+        requestedDate.getUTCMonth(),
+        requestedDate.getUTCDate()
+      )
+    );
+    const startOfDay = new Date(reqDateOnly);
+    const endOfDay = new Date(reqDateOnly);
+    endOfDay.setUTCDate(endOfDay.getUTCDate() + 1);
 
-      const timeDiff = Math.abs(existingDate - reqDate) / (1000 * 60);
+    const existingAppointments = await Appointment.find({
+      doctorId: doctorId,
+      status: { $in: ["scheduled"] },
+      appointmentDate: { $gte: startOfDay, $lt: endOfDay },
+    }).select("startTime endTime");
 
-      if (timeDiff < 60) {
-        return res.status(400).json({
-          message: `Time conflict: Dr. ${
-            requestedDoctor.split(" ")[1]
-          } already has a scheduled appointment within 1 hour of this time`,
-        });
-      }
-    }
-
-    const newAppointment = await appointment.save();
-    res.status(201).json(newAppointment);
-  } catch (err) {
-    if (err.name === "ValidationError") {
-      // Extract validation messages for better feedback
-      const messages = Object.values(err.errors).map((val) => val.message);
-      return res.status(400).json({ message: messages.join(". ") });
-    }
-    res.status(400).json({ message: err.message });
-  }
-});
-
-// Get appointment by ID middleware (used by GET /:id, PATCH /:id, DELETE /:id)
-async function getAppointment(req, res, next) {
-  let appointment;
-  try {
-    appointment = await Appointment.findById(req.params.id);
-    if (appointment == null) {
-      return res.status(404).json({ message: "Appointment not found" });
-    }
-
-    // Protect endpoint: Check ownership if user is authenticated
-    if (
-      req.user &&
-      req.user.id &&
-      appointment.userId &&
-      appointment.userId.toString() !== req.user.id.toString()
-    ) {
-      // For security, treat unauthorized access like not found in some cases,
-      // or explicitly return 403 if the distinction is important.
-      // Using 403 for clarity here.
-      return res
-        .status(403)
-        .json({ message: "Not authorized to access this appointment" });
-    }
-  } catch (err) {
-    // Handle invalid ObjectId format
-    if (err.kind === "ObjectId") {
-      return res
-        .status(404)
-        .json({ message: "Appointment not found (Invalid ID)" });
-    }
-    return res.status(500).json({ message: err.message });
-  }
-
-  res.appointment = appointment;
-  next();
-}
-
-// GET Single Appointment by ID (uses getAppointment middleware)
-router.get("/:id", protect, getAppointment, (req, res) => {
-  res.json(res.appointment);
-});
-
-// Update appointment - protected
-router.patch("/:id", protect, getAppointment, async (req, res) => {
-  // Ownership already checked in getAppointment middleware
-
-  const updates = req.body;
-
-  // --- Mandatory Remarks Validation ---
-  // If the status is being updated specifically TO 'completed'
-  if (updates.status && updates.status === "completed") {
-    // Check if remarks are provided in the update OR if they already exist on the document
-    const newRemarks =
-      updates.remarks !== undefined ? updates.remarks : res.appointment.remarks;
-    if (!newRemarks || newRemarks.trim() === "") {
+    if (hasConflict(startTime, endTime, existingAppointments)) {
       return res
         .status(400)
         .json({
-          message: "Remarks are required to mark an appointment as completed.",
+          message: `Time conflict: Dr. ${doctor.name} is not available.`,
         });
     }
-  }
-  // --- End Mandatory Remarks Validation ---
 
-  // Check for time conflicts ONLY if date, time, or doctor is changing AND the new status is 'scheduled'
-  const isTimeOrDoctorChanging =
-    updates.appointmentDate || updates.appointmentTime || updates.doctorName;
-  const isScheduling =
-    (updates.status || res.appointment.status) === "scheduled";
+    const appointment = new Appointment({
+      patientUserId: req.user.id,
+      patientName: req.user.name,
+      patientPhone: patientPhone || req.user.phone || "",
+      doctorId: doctorId,
+      doctorUserId: doctor.userId,
+      appointmentDate: reqDateOnly,
+      startTime: startTime,
+      endTime: endTime,
+      duration: appointmentDuration,
+      reason: reason,
+      status: "scheduled",
+    });
 
-  if (isScheduling && isTimeOrDoctorChanging) {
-    try {
-      const appointmentDate = updates.appointmentDate
-        ? new Date(updates.appointmentDate)
-        : res.appointment.appointmentDate;
-      const appointmentTime =
-        updates.appointmentTime || res.appointment.appointmentTime;
-      const doctorName = updates.doctorName || res.appointment.doctorName;
-
-      const reqDate = new Date(appointmentDate);
-      const [hours, minutes] = appointmentTime.split(":").map(Number);
-      reqDate.setHours(hours, minutes, 0, 0);
-
-      const conflictingAppointments = await Appointment.find({
-        _id: { $ne: res.appointment._id }, // Exclude current appointment
-        status: "scheduled",
-        doctorName: doctorName,
-        appointmentDate: {
-          $gte: new Date(reqDate).setHours(0, 0, 0, 0),
-          $lt: new Date(reqDate).setHours(23, 59, 59, 999),
-        },
-      });
-
-      for (const existingAppt of conflictingAppointments) {
-        const existingDate = new Date(existingAppt.appointmentDate);
-        const [existingHours, existingMinutes] = existingAppt.appointmentTime
-          .split(":")
-          .map(Number);
-        existingDate.setHours(existingHours, existingMinutes, 0, 0);
-        const timeDiff = Math.abs(existingDate - reqDate) / (1000 * 60);
-
-        if (timeDiff < 60) {
-          return res.status(400).json({
-            message: `Time conflict: Dr. ${
-              doctorName.split(" ")[1]
-            } already has a scheduled appointment within 1 hour of this time`,
-          });
-        }
-      }
-    } catch (err) {
-      // Catch potential errors during date/time parsing or DB query
-      return res
-        .status(400)
-        .json({ message: `Error validating time conflict: ${err.message}` });
-    }
-  }
-
-  // Apply updates to the appointment object
-  Object.keys(updates).forEach((key) => {
-    // Prevent direct update of userId or _id
-    if (key !== "userId" && key !== "_id") {
-      res.appointment[key] = updates[key];
-    }
-  });
-
-  try {
-    const updatedAppointment = await res.appointment.save();
-    res.json(updatedAppointment);
+    const newAppointment = await appointment.save();
+    const populatedAppointment = await Appointment.findById(
+      newAppointment._id
+    ).populate("doctorId", "name specialization");
+    res.status(201).json(populatedAppointment);
   } catch (err) {
+    console.error("Error creating appointment:", err);
     if (err.name === "ValidationError") {
       const messages = Object.values(err.errors).map((val) => val.message);
       return res.status(400).json({ message: messages.join(". ") });
     }
-    res.status(400).json({ message: err.message });
+    res.status(500).json({ message: "Server error creating appointment." });
   }
 });
 
-// Delete appointment - protected
-router.delete("/:id", protect, getAppointment, async (req, res) => {
-  // Ownership already checked in getAppointment middleware
+// --- COMMON/SHARED ROUTES ---
+
+// GET a specific appointment by ID - Stays the same
+router.get("/:id", protect, async (req, res) => {
   try {
-    await res.appointment.deleteOne();
-    res.json({ message: "Appointment deleted successfully" });
+    const appointment = await Appointment.findById(req.params.id)
+      .populate("doctorId", "name specialization")
+      .populate("patientUserId", "name email");
+    if (!appointment)
+      return res.status(404).json({ message: "Appointment not found" });
+
+    const isPatientOwner =
+      req.user.role === "patient" &&
+      appointment.patientUserId._id.toString() === req.user.id;
+    const isDoctorOwner =
+      req.user.role === "doctor" &&
+      req.user.doctorProfile &&
+      appointment.doctorId._id.toString() ===
+        req.user.doctorProfile._id.toString();
+
+    if (!isPatientOwner && !isDoctorOwner) {
+      return res.status(403).json({ message: "Not authorized" });
+    }
+    res.json(appointment);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("Error fetching appointment by ID:", err);
+    if (err.kind === "ObjectId")
+      return res
+        .status(404)
+        .json({ message: "Appointment not found (Invalid ID)" });
+    res.status(500).json({ message: "Server error" });
   }
+});
+
+// UPDATE an appointment by ID (Handles rescheduling, status/remarks by doctor, CANCELLATION by patient)
+router.patch("/:id", protect, async (req, res) => {
+  const { appointmentDate, startTime, reason, status, remarks } = req.body;
+  const appointmentId = req.params.id;
+
+  try {
+    const appointment = await Appointment.findById(appointmentId).populate(
+      "doctorId",
+      "appointmentDuration name"
+    );
+    if (!appointment) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+
+    const isPatientOwner =
+      req.user.role === "patient" &&
+      appointment.patientUserId.toString() === req.user.id;
+    const isDoctorOwner =
+      req.user.role === "doctor" &&
+      req.user.doctorProfile &&
+      appointment.doctorId._id.toString() ===
+        req.user.doctorProfile._id.toString();
+
+    if (!isPatientOwner && !isDoctorOwner) {
+      return res
+        .status(403)
+        .json({ message: "Not authorized to update this appointment." });
+    }
+
+    const allowedUpdates = {};
+    let requiresConflictCheck = false;
+
+    // --- Date/Time/Reason Updates (Allowed if scheduled) ---
+    if (appointment.status === "scheduled") {
+      if (appointmentDate) {
+        try {
+          const newDate = new Date(appointmentDate);
+          if (isNaN(newDate.getTime())) throw new Error("Invalid date format");
+          allowedUpdates.appointmentDate = new Date(
+            Date.UTC(
+              newDate.getUTCFullYear(),
+              newDate.getUTCMonth(),
+              newDate.getUTCDate()
+            )
+          );
+          requiresConflictCheck = true;
+        } catch (e) {
+          return res
+            .status(400)
+            .json({ message: "Invalid appointment date provided." });
+        }
+      }
+      if (startTime) {
+        if (!/^\d{2}:\d{2}$/.test(startTime))
+          return res
+            .status(400)
+            .json({ message: "Invalid start time format (HH:MM)." });
+        allowedUpdates.startTime = startTime;
+        requiresConflictCheck = true;
+      }
+      if (reason) allowedUpdates.reason = reason;
+    } else if (appointmentDate || startTime || reason) {
+      return res
+        .status(400)
+        .json({
+          message: `Cannot change date, time, or reason for appointments with status '${appointment.status}'.`,
+        });
+    }
+
+    // --- Status/Remarks Updates ---
+    if (isDoctorOwner) {
+      // Doctor can update status and remarks
+      if (status) {
+        if (
+          !["completed", "cancelled", "scheduled", "noshow"].includes(status)
+        ) {
+          return res.status(400).json({ message: "Invalid status value." });
+        }
+        if (status === "completed") {
+          const currentRemarks =
+            remarks !== undefined ? remarks : appointment.remarks;
+          if (!currentRemarks || currentRemarks.trim() === "") {
+            return res
+              .status(400)
+              .json({
+                message:
+                  "Remarks are required to mark an appointment as completed.",
+              });
+          }
+        }
+        allowedUpdates.status = status;
+        if (status !== "scheduled") requiresConflictCheck = false; // No conflict if not scheduling
+      }
+      if (remarks !== undefined) {
+        allowedUpdates.remarks = remarks;
+      }
+    } else if (isPatientOwner) {
+      // **MODIFIED LOGIC**: Patient can ONLY update status to 'cancelled'
+      if (status && status !== "cancelled") {
+        // Patient trying to set status to something else
+        return res
+          .status(403)
+          .json({ message: "Patients can only cancel appointments." });
+      }
+      if (status === "cancelled") {
+        if (appointment.status !== "scheduled") {
+          return res
+            .status(400)
+            .json({ message: `Only scheduled appointments can be cancelled.` });
+        }
+        allowedUpdates.status = "cancelled";
+        requiresConflictCheck = false; // No conflict check needed for cancellation
+      }
+      if (remarks !== undefined) {
+        // Patient trying to update remarks
+        return res
+          .status(403)
+          .json({ message: "Patients cannot update remarks." });
+      }
+    }
+
+    // --- Check if any valid updates exist ---
+    if (Object.keys(allowedUpdates).length === 0) {
+      return res
+        .status(400)
+        .json({ message: "No valid or allowed updates provided." });
+    }
+
+    // --- Conflict Check (if date/time changed for a scheduled appointment) ---
+    if (
+      requiresConflictCheck &&
+      (allowedUpdates.status === "scheduled" ||
+        (!allowedUpdates.status && appointment.status === "scheduled"))
+    ) {
+      // (Conflict check logic remains the same as before)
+      console.log("--- Running Conflict Check for PATCH ---");
+      const checkDate =
+        allowedUpdates.appointmentDate || appointment.appointmentDate;
+      const checkStartTime = allowedUpdates.startTime || appointment.startTime;
+      const duration = appointment.duration;
+      const startMinutes = timeToMinutes(checkStartTime);
+      if (isNaN(startMinutes))
+        return res
+          .status(400)
+          .json({ message: "Invalid start time for conflict check." });
+
+      const endMinutes = startMinutes + duration;
+      const checkEndTime = `${String(Math.floor(endMinutes / 60)).padStart(
+        2,
+        "0"
+      )}:${String(endMinutes % 60).padStart(2, "0")}`;
+
+      const checkDateOnly = new Date(checkDate);
+      const startOfDay = new Date(
+        Date.UTC(
+          checkDateOnly.getUTCFullYear(),
+          checkDateOnly.getUTCMonth(),
+          checkDateOnly.getUTCDate()
+        )
+      );
+      const endOfDay = new Date(startOfDay);
+      endOfDay.setUTCDate(endOfDay.getUTCDate() + 1);
+
+      const existingAppointments = await Appointment.find({
+        _id: { $ne: appointment._id },
+        doctorId: appointment.doctorId._id,
+        status: "scheduled",
+        appointmentDate: { $gte: startOfDay, $lt: endOfDay },
+      }).select("startTime endTime");
+
+      if (hasConflict(checkStartTime, checkEndTime, existingAppointments)) {
+        console.log("!!! Conflict Detected during PATCH !!!");
+        return res
+          .status(400)
+          .json({
+            message: `Time conflict: Dr. ${appointment.doctorId.name} is not available at the new requested time.`,
+          });
+      }
+      console.log("--- No Conflict Found for PATCH ---");
+      if (allowedUpdates.startTime) {
+        allowedUpdates.endTime = checkEndTime; // Update endTime if startTime changed
+      }
+    }
+
+    // Apply allowed updates
+    Object.assign(appointment, allowedUpdates);
+    const updatedAppointment = await appointment.save();
+
+    const populatedAppointment = await Appointment.findById(
+      updatedAppointment._id
+    )
+      .populate("doctorId", "name specialization")
+      .populate("patientUserId", "name email");
+
+    res.json(populatedAppointment);
+  } catch (err) {
+    console.error("Error updating appointment:", err);
+    if (err.name === "ValidationError") {
+      const messages = Object.values(err.errors).map((val) => val.message);
+      return res.status(400).json({ message: messages.join(". ") });
+    }
+    if (err.kind === "ObjectId")
+      return res
+        .status(404)
+        .json({ message: "Appointment not found (Invalid ID)" });
+    res.status(500).json({ message: "Server error updating appointment." });
+  }
+});
+
+// DELETE appointment - Still recommend using PATCH to cancel instead
+router.delete("/:id", protect, async (req, res) => {
+  return res
+    .status(405)
+    .json({ message: "Deletion not allowed. Cancel instead." });
 });
 
 module.exports = router;
