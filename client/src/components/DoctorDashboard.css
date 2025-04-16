@@ -1,0 +1,43 @@
+/* src/components/DoctorDashboard.css */
+.doctor-dashboard h1 {
+  margin-bottom: 15px;
+}
+
+.doctor-dashboard h2 {
+  margin-bottom: 10px;
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.doctor-dashboard p {
+  line-height: 1.4;
+  margin-bottom: 5px; /* Add slight spacing */
+  color: #555;
+}
+
+.doctor-dashboard h3 {
+  /* For "Your Upcoming Schedule" */
+  margin: 25px 0 15px 0;
+  color: #333;
+  border-bottom: 2px solid #eee;
+  padding-bottom: 8px;
+  font-size: 1.3rem;
+}
+
+/* Style for the "Edit Profile & Manage Availability" link if used */
+.cta-button-link {
+  /* Reuse if desired, or create new style */
+  display: inline-block;
+  margin: 15px 0;
+  padding: 10px 20px;
+  background-color: #3b4bb3;
+  color: white;
+  text-decoration: none;
+  border-radius: 20px;
+  transition: background-color 0.3s ease;
+  font-weight: 500;
+}
+
+.cta-button-link:hover {
+  background-color: #2a3a93;
+}

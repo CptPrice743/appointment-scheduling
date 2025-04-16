@@ -1,0 +1,153 @@
+/* src/components/Register.css */
+
+/* --- SHARED Form Styles (Copied) --- */
+.appointment-form-container {
+  /* Using the same container */
+  max-width: 600px;
+  margin: 5vh auto;
+  background-color: white;
+  padding: 30px;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.appointment-form-container h2 {
+  margin-bottom: 20px;
+  color: #333;
+  text-align: center;
+}
+
+.appointment-form .form-group {
+  margin-bottom: 20px;
+}
+
+.appointment-form label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+  color: #333;
+}
+
+.appointment-form input,
+.appointment-form select,
+.appointment-form textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.appointment-form input:disabled,
+.appointment-form textarea:disabled {
+  background-color: #f8f9fa;
+  cursor: not-allowed;
+  color: #6c757d;
+}
+
+.submit-btn {
+  display: block;
+  width: 100%;
+  padding: 12px;
+  background-color: #3a4cb3;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.submit-btn:hover {
+  background-color: #2a3a93;
+}
+.submit-btn:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+.submit-btn:disabled:hover {
+  background-color: #bbbbbb;
+}
+
+/* --- SHARED Availability Fieldset Styles (Copied) --- */
+.availability-fieldset {
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 20px;
+  margin-top: 15px;
+  margin-bottom: 20px;
+  background-color: #f9fafb;
+}
+
+.availability-fieldset legend {
+  font-weight: 600;
+  padding: 0 8px;
+  margin-left: 10px;
+  font-size: 1rem;
+  color: #1f2937;
+}
+
+.availability-fieldset .form-group {
+  /* Add specificity */
+  margin-bottom: 15px;
+}
+
+.time-range label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+.time-range > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap; /* Allow wrapping if needed */
+}
+
+.time-range input[type="time"] {
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  max-width: 120px; /* Limit width */
+}
+
+.time-range span {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+
+.checkbox-group input[type="checkbox"] {
+  width: auto;
+  height: 16px;
+  width: 16px;
+  cursor: pointer;
+  margin-top: 2px; /* Align better with label */
+}
+
+.checkbox-group label {
+  margin-bottom: 0;
+  font-weight: normal;
+  cursor: pointer;
+  color: #374151;
+}
+
+/* Specific styles for Register link */
+.register-link-container {
+  /* Add a container div in JSX if needed */
+  margin-top: 20px;
+  text-align: center;
+}

@@ -1,0 +1,68 @@
+.navbar {
+  background-color: #fff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 15px 0;
+}
+
+.navbar-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 90%; /* Use container variable? */
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+.navbar-logo {
+  color: #3b4bb3;
+  text-decoration: none;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.nav-menu {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  align-items: center;
+}
+
+.nav-item {
+  margin-left: 20px;
+}
+
+.nav-links {
+  color: #2c3e50;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s ease;
+}
+
+.nav-links:hover {
+  color: #4285f4;
+}
+
+.nav-links.book-btn {
+  background-color: #3b4bb3;
+  color: white;
+  padding: 8px 20px;
+  border-radius: 30px;
+}
+
+.nav-links.book-btn:hover {
+  background-color: #3367d6;
+}
+
+/* Add styles for .login-btn, .register-btn, .logout-btn if they are specific */
+.nav-links.login-btn,
+.nav-links.register-btn,
+.nav-links.logout-btn {
+  /* Example: Add padding or specific styling */
+  padding: 5px 10px;
+}
+
+.welcome-text {
+  margin-right: 15px;
+  color: #5a6a7a;
+}

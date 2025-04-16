@@ -3,7 +3,7 @@ import React, { useContext } from "react";
 import { Link } from "react-router-dom"; // Import Link
 import AuthContext from "../context/AuthContext";
 import ScheduleView from "./ScheduleView"; // Component to show appointments
-// Removed import for SpecificAvailabilityCalendar
+import "./DoctorDashboard.css";
 
 const DoctorDashboard = () => {
   const { user } = useContext(AuthContext);

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import AuthContext from "../context/AuthContext";
+import "./AppointmentList.css";
 
 // --- Helper Functions ---
 const formatDate = (dateString) => {

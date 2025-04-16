@@ -1,4 +1,3 @@
-// File Path: doctor-appointment-scheduling/client/src/components/SpecificAvailabilityCalendar.jsx
 import React, {
   useState,
   useEffect,
@@ -7,9 +6,9 @@ import React, {
   useRef,
 } from "react";
 import Calendar from "react-calendar";
-import "react-calendar/dist/Calendar.css"; // Default calendar styles
+import "react-calendar/dist/Calendar.css";
 import AuthContext from "../context/AuthContext";
-import "./SpecificAvailabilityCalendar.css"; // Make sure this CSS file exists and has .message styles or they are in index.css
+import "./SpecificAvailabilityCalendar.css";
 
 // --- Constants and Helpers ---
 // Ensure this matches the 'enum' in your Doctor.js model exactly

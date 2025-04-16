@@ -10,7 +10,8 @@ import AuthContext from "../context/AuthContext";
 import SpecificAvailabilityCalendar from "./SpecificAvailabilityCalendar";
 import "./AvailabilityManager.css";
 import "./SpecificAvailabilityCalendar.css";
-import "../index.css"; // Or ensure styles are in index.css
+import "./UserProfileEdit.css";
+import "../index.css";
 
 const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 const WEEKENDS = ["Saturday", "Sunday"];

@@ -1,7 +1,7 @@
 // File Path: doctor-appointment-scheduling/client/src/components/AvailabilityManager.jsx
 import React, { useState, useEffect, useContext, useCallback } from "react";
 import AuthContext from "../context/AuthContext";
-import "./AvailabilityManager.css"; // Create this CSS file
+import "./AvailabilityManager.css";
 
 const DAYS_OF_WEEK = [
   "Sunday",

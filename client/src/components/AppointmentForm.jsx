@@ -2,6 +2,8 @@
 import React, { useState, useEffect, useContext, useCallback } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import AuthContext from "../context/AuthContext";
+import "./AppointmentForm.css";
+
 
 // --- Helper Functions ---
 const formatDate = (dateString) => {
