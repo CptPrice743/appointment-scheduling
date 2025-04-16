@@ -109,7 +109,7 @@ body {
 .schedule-view section h3 {
   /* Target section headings */
   margin-bottom: 15px; /* Slightly reduced space below section titles */
-  margin-top: 25px; /* Keep reasonable space above section titles */
+  /* margin-top: 25px; Keep reasonable space above section titles */
   color: #333;
   border-bottom: 2px solid #eee;
   padding-bottom: 8px;
@@ -126,12 +126,9 @@ body {
 .appointment-card {
   background-color: white;
   border-radius: 8px;
-  /* MODIFIED: Reduced top padding */
-  padding: 20px 20px 20px 20px; /* Top: 10px, R/B/L: 20px */
-  /* Alternatively, for slightly more top space: */
-  /* padding: 15px 20px; */ /* Top/Bottom: 15px, Left/Right: 20px */
+  padding: 20px; /* Maintain consistent padding */
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  position: relative;
+  position: relative; /* Crucial: Establishes positioning context for the badge */
   min-height: 200px;
   padding-bottom: 60px; /* Keep space for actions */
   display: flex;
@@ -139,28 +136,31 @@ body {
 }
 
 .schedule-view .appointment-card {
-  padding-top: 0px; /* Reduced top padding specifically for doctor view */
+  padding-top: 20px; /* Reduced top padding specifically for doctor view */
 }
 
 /* Card Header for Title/Badge Alignment */
 .card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px; /* Space below the header */
-  gap: 10px;
+  display: flex; /* Keep using flexbox for title */
+  justify-content: space-between; /* This won't apply to badge anymore */
+  align-items: flex-start; /* Align title to the top */
+  margin-bottom: 15px;
+  gap: 10px; /* Space between elements if any were left */
 }
 
 .appointment-card h3 {
-  margin: 0; /* Remove default margin from h3 */
-  font-size: 1.15rem; /* Adjust size as needed */
-  flex-grow: 1; /* Allow title to take available space */
-  word-break: break-word; /* Prevent long titles breaking layout */
+  margin: 0;
+  font-size: 1.15rem;
+  word-break: break-word;
+  /* Title can now take full width initially */
+  padding-right: 90px; /* Add padding to prevent overlap with the absolute badge */
 }
 
 /* Status Badge Styles (Adjusted) */
 .status-badge {
-  /* Removed absolute positioning properties */
+  position: absolute; /* Position relative to .appointment-card */
+  top: 15px; /* Adjust as needed for vertical position */
+  right: 15px; /* Adjust as needed for horizontal position */
   padding: 6px 12px;
   border-radius: 20px;
   font-size: 0.85rem;
@@ -168,9 +168,10 @@ body {
   color: white;
   line-height: 1;
   text-align: center;
-  min-width: 80px;
+  min-width: 80px; /* Keep min-width */
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  flex-shrink: 0; /* Prevent badge from shrinking */
+  z-index: 2; /* Ensure it's above other content if needed */
+  /* flex-shrink: 0; /* Not needed for absolute */
 }
 
 /* Specific status colors */
@@ -355,10 +356,11 @@ body {
 
 /* --- Message Styles (Keep Existing) --- */
 .message {
-  padding: 10px;
-  margin-bottom: 20px;
+  padding: 10px 15px;
+  margin-bottom: 15px;
   border-radius: 4px;
-  text-align: center;
+  font-size: 0.95rem;
+  border: 1px solid transparent;
 }
 .success {
   background-color: #d4edda;
@@ -457,4 +459,166 @@ body {
 .feature p {
   color: #607d8b;
   font-size: 0.95rem;
+}
+
+.availability-fieldset {
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  padding: 15px;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+.availability-fieldset legend {
+  font-weight: bold;
+  padding: 0 10px;
+  margin-left: 10px;
+  color: #333;
+}
+.time-range > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.time-range span {
+  color: #555;
+}
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.checkbox-group input[type="checkbox"] {
+  width: auto; /* Override default form input width */
+}
+.checkbox-group label {
+  margin-bottom: 0; /* Override default form label margin */
+  font-weight: normal;
+}
+
+.user-profile-edit-container {
+  max-width: 800px; /* Adjust width as needed */
+  margin: 30px auto;
+  padding: 20px;
+}
+
+.profile-section {
+  background-color: white;
+  padding: 25px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 30px;
+}
+
+.profile-section h2,
+.profile-section h4 {
+  margin-bottom: 20px;
+  color: #333;
+}
+
+.profile-form .form-group {
+  margin-bottom: 15px;
+}
+
+.profile-form label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.profile-form input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+.profile-section .info-text {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 15px;
+  margin-top: -10px;
+}
+
+.availability-fieldset {
+  border: 1px solid #e0e0e0;
+  border-radius: 6px;
+  padding: 20px;
+  margin-top: 15px;
+  margin-bottom: 20px;
+  background-color: #f9fafb;
+}
+.availability-fieldset legend {
+  font-weight: 600;
+  padding: 0 8px;
+  margin-left: 10px;
+  font-size: 1rem;
+  color: #1f2937;
+}
+.time-range {
+  margin-bottom: 15px;
+}
+.time-range label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.9rem;
+}
+.time-range > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap; /* Allow wrapping if needed */
+}
+.time-range input[type="time"] {
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  max-width: 120px; /* Limit width */
+}
+.time-range span {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+.checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 15px;
+}
+.checkbox-group input[type="checkbox"] {
+  width: auto;
+  height: 16px;
+  width: 16px;
+  cursor: pointer;
+  margin-top: 2px; /* Align better with label */
+}
+.checkbox-group label {
+  margin-bottom: 0;
+  font-weight: normal;
+  cursor: pointer;
+  color: #374151;
+}
+.save-availability-btn {
+  margin-top: 10px; /* Space above save button */
+}
+
+.message {
+  padding: 10px 15px;
+  margin-bottom: 15px;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  border: 1px solid transparent;
+}
+.message.success {
+  background-color: #d4edda;
+  border-color: #c3e6cb;
+  color: #155724;
+}
+.message.error {
+  background-color: #f8d7da;
+  border-color: #f5c6cb;
+  color: #721c24;
 }

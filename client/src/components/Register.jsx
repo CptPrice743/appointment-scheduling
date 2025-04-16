@@ -1,3 +1,4 @@
+// File Path: doctor-appointment-scheduling/client/src/components/Register.jsx
 import React, { useState, useContext, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AuthContext from "../context/AuthContext.jsx";
@@ -9,81 +10,132 @@ const Register = () => {
     password: "",
     confirmPassword: "",
     role: "patient", // Default role
-    specialization: "", // Doctor specific
-    appointmentDuration: "30", // Doctor specific, default to 30 mins
+    // Doctor specific
+    specialization: "",
+    appointmentDuration: "30",
+    // New simplified availability fields
+    weekdayStartTime: "09:00",
+    weekdayEndTime: "17:00",
+    worksWeekends: false,
+    weekendStartTime: "10:00",
+    weekendEndTime: "14:00",
   });
 
-  const [passwordError, setPasswordError] = useState("");
+  const [formError, setFormError] = useState(""); // Combined error state
 
   const {
-    name,
-    email,
-    password,
-    confirmPassword,
-    role,
-    specialization,
-    appointmentDuration,
-  } = formData;
-  const { register, isAuthenticated, error, clearError, isLoading } =
-    useContext(AuthContext);
+    register,
+    isAuthenticated,
+    error: authError,
+    clearError,
+    isLoading,
+  } = useContext(AuthContext);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // If logged in after registration, redirect based on role
     if (isAuthenticated) {
-      // Navigate to the role-based redirector which will handle the final destination
       navigate("/dashboard", { replace: true });
     }
   }, [isAuthenticated, navigate]);
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-
+    const { name, value, type, checked } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
     // Clear errors on change
     clearError();
-    if (name === "password" || name === "confirmPassword") {
-      setPasswordError("");
-    }
+    setFormError("");
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    clearError(); // Clear previous errors
-    setPasswordError(""); // Clear password mismatch error
+    clearError(); // Clear auth context errors
+    setFormError(""); // Clear form-specific errors
+
+    const {
+      name,
+      email,
+      password,
+      confirmPassword,
+      role,
+      specialization,
+      appointmentDuration,
+      weekdayStartTime,
+      weekdayEndTime,
+      worksWeekends,
+      weekendStartTime,
+      weekendEndTime,
+    } = formData;
 
     if (password !== confirmPassword) {
-      setPasswordError("Passwords do not match");
+      setFormError("Passwords do not match");
       return;
     }
 
-    // Prepare data based on role
+    // --- Prepare Data Based on Role ---
     const registrationData = { name, email, password, role };
+
     if (role === "doctor") {
+      // Basic Doctor Field Validation
       if (
         !specialization ||
         !appointmentDuration ||
         parseInt(appointmentDuration) <= 0
       ) {
-        setPasswordError(
+        setFormError(
           "Specialization and a valid positive Appointment Duration are required for doctors."
         );
         return;
       }
       registrationData.specialization = specialization;
       registrationData.appointmentDuration = parseInt(appointmentDuration);
+
+      // Availability Validation
+      if (
+        !weekdayStartTime ||
+        !weekdayEndTime ||
+        weekdayStartTime >= weekdayEndTime
+      ) {
+        setFormError(
+          "Valid weekday start and end times are required, end time must be after start time."
+        );
+        return;
+      }
+      registrationData.weekdayStartTime = weekdayStartTime;
+      registrationData.weekdayEndTime = weekdayEndTime;
+      registrationData.worksWeekends = worksWeekends;
+
+      if (worksWeekends) {
+        if (
+          !weekendStartTime ||
+          !weekendEndTime ||
+          weekendStartTime >= weekendEndTime
+        ) {
+          setFormError(
+            "Valid weekend start and end times are required if working weekends, end time must be after start time."
+          );
+          return;
+        }
+        registrationData.weekendStartTime = weekendStartTime;
+        registrationData.weekendEndTime = weekendEndTime;
+      }
     }
+    // --- End Data Preparation ---
 
     await register(registrationData);
-    // Navigation is handled by the useEffect hook now
+    // Navigation is handled by the useEffect hook
   };
 
   return (
     <div className="appointment-form-container">
       <h2>Register</h2>
 
-      {error && <div className="message error">{error}</div>}
-      {passwordError && <div className="message error">{passwordError}</div>}
+      {/* Display combined errors */}
+      {(authError || formError) && (
+        <div className="message error">{authError || formError}</div>
+      )}
 
       <form onSubmit={handleSubmit} className="appointment-form">
         {/* Role Selection */}
@@ -92,7 +144,7 @@ const Register = () => {
           <select
             id="role"
             name="role"
-            value={role}
+            value={formData.role}
             onChange={handleChange}
             required
           >
@@ -108,7 +160,7 @@ const Register = () => {
             type="text"
             id="name"
             name="name"
-            value={name}
+            value={formData.name}
             onChange={handleChange}
             required
           />
@@ -119,7 +171,7 @@ const Register = () => {
             type="email"
             id="email"
             name="email"
-            value={email}
+            value={formData.email}
             onChange={handleChange}
             required
           />
@@ -130,7 +182,7 @@ const Register = () => {
             type="password"
             id="password"
             name="password"
-            value={password}
+            value={formData.password}
             onChange={handleChange}
             required
             minLength="6"
@@ -142,15 +194,15 @@ const Register = () => {
             type="password"
             id="confirmPassword"
             name="confirmPassword"
-            value={confirmPassword}
+            value={formData.confirmPassword}
             onChange={handleChange}
             required
             minLength="6"
           />
         </div>
 
-        {/* Doctor Specific Fields */}
-        {role === "doctor" && (
+        {/* --- Doctor Specific Fields --- */}
+        {formData.role === "doctor" && (
           <>
             <div className="form-group">
               <label htmlFor="specialization">Specialization</label>
@@ -158,7 +210,7 @@ const Register = () => {
                 type="text"
                 id="specialization"
                 name="specialization"
-                value={specialization}
+                value={formData.specialization}
                 onChange={handleChange}
                 required
               />
@@ -171,14 +223,74 @@ const Register = () => {
                 type="number"
                 id="appointmentDuration"
                 name="appointmentDuration"
-                value={appointmentDuration}
+                value={formData.appointmentDuration}
                 onChange={handleChange}
                 required
                 min="5"
               />
             </div>
+
+            {/* Simplified Availability */}
+            <fieldset className="availability-fieldset">
+              <legend>Standard Availability</legend>
+              <div className="form-group time-range">
+                <label>Weekdays (Mon-Fri)</label>
+                <div>
+                  <input
+                    type="time"
+                    name="weekdayStartTime"
+                    value={formData.weekdayStartTime}
+                    onChange={handleChange}
+                    required
+                  />
+                  <span> to </span>
+                  <input
+                    type="time"
+                    name="weekdayEndTime"
+                    value={formData.weekdayEndTime}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="form-group checkbox-group">
+                <input
+                  type="checkbox"
+                  id="worksWeekends"
+                  name="worksWeekends"
+                  checked={formData.worksWeekends}
+                  onChange={handleChange}
+                />
+                <label htmlFor="worksWeekends">
+                  Work on Weekends (Sat-Sun)?
+                </label>
+              </div>
+              {formData.worksWeekends && (
+                <div className="form-group time-range">
+                  <label>Weekends (Sat-Sun)</label>
+                  <div>
+                    <input
+                      type="time"
+                      name="weekendStartTime"
+                      value={formData.weekendStartTime}
+                      onChange={handleChange}
+                      required
+                    />
+                    <span> to </span>
+                    <input
+                      type="time"
+                      name="weekendEndTime"
+                      value={formData.weekendEndTime}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                </div>
+              )}
+            </fieldset>
           </>
         )}
+        {/* --- End Doctor Specific Fields --- */}
 
         <button type="submit" className="submit-btn" disabled={isLoading}>
           {isLoading ? "Registering..." : "Register"}

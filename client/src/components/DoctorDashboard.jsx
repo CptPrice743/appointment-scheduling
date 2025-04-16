@@ -1,14 +1,16 @@
+// File Path: doctor-appointment-scheduling/client/src/components/DoctorDashboard.jsx
 import React, { useContext } from "react";
-import { Link } from "react-router-dom";
+import { Link } from "react-router-dom"; // Import Link
 import AuthContext from "../context/AuthContext";
 import ScheduleView from "./ScheduleView"; // Component to show appointments
-// import AvailabilityManager from './AvailabilityManager'; // Component to manage availability
+// Removed import for SpecificAvailabilityCalendar
 
 const DoctorDashboard = () => {
   const { user } = useContext(AuthContext);
 
-  // Basic check, might want more robust loading/error states
   if (!user || user.role !== "doctor") {
+    // Added a check for doctorProfile loading state if it exists in your context
+    // Or rely on the parent route/context to handle loading
     return <div>Loading doctor dashboard or not authorized...</div>;
   }
 
@@ -22,14 +24,18 @@ const DoctorDashboard = () => {
         {user.doctorProfile?.appointmentDuration || "Not set"} minutes
       </p> */}
 
-      {/* Embed the schedule view */}
+      {/* Add a clear link to the profile edit page */}
+      {/* <div style={{ margin: "15px 0" }}>
+        <Link to="/profile/edit" className="cta-button-link">
+          Edit Profile & Manage Availability
+        </Link>
+      </div> */}
+
+      {/* --- Schedule Section --- */}
+      <h3 style={{ margin: "15px 0" }}>Your Upcoming Schedule</h3>
       <ScheduleView />
 
-      {/* Placeholder for Availability Manager */}
-      {/* <div style={{ marginTop: '40px' }}>
-            <h2>Manage Availability</h2>
-            <AvailabilityManager />
-       </div> */}
+      {/* Removed the Availability Management section from here */}
     </div>
   );
 };

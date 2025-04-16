@@ -1,14 +1,55 @@
-import React, { useState, useEffect, useContext } from "react";
-import { useNavigate, useParams, useLocation } from "react-router-dom"; // Added useLocation
+// File Path: doctor-appointment-scheduling/client/src/components/AppointmentForm.jsx
+import React, { useState, useEffect, useContext, useCallback } from "react";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import AuthContext from "../context/AuthContext";
 
 // --- Helper Functions ---
 const formatDate = (dateString) => {
   if (!dateString) return "";
   try {
-    return new Date(dateString).toISOString().split("T")[0];
+    // Format for display
+    const options = {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      timeZone: "UTC",
+    }; // Specify UTC for consistency
+    return new Date(dateString).toLocaleDateString(undefined, options);
+  } catch (e) {
+    return "Invalid Date";
+  }
+};
+
+const formatDateForInput = (dateString) => {
+  if (!dateString) return "";
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "";
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(date.getUTCDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
   } catch (e) {
     return "";
+  }
+};
+
+const formatTime12Hour = (timeStr) => {
+  if (!timeStr || !timeStr.includes(":")) return "N/A";
+  try {
+    const [hour, minute] = timeStr.split(":");
+    const date = new Date();
+    date.setHours(parseInt(hour, 10));
+    date.setMinutes(parseInt(minute, 10));
+    if (isNaN(date.getHours()) || isNaN(date.getMinutes()))
+      return "Invalid Time";
+    return date.toLocaleTimeString([], {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  } catch (e) {
+    return "Invalid Time";
   }
 };
 // ---
@@ -16,65 +57,69 @@ const formatDate = (dateString) => {
 const AppointmentForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const location = useLocation(); // Get location object
+  const location = useLocation();
   const { user, axiosInstance } = useContext(AuthContext);
 
   const isEditing = !!id;
   const isDoctorView = user?.role === "doctor";
 
-  // Extract prefill data from location state
+  // Extract prefill data from location state (e.g., for rebooking)
   const prefillData = location.state?.prefillData;
 
   const [formData, setFormData] = useState({
-    appointmentDate: "",
-    startTime: "",
-    reason: prefillData?.reason || "", // Use prefill data or default
+    appointmentDate: formatDateForInput(new Date()), // Default to today for new appointments
+    startTime: "", // This will now be selected from available slots
+    reason: prefillData?.reason || "",
     status: "scheduled",
     remarks: "",
-    patientUserId: "",
+    patientUserId: "", // Set when editing
     patientName: isDoctorView ? "" : user?.name || "",
     patientEmail: isDoctorView ? "" : user?.email || "",
-    patientPhone: "",
-    doctorId: prefillData?.doctorId || null, // Use prefill data or default
-    duration: "",
+    patientPhone: "", // Patient will fill this in
+    doctorId: prefillData?.doctorId || "", // Use prefill data or default
+    duration: "", // Will be fetched from doctor
+    // Fields to store fetched data
+    _doctorName: "", // Store doctor name when editing/viewing
+    _doctorSpecialization: "", // Store doctor spec when editing/viewing
   });
 
   const [doctors, setDoctors] = useState([]);
+  const [availableSlots, setAvailableSlots] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [slotsLoading, setSlotsLoading] = useState(false);
   const [submitMessage, setSubmitMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
-  // Fetch list of doctors (Needed for all modes now to get duration)
+  // Fetch list of doctors (for patient booking dropdown)
   useEffect(() => {
-    // Don't run if editing, as doctor is fetched with appointment data
-    if (isEditing) return;
-
-    setLoading(true);
-    axiosInstance
-      .get("/doctors/list")
-      .then((res) => {
-        const fetchedDoctors = res.data || [];
-        setDoctors(fetchedDoctors);
-        // If doctorId was prefilled (meaning we are creating, not editing), find the duration
-        if (formData.doctorId && !isEditing && fetchedDoctors.length > 0) {
-          const selectedDoc = fetchedDoctors.find(
-            (doc) => doc._id === formData.doctorId
-          );
-          if (selectedDoc) {
-            setFormData((prev) => ({
-              ...prev,
-              duration: selectedDoc.appointmentDuration,
-            }));
+    if (!isEditing && !isDoctorView) {
+      // Only needed when patient is creating
+      setLoading(true);
+      axiosInstance
+        .get("/doctors/list")
+        .then((res) => {
+          setDoctors(res.data || []);
+          // If doctorId was prefilled, set the duration
+          if (prefillData?.doctorId) {
+            const selectedDoc = (res.data || []).find(
+              (doc) => doc._id === prefillData.doctorId
+            );
+            if (selectedDoc) {
+              setFormData((prev) => ({
+                ...prev,
+                duration: selectedDoc.appointmentDuration,
+              }));
+            }
           }
-        }
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Error fetching doctors:", err);
-        setErrorMessage("Failed to load doctor list.");
-        setLoading(false);
-      });
-  }, [axiosInstance, formData.doctorId, isEditing]); // Re-run if doctorId changes or if switching between edit/create
+          setLoading(false);
+        })
+        .catch((err) => {
+          console.error("Error fetching doctors:", err);
+          setErrorMessage("Failed to load doctor list.");
+          setLoading(false);
+        });
+    }
+  }, [axiosInstance, isEditing, isDoctorView, prefillData?.doctorId]); // Dependency on prefill data
 
   // Fetch appointment data if editing
   useEffect(() => {
@@ -90,21 +135,29 @@ const AppointmentForm = () => {
             startTime,
             duration,
             patientPhone,
-            ...rest
+            patientName: fetchedPatientName, // Renamed to avoid conflict
+            reason,
+            status,
+            remarks,
+            // doctorId might be populated or just an ID, handle both
           } = res.data;
-          // When editing, doctorId is populated, store the full object
+
           setFormData((prev) => ({
             ...prev,
-            ...rest,
-            appointmentDate: formatDate(appointmentDate),
+            appointmentDate: formatDateForInput(appointmentDate),
             startTime: startTime || "",
             duration: duration || "",
-            doctorId: doctorId || null, // Store populated doctor object
+            doctorId: doctorId?._id || doctorId || "", // Store just the ID
             patientUserId: patientUserId?._id || "",
-            patientName: rest.patientName || patientUserId?.name || "",
+            patientName: fetchedPatientName || patientUserId?.name || "",
             patientEmail: patientUserId?.email || "",
             patientPhone: patientPhone || "",
-            remarks: rest.remarks || "",
+            reason: reason || "",
+            status: status || "scheduled",
+            remarks: remarks || "",
+            // Store doctor details separately for display
+            _doctorName: doctorId?.name || "N/A",
+            _doctorSpecialization: doctorId?.specialization || "N/A",
           }));
           setLoading(false);
         })
@@ -118,17 +171,82 @@ const AppointmentForm = () => {
     }
   }, [id, isEditing, axiosInstance]);
 
+  // --- Fetch Available Slots ---
+  const fetchAvailableSlots = useCallback(
+    async (docId, date) => {
+      if (!docId || !date) {
+        setAvailableSlots([]);
+        return;
+      }
+      setSlotsLoading(true);
+      setErrorMessage(""); // Clear previous errors
+      setFormData((prev) => ({ ...prev, startTime: "" })); // Reset selected time
+      try {
+        const formattedDate = formatDateForInput(date); // Ensure YYYY-MM-DD
+        const res = await axiosInstance.get(
+          `/doctors/${docId}/available-slots?date=${formattedDate}`
+        );
+        setAvailableSlots(res.data || []);
+      } catch (err) {
+        console.error("Error fetching available slots:", err);
+        setErrorMessage(
+          err.response?.data?.message || "Could not fetch available time slots."
+        );
+        setAvailableSlots([]); // Clear slots on error
+      } finally {
+        setSlotsLoading(false);
+      }
+    },
+    [axiosInstance]
+  ); // Add axiosInstance
+
+  // Trigger fetchAvailableSlots when doctorId or appointmentDate changes (only for patient creating/editing)
+  useEffect(() => {
+    // Fetch slots if:
+    // 1. Patient is creating/editing (!isDoctorView)
+    // 2. We have a selected doctor (formData.doctorId)
+    // 3. We have a selected date (formData.appointmentDate)
+    // 4. We are NOT editing OR if editing, status is 'scheduled' (allow rescheduling)
+    if (
+      !isDoctorView &&
+      formData.doctorId &&
+      formData.appointmentDate &&
+      (!isEditing || formData.status === "scheduled")
+    ) {
+      fetchAvailableSlots(formData.doctorId, formData.appointmentDate);
+    } else {
+      // Clear slots if conditions aren't met (e.g., doctor not selected, or viewing completed/cancelled appt)
+      setAvailableSlots([]);
+    }
+  }, [
+    formData.doctorId,
+    formData.appointmentDate,
+    isDoctorView,
+    isEditing,
+    formData.status,
+    fetchAvailableSlots,
+  ]);
+
   // Handle form changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => {
       let newState = { ...prev, [name]: value };
-      // If patient changes doctor manually during creation/rebooking
-      if (!isEditing && !isDoctorView && name === "doctorId") {
+      // If patient changes doctor during creation/rebooking, reset date/time and fetch duration
+      if (!isDoctorView && name === "doctorId") {
         const selectedDoctor = doctors.find((doc) => doc._id === value);
         newState.duration = selectedDoctor
           ? selectedDoctor.appointmentDuration
           : "";
+        // Reset date/time/slots when doctor changes
+        newState.appointmentDate = formatDateForInput(new Date()); // Reset date to today
+        newState.startTime = ""; // Clear selected time
+        setAvailableSlots([]); // Clear slots list
+      }
+      // If date changes, reset time
+      if (name === "appointmentDate") {
+        newState.startTime = "";
+        setAvailableSlots([]); // Clear slots list
       }
       return newState;
     });
@@ -142,6 +260,15 @@ const AppointmentForm = () => {
     setErrorMessage("");
     setSubmitMessage("");
 
+    // Validation for booking/rescheduling
+    if (!isDoctorView && !formData.startTime) {
+      setErrorMessage("Please select an available time slot.");
+      return;
+    }
+    if (!isDoctorView && !formData.doctorId) {
+      setErrorMessage("Please select a doctor.");
+      return;
+    }
     if (
       isEditing &&
       isDoctorView &&
@@ -156,25 +283,34 @@ const AppointmentForm = () => {
 
     setLoading(true);
     let dataToSend = {};
-    let requestMethod = "patch";
-    let requestUrl = `/appointments/${id}`;
+    let requestMethod = isEditing ? "patch" : "post";
+    let requestUrl = isEditing ? `/appointments/${id}` : "/appointments";
 
     if (isEditing) {
+      // Prepare data for PATCH request
       dataToSend = {
         appointmentDate: formData.appointmentDate,
         startTime: formData.startTime,
         reason: formData.reason,
         ...(isDoctorView && { status: formData.status }),
         ...(isDoctorView && { remarks: formData.remarks }),
+        // No need to send doctorId or patient info for PATCH
       };
+      // Only send startTime if it's actually set (patient might only update reason)
+      if (!dataToSend.startTime && !isDoctorView) {
+        delete dataToSend.startTime;
+        delete dataToSend.appointmentDate; // Don't send date if time isn't sent
+      } else if (!dataToSend.startTime && isDoctorView) {
+        // If doctor updates only status/remarks, don't send empty time/date
+        delete dataToSend.startTime;
+        delete dataToSend.appointmentDate;
+      }
     } else {
-      // CREATION
-      requestMethod = "post";
-      requestUrl = "/appointments";
+      // Prepare data for POST request
       dataToSend = {
-        doctorId: formData.doctorId, // Send ID string
+        doctorId: formData.doctorId,
         appointmentDate: formData.appointmentDate,
-        startTime: formData.startTime,
+        startTime: formData.startTime, // The selected slot
         reason: formData.reason,
         patientPhone: formData.patientPhone,
       };
@@ -191,7 +327,8 @@ const AppointmentForm = () => {
       }
       setSubmitMessage(responseMessage);
       const targetPath = isDoctorView ? "/doctor/dashboard" : "/appointments";
-      navigate(targetPath, { replace: true }); // Immediate navigation
+      // Use timeout for user to see the message before redirecting
+      setTimeout(() => navigate(targetPath, { replace: true }), 1500);
     } catch (err) {
       console.error(
         `Error ${isEditing ? "updating" : "scheduling"} appointment:`,
@@ -203,6 +340,7 @@ const AppointmentForm = () => {
       );
       setLoading(false); // Set loading false only on error
     }
+    // Keep loading true on success until redirect timeout
   };
 
   // --- Loading State ---
@@ -214,17 +352,29 @@ const AppointmentForm = () => {
     isEditing &&
     isDoctorView &&
     (!formData.remarks || formData.remarks.trim() === "");
+  const allowTimeChange =
+    !isDoctorView && (!isEditing || formData.status === "scheduled");
+  const allowReasonChange =
+    !isDoctorView ||
+    (isEditing &&
+      formData.status !== "completed" &&
+      formData.status !== "cancelled"); // Allow doctor to edit reason unless completed/cancelled
 
-  // --- JSX Render ---
   return (
     <div className="appointment-form-container">
-      <h2>{isEditing ? "Edit Appointment" : "Schedule New Appointment"}</h2>
+      <h2>
+        {isEditing
+          ? isDoctorView
+            ? "View/Manage Appointment"
+            : "Edit Appointment"
+          : "Schedule New Appointment"}
+      </h2>
 
       {submitMessage && <div className="message success">{submitMessage}</div>}
       {errorMessage && <div className="message error">{errorMessage}</div>}
 
       <form onSubmit={handleSubmit} className="appointment-form">
-        {/* Patient Details Section */}
+        {/* Patient Details Section (Read-only for this form now) */}
         {isEditing && (
           <>
             <div className="form-group">
@@ -281,43 +431,34 @@ const AppointmentForm = () => {
         )}
 
         {/* Doctor Section */}
-        {/* Only show dropdown if patient is creating/rebooking */}
-        {!isDoctorView && !isEditing && (
-          <div className="form-group">
-            <label htmlFor="doctorId">Doctor</label>
+        <div className="form-group">
+          <label htmlFor="doctorId">Doctor</label>
+          {!isEditing && !isDoctorView ? (
             <select
               id="doctorId"
               name="doctorId"
-              value={formData.doctorId || ""} // Uses prefilled ID if available
+              value={formData.doctorId}
               onChange={handleChange}
               required
-              disabled={loading} // Disable while doctors are loading
+              disabled={loading}
             >
-              <option value="">Select a doctor</option>
+              <option value="">Select a doctor...</option>
               {doctors.map((doc) => (
                 <option key={doc._id} value={doc._id}>
-                  {doc.name} ({doc.specialization}) - {doc.appointmentDuration}{" "}
-                  min slots
+                  {doc.name} ({doc.specialization})
                 </option>
               ))}
             </select>
-          </div>
-        )}
-        {/* Display doctor name when editing */}
-        {isEditing && (
-          <div className="form-group">
-            <label>Doctor</label>
+          ) : (
             <input
               type="text"
-              value={`${formData.doctorId?.name || "N/A"} (${
-                formData.doctorId?.specialization || "N/A"
-              })`}
+              value={`${formData._doctorName} (${formData._doctorSpecialization})`}
               disabled
             />
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* Date, Time, Reason */}
+        {/* Date Selection */}
         <div className="form-group">
           <label htmlFor="appointmentDate">Appointment Date</label>
           <input
@@ -327,22 +468,46 @@ const AppointmentForm = () => {
             value={formData.appointmentDate}
             onChange={handleChange}
             required
+            disabled={!allowTimeChange} // Disable if not patient or not rescheduling
           />
         </div>
+
+        {/* Time Slot Selection (Replaces Time Input) */}
         <div className="form-group">
-          <label htmlFor="startTime">Start Time</label>
-          <input
-            type="time"
+          <label htmlFor="startTime">Available Time Slots</label>
+          <select
             id="startTime"
             name="startTime"
             value={formData.startTime}
             onChange={handleChange}
             required
-          />
-          {formData.duration && (
-            <small> (Duration: {formData.duration} minutes)</small>
+            disabled={
+              !allowTimeChange ||
+              slotsLoading ||
+              availableSlots.length === 0 ||
+              !formData.appointmentDate ||
+              !formData.doctorId
+            }
+          >
+            <option value="">
+              {slotsLoading
+                ? "Loading slots..."
+                : availableSlots.length > 0
+                ? "Select a time slot..."
+                : "No slots available for this date"}
+            </option>
+            {availableSlots.map((slot) => (
+              <option key={slot} value={slot}>
+                {formatTime12Hour(slot)}
+              </option>
+            ))}
+          </select>
+          {formData.duration && !slotsLoading && availableSlots.length > 0 && (
+            <small> (Appt. Duration: {formData.duration} minutes)</small>
           )}
         </div>
+
+        {/* Reason */}
         <div className="form-group">
           <label htmlFor="reason">Reason for Visit</label>
           <textarea
@@ -351,6 +516,7 @@ const AppointmentForm = () => {
             value={formData.reason}
             onChange={handleChange}
             required
+            disabled={!allowReasonChange}
           ></textarea>
         </div>
 
@@ -416,7 +582,12 @@ const AppointmentForm = () => {
         )}
 
         {/* Submit Button */}
-        {formData.status !== "cancelled" && (
+        {/* Show button unless viewing a completed/cancelled appointment as a patient */}
+        {!(
+          isEditing &&
+          !isDoctorView &&
+          (formData.status === "completed" || formData.status === "cancelled")
+        ) && (
           <button
             type="submit"
             className="submit-btn"

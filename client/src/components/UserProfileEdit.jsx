@@ -1,152 +1,461 @@
-import React, { useState, useEffect, useContext } from "react";
+// File Path: doctor-appointment-scheduling/client/src/components/UserProfileEdit.jsx
+import React, { useState, useEffect, useContext, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import AuthContext from "../context/AuthContext";
+import SpecificAvailabilityCalendar from "./SpecificAvailabilityCalendar";
+// Assuming styles are appropriately managed (e.g., in index.css or dedicated files)
+import "./AvailabilityManager.css";
+import "./SpecificAvailabilityCalendar.css";
+
+const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+const WEEKENDS = ["Saturday", "Sunday"];
+
+// Helper to safely get time from availability array
+const getTimeForDayType = (availability, days, type) => {
+  for (const day of days) {
+    const slot = availability?.find((s) => s.dayOfWeek === day); // Add safety check for availability
+    if (slot) {
+      return type === "start" ? slot.startTime : slot.endTime;
+    }
+  }
+  // Return a sensible default if no slot found
+  return type === "start" ? "09:00" : "17:00";
+};
 
 const UserProfileEdit = () => {
-  // Correctly destructure setUser from the context
+  // *** Deconstruct setUser from context ***
   const {
     user,
+    setUser,
     axiosInstance,
     isLoading: authLoading,
     error: authError,
     clearError,
-    setUser,
   } = useContext(AuthContext);
   const navigate = useNavigate();
+  const isDoctor = user?.role === "doctor";
 
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    // phone: '', // Add if you add phone to User model
-    // currentPassword: '', // For password change
-    // newPassword: '',
-    // confirmNewPassword: '',
+  // Profile State
+  const [profileData, setProfileData] = useState({ name: "", email: "" });
+  const [loadingProfile, setLoadingProfile] = useState(false);
+  const [profileMessage, setProfileMessage] = useState("");
+  const [profileError, setProfileError] = useState("");
+
+  // Simplified Standard Availability State
+  const [stdAvailabilityData, setStdAvailabilityData] = useState({
+    weekdayStartTime: "09:00",
+    weekdayEndTime: "17:00",
+    worksWeekends: false,
+    weekendStartTime: "10:00",
+    weekendEndTime: "14:00",
   });
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState(""); // For success messages
-  const [error, setError] = useState(""); // For form-specific errors
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
+  const [availabilityError, setAvailabilityError] = useState("");
 
-  // Populate form with current user data
+  // --- Standard Availability Functions ---
+  const fetchStandardAvailability = useCallback(async () => {
+    // Added checks for user and doctorProfile existence
+    if (!isDoctor || !user?.doctorProfile?.standardAvailability) {
+      if (isDoctor) {
+        // If doctor but profile/availability missing, show appropriate message/defaults
+        console.warn(
+          "Doctor profile or standard availability not found on user object during fetch."
+        );
+        setStdAvailabilityData({
+          // Reset to defaults maybe?
+          weekdayStartTime: "09:00",
+          weekdayEndTime: "17:00",
+          worksWeekends: false,
+          weekendStartTime: "10:00",
+          weekendEndTime: "14:00",
+        });
+      }
+      return;
+    }
+    setAvailabilityLoading(true);
+    setAvailabilityError("");
+    try {
+      // Fetch from backend to ensure latest data
+      const res = await axiosInstance.get("/doctors/availability/standard");
+      const currentAvailability = res.data || [];
+
+      // Parse into simplified state
+      const weekdayStart = getTimeForDayType(
+        currentAvailability,
+        WEEKDAYS,
+        "start"
+      );
+      const weekdayEnd = getTimeForDayType(
+        currentAvailability,
+        WEEKDAYS,
+        "end"
+      );
+      const worksOnWeekends = currentAvailability.some((s) =>
+        WEEKENDS.includes(s.dayOfWeek)
+      );
+      const weekendStart = worksOnWeekends
+        ? getTimeForDayType(currentAvailability, WEEKENDS, "start")
+        : "10:00";
+      const weekendEnd = worksOnWeekends
+        ? getTimeForDayType(currentAvailability, WEEKENDS, "end")
+        : "14:00";
+
+      setStdAvailabilityData({
+        weekdayStartTime: weekdayStart,
+        weekdayEndTime: weekdayEnd,
+        worksWeekends: worksOnWeekends,
+        weekendStartTime: weekendStart,
+        weekendEndTime: weekendEnd,
+      });
+    } catch (err) {
+      console.error("Error fetching standard availability:", err);
+      setAvailabilityError(
+        err.response?.data?.message || "Failed to load standard availability."
+      );
+      setStdAvailabilityData({
+        // Reset to defaults on error
+        weekdayStartTime: "09:00",
+        weekdayEndTime: "17:00",
+        worksWeekends: false,
+        weekendStartTime: "10:00",
+        weekendEndTime: "14:00",
+      });
+    } finally {
+      setAvailabilityLoading(false);
+    }
+    // *** Added user?.doctorProfile?.standardAvailability to dependencies ***
+    // This helps re-parse if the context updates from elsewhere, though saving should be the main trigger
+  }, [axiosInstance, isDoctor, user?.doctorProfile?.standardAvailability]);
+
+  // Populate forms and fetch availability
   useEffect(() => {
     if (user) {
-      setFormData((prev) => ({
-        ...prev,
-        name: user.name || "",
-        email: user.email || "",
-        // phone: user.phone || '', // If phone exists on user object
-      }));
+      setProfileData({ name: user.name || "", email: user.email || "" });
+      if (isDoctor && user.doctorProfile) {
+        // Parse the availability already present in the context first for immediate display
+        const currentAvailability =
+          user.doctorProfile.standardAvailability || [];
+        const weekdayStart = getTimeForDayType(
+          currentAvailability,
+          WEEKDAYS,
+          "start"
+        );
+        const weekdayEnd = getTimeForDayType(
+          currentAvailability,
+          WEEKDAYS,
+          "end"
+        );
+        const worksOnWeekends = currentAvailability.some((s) =>
+          WEEKENDS.includes(s.dayOfWeek)
+        );
+        const weekendStart = worksOnWeekends
+          ? getTimeForDayType(currentAvailability, WEEKENDS, "start")
+          : "10:00";
+        const weekendEnd = worksOnWeekends
+          ? getTimeForDayType(currentAvailability, WEEKENDS, "end")
+          : "14:00";
+        setStdAvailabilityData({
+          weekdayStartTime: weekdayStart,
+          weekdayEndTime: weekdayEnd,
+          worksWeekends: worksOnWeekends,
+          weekendStartTime: weekendStart,
+          weekendEndTime: weekendEnd,
+        });
+        // Optional: Fetch again to ensure it's the absolute latest from DB?
+        // fetchStandardAvailability();
+      }
     }
-  }, [user]);
-
-  const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
-    // Clear messages on input change
-    setMessage("");
-    setError("");
+    setProfileError("");
+    setProfileMessage("");
+    setAvailabilityError("");
     clearError();
+  }, [user, isDoctor]); // Removed fetchStandardAvailability from here to avoid loop potentially
+
+  const handleAvailabilityChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setStdAvailabilityData((prev) => ({
+      ...prev,
+      [name]: type === "checkbox" ? checked : value,
+    }));
+    setAvailabilityError("");
+    setProfileMessage("");
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    // Clear previous messages before attempting submission
-    setMessage("");
-    setError("");
-    clearError();
+  // *** MODIFIED Save Availability Function ***
+  const handleSaveAvailability = async () => {
+    if (!isDoctor) return;
+    setAvailabilityLoading(true);
+    setAvailabilityError("");
+    setProfileMessage("");
 
-    // Basic frontend validation (e.g., password match if changing)
-    // if (formData.newPassword && formData.newPassword !== formData.confirmNewPassword) {
-    //     setError("New passwords do not match.");
-    //     return;
-    // }
+    const {
+      weekdayStartTime,
+      weekdayEndTime,
+      worksWeekends,
+      weekendStartTime,
+      weekendEndTime,
+    } = stdAvailabilityData;
 
-    setLoading(true);
-    const updateData = {
-      name: formData.name,
-      email: formData.email,
-      // phone: formData.phone // If phone exists
-      // currentPassword: formData.currentPassword, // If changing password
-      // newPassword: formData.newPassword,
-    };
+    // Validation
+    if (
+      !weekdayStartTime ||
+      !weekdayEndTime ||
+      weekdayStartTime >= weekdayEndTime
+    ) {
+      setAvailabilityError(
+        "Valid weekday start and end times are required, end time must be after start time."
+      );
+      setAvailabilityLoading(false);
+      return;
+    }
+    if (
+      worksWeekends &&
+      (!weekendStartTime ||
+        !weekendEndTime ||
+        weekendStartTime >= weekendEndTime)
+    ) {
+      setAvailabilityError(
+        "Valid weekend start and end times are required if working weekends, end time must be after start time."
+      );
+      setAvailabilityLoading(false);
+      return;
+    }
 
-    // Remove empty fields if not changing password
-    // if (!updateData.newPassword) {
-    //     delete updateData.currentPassword;
-    //     delete updateData.newPassword;
-    // }
+    // Reconstruct the detailed availability array
+    const newStandardAvailability = [];
+    WEEKDAYS.forEach((day) => {
+      newStandardAvailability.push({
+        dayOfWeek: day,
+        startTime: weekdayStartTime,
+        endTime: weekdayEndTime,
+      });
+    });
+    if (worksWeekends) {
+      WEEKENDS.forEach((day) => {
+        newStandardAvailability.push({
+          dayOfWeek: day,
+          startTime: weekendStartTime,
+          endTime: weekendEndTime,
+        });
+      });
+    }
 
     try {
-      const res = await axiosInstance.patch("/users/profile/me", updateData);
+      const dataToSend = { availabilitySlots: newStandardAvailability };
+      // The backend PUT returns the saved array, not the full doctor object currently.
+      // If backend was changed to return full doctor object, use that in setUser.
+      await axiosInstance.put("/doctors/availability/standard", dataToSend);
 
-      // Clear any previous error messages *before* setting success message
-      setError("");
-      setMessage("Profile updated successfully!");
+      // *** FIX: Update AuthContext state locally ***
+      if (user && user.doctorProfile) {
+        const updatedDoctorProfile = {
+          ...user.doctorProfile,
+          standardAvailability: newStandardAvailability, // Update with the newly constructed array
+        };
+        const updatedUser = {
+          ...user,
+          doctorProfile: updatedDoctorProfile,
+        };
+        setUser(updatedUser); // Update context
+        localStorage.setItem("user", JSON.stringify(updatedUser)); // Update local storage
+        console.log("AuthContext updated with new standard availability."); // Debug log
+      }
+      // *** End FIX ***
 
-      // Update the user in AuthContext state and local storage using the correct function
-      setUser(res.data); // Use setUser here
-      localStorage.setItem("user", JSON.stringify(res.data));
-
-      // Clear password fields after successful update
-      // setFormData(prev => ({ ...prev, currentPassword: '', newPassword: '', confirmNewPassword: '' }));
+      setProfileMessage("Standard availability updated successfully!");
+      // No need to fetch again as we updated context directly
     } catch (err) {
-      console.error("Error updating profile:", err); // Keep this log
-      // Clear any previous success message *before* setting error message
-      setMessage("");
-      setError(err.response?.data?.message || "Failed to update profile.");
+      console.error("Error saving availability:", err);
+      setAvailabilityError(
+        err.response?.data?.message || "Failed to save standard availability."
+      );
     } finally {
-      setLoading(false);
+      setAvailabilityLoading(false);
+    }
+  };
+  // --- End Standard Availability Functions ---
+
+  // --- Profile Functions (Remain the same) ---
+  const handleProfileChange = (e) => {
+    setProfileData({ ...profileData, [e.target.name]: e.target.value });
+    setProfileMessage("");
+    setProfileError("");
+    clearError();
+    setAvailabilityError("");
+  };
+
+  const handleProfileSubmit = async (e) => {
+    e.preventDefault();
+    setProfileMessage("");
+    setProfileError("");
+    clearError();
+    setAvailabilityError("");
+
+    setLoadingProfile(true);
+    const updateData = { name: profileData.name, email: profileData.email };
+
+    try {
+      // Assume backend returns the updated user object WITH populated doctorProfile
+      const res = await axiosInstance.patch("/users/profile/me", updateData);
+      setProfileError("");
+      setProfileMessage("Profile updated successfully!");
+      setUser(res.data); // Update user in context - this should have latest profile info
+      localStorage.setItem("user", JSON.stringify(res.data));
+    } catch (err) {
+      console.error("Error updating profile:", err);
+      setProfileMessage("");
+      setProfileError(
+        err.response?.data?.message || "Failed to update profile."
+      );
+    } finally {
+      setLoadingProfile(false);
     }
   };
 
+  // --- Render Logic ---
   if (authLoading || !user) {
     return <div className="loading">Loading profile...</div>;
   }
 
   return (
-    <div className="appointment-form-container">
-      <h2>Edit Your Profile</h2>
+    <div className="user-profile-edit-container">
+      {/* Profile Section */}
+      <div className="profile-section">
+        <h2>Edit Your Profile</h2>
+        {profileMessage && (
+          <div className="message success">{profileMessage}</div>
+        )}
+        {profileError && <div className="message error">{profileError}</div>}
+        {authError && !profileError && (
+          <div className="message error">{authError}</div>
+        )}
 
-      {/* Display only one message at a time */}
-      {message && <div className="message success">{message}</div>}
-      {error && <div className="message error">{error}</div>}
-      {/* Display auth context errors separately if needed, or rely on form error */}
-      {/* {authError && !error && <div className="message error">{authError}</div>} */}
+        <form onSubmit={handleProfileSubmit} className="profile-form">
+          {/* ... name and email inputs ... */}
+          <div className="form-group">
+            <label htmlFor="name">Name</label>
+            <input
+              type="text"
+              id="name"
+              name="name"
+              value={profileData.name}
+              onChange={handleProfileChange}
+              required
+            />
+          </div>
+          <div className="form-group">
+            <label htmlFor="email">Email</label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              value={profileData.email}
+              onChange={handleProfileChange}
+              required
+            />
+          </div>
+          <button
+            type="submit"
+            className="submit-btn"
+            disabled={loadingProfile}
+          >
+            {loadingProfile ? "Saving Profile..." : "Update Profile"}
+          </button>
+        </form>
+      </div>
 
-      <form onSubmit={handleSubmit} className="appointment-form">
-        <div className="form-group">
-          <label htmlFor="name">Name</label>
-          <input
-            type="text"
-            id="name"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            required
-          />
-        </div>
-        <div className="form-group">
-          <label htmlFor="email">Email</label>
-          <input
-            type="email"
-            id="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-          />
-        </div>
-        {/* Add phone input if applicable */}
-        {/* <div className="form-group">
-                    <label htmlFor="phone">Phone</label>
-                    <input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleChange} />
-                </div> */}
+      {/* Availability Sections (Doctor Only) */}
+      {isDoctor && (
+        <>
+          {/* Simplified Standard Availability Editor */}
+          <div className="profile-section">
+            <h4>Edit Standard Weekly Availability</h4>
+            <p className="info-text">Set your default weekly working hours.</p>
+            {availabilityError && (
+              <div className="message error">{availabilityError}</div>
+            )}
+            {availabilityLoading && <div>Loading...</div>}
+            {!availabilityLoading && (
+              <fieldset className="availability-fieldset">
+                <legend>Default Weekly Hours</legend>
+                {/* Weekday Inputs */}
+                <div className="form-group time-range">
+                  <label>Weekdays (Mon-Fri)</label>
+                  <div>
+                    <input
+                      type="time"
+                      name="weekdayStartTime"
+                      value={stdAvailabilityData.weekdayStartTime}
+                      onChange={handleAvailabilityChange}
+                      required
+                    />
+                    <span> to </span>
+                    <input
+                      type="time"
+                      name="weekdayEndTime"
+                      value={stdAvailabilityData.weekdayEndTime}
+                      onChange={handleAvailabilityChange}
+                      required
+                    />
+                  </div>
+                </div>
+                {/* Weekend Checkbox & Inputs */}
+                <div className="form-group checkbox-group">
+                  <input
+                    type="checkbox"
+                    id="worksWeekends"
+                    name="worksWeekends"
+                    checked={stdAvailabilityData.worksWeekends}
+                    onChange={handleAvailabilityChange}
+                  />
+                  <label htmlFor="worksWeekends">
+                    Work on Weekends (Sat-Sun)?
+                  </label>
+                </div>
+                {stdAvailabilityData.worksWeekends && (
+                  <div className="form-group time-range">
+                    <label>Weekends (Sat-Sun)</label>
+                    <div>
+                      <input
+                        type="time"
+                        name="weekendStartTime"
+                        value={stdAvailabilityData.weekendStartTime}
+                        onChange={handleAvailabilityChange}
+                        required={stdAvailabilityData.worksWeekends}
+                      />
+                      <span> to </span>
+                      <input
+                        type="time"
+                        name="weekendEndTime"
+                        value={stdAvailabilityData.weekendEndTime}
+                        onChange={handleAvailabilityChange}
+                        required={stdAvailabilityData.worksWeekends}
+                      />
+                    </div>
+                  </div>
+                )}
+                <button
+                  onClick={handleSaveAvailability}
+                  disabled={availabilityLoading}
+                  className="save-availability-btn submit-btn"
+                >
+                  {availabilityLoading
+                    ? "Saving..."
+                    : "Save Standard Availability"}
+                </button>
+              </fieldset>
+            )}
+          </div>
 
-        {/* Add Password Change Section if implementing */}
-        {/* ... password fields ... */}
-
-        <button type="submit" className="submit-btn" disabled={loading}>
-          {loading ? "Saving..." : "Update Profile"}
-        </button>
-      </form>
+          {/* Specific Date Override Calendar */}
+          <div className="profile-section">
+            {/* Pass user profile data to ensure it uses the latest context */}
+            <SpecificAvailabilityCalendar
+              key={JSON.stringify(user?.doctorProfile?.standardAvailability)}
+            />
+          </div>
+        </>
+      )}
     </div>
   );
 };

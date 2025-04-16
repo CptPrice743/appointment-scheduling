@@ -1,0 +1,146 @@
+.availability-manager {
+  margin-top: 20px;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  border: 1px solid #eee;
+}
+
+.availability-manager h4 {
+  margin-bottom: 15px;
+  color: #333;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 5px;
+}
+
+.availability-list {
+  margin-bottom: 20px;
+  max-height: 300px; /* Allow scrolling if many slots */
+  overflow-y: auto;
+}
+
+.availability-slot-display {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 10px;
+  background-color: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  font-size: 0.95rem;
+}
+
+.availability-slot-display span {
+  flex-grow: 1;
+  margin-right: 10px;
+}
+
+.delete-slot-btn {
+  background-color: #f44336;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0; /* Prevent shrinking */
+}
+
+.delete-slot-btn:hover {
+  background-color: #d32f2f;
+}
+
+.add-slot-toggle-btn {
+  background-color: #4caf50;
+  color: white;
+  padding: 8px 15px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-bottom: 15px;
+  font-size: 0.9rem;
+}
+
+.add-slot-toggle-btn:hover {
+  background-color: #45a049;
+}
+
+.add-slot-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 15px;
+  background-color: #eef;
+  border-radius: 5px;
+  flex-wrap: wrap; /* Allow wrapping on smaller screens */
+}
+
+.add-slot-form select,
+.add-slot-form input[type="time"] {
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.add-slot-form span {
+  color: #555;
+}
+
+.add-slot-confirm-btn,
+.add-slot-cancel-btn {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.add-slot-confirm-btn {
+  background-color: #2196f3; /* Blue */
+  color: white;
+}
+.add-slot-confirm-btn:hover {
+  background-color: #1976d2;
+}
+
+.add-slot-cancel-btn {
+  background-color: #f44336; /* Red */
+  color: white;
+}
+.add-slot-cancel-btn:hover {
+  background-color: #d32f2f;
+}
+
+.save-availability-btn {
+  display: block; /* Make it full width */
+  width: 100%;
+  padding: 12px;
+  background-color: #3a4cb3; /* Primary button color */
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  margin-top: 10px; /* Add space above the save button */
+}
+
+.save-availability-btn:hover {
+  background-color: #2a3a93;
+}
+
+.save-availability-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+.availability-manager .message.error {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}

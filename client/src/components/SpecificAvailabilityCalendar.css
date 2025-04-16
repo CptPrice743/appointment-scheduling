@@ -1,0 +1,176 @@
+/* File Path: doctor-appointment-scheduling/client/src/components/SpecificAvailabilityCalendar.css */
+
+.override-manager {
+  margin-top: 20px;
+  padding: 20px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.override-manager h4 {
+  margin-bottom: 10px;
+  color: #3a4cb3; /* Match theme */
+  border-bottom: 1px solid #eee;
+  padding-bottom: 8px;
+}
+
+.override-manager .info-text {
+  font-size: 0.9rem;
+  color: #666;
+  margin-bottom: 15px;
+}
+
+.calendar-container {
+  margin-bottom: 25px;
+  /* Add specific styling to center or style the calendar if needed */
+  display: flex;
+  justify-content: center;
+}
+
+/* Default react-calendar styles might need overrides */
+.react-calendar {
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  width: auto; /* Adjust width as needed, or max-width */
+  max-width: 400px; /* Example max width */
+}
+
+/* Example tile styling based on overrides */
+.react-calendar__tile.has-override-working {
+  background-color: #e3f2fd !important; /* Light blue */
+  color: #1565c0 !important;
+  border-radius: 4px;
+  border: 1px solid #90caf9;
+}
+.react-calendar__tile.has-override-off {
+  background-color: #ffebee !important; /* Light red */
+  color: #c62828 !important;
+  text-decoration: line-through;
+  border-radius: 4px;
+  border: 1px solid #ef9a9a;
+}
+.react-calendar__tile.standard-working {
+  /* Optional: Add subtle style for days with standard availability */
+  /* background-color: #f1f8e9; */
+}
+
+.selected-day-editor {
+  margin-top: 20px;
+  padding: 20px;
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+}
+
+.selected-day-editor h5 {
+  margin-bottom: 15px;
+  color: #1f2937;
+  font-size: 1.1rem;
+}
+
+.selected-day-editor .form-group {
+  margin-bottom: 15px;
+}
+
+.selected-day-editor .checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.selected-day-editor .checkbox-group input[type="checkbox"] {
+  width: auto;
+  height: 16px;
+  width: 16px;
+  cursor: pointer;
+}
+.selected-day-editor .checkbox-group label {
+  margin-bottom: 0;
+  font-weight: normal;
+  cursor: pointer;
+}
+
+.selected-day-editor .time-range label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: #374151;
+}
+.selected-day-editor .time-range > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.selected-day-editor .time-range input[type="time"] {
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+.selected-day-editor .time-range span {
+  color: #6b7280;
+}
+
+.day-off-indicator {
+  font-style: italic;
+  color: #ef4444; /* Red */
+  margin-top: 5px;
+  margin-bottom: 15px;
+}
+
+.button-group {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+  flex-wrap: wrap;
+}
+
+.save-override-btn,
+.delete-override-btn {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.save-override-btn {
+  background-color: #3a4cb3; /* Primary color */
+  color: white;
+}
+.save-override-btn:hover:not(:disabled) {
+  background-color: #2a3a93;
+}
+.save-override-btn:disabled {
+  background-color: #939ed7;
+  cursor: not-allowed;
+}
+
+.delete-override-btn {
+  background-color: #ef4444; /* Red */
+  color: white;
+}
+.delete-override-btn:hover:not(:disabled) {
+  background-color: #dc2626;
+}
+.delete-override-btn:disabled {
+  background-color: #fca5a5;
+  cursor: not-allowed;
+}
+
+.standard-info {
+  margin-top: 20px;
+  font-size: 0.85rem;
+  color: #6b7280;
+  border-top: 1px dashed #e5e7eb;
+  padding-top: 10px;
+}
+
+.loading-day {
+  padding: 20px;
+  text-align: center;
+  color: #666;
+}
