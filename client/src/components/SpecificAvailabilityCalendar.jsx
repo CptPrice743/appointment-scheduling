@@ -1,11 +1,18 @@
 // File Path: doctor-appointment-scheduling/client/src/components/SpecificAvailabilityCalendar.jsx
-import React, { useState, useEffect, useContext, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useContext,
+  useCallback,
+  useRef,
+} from "react";
 import Calendar from "react-calendar";
-import "react-calendar/dist/Calendar.css";
+import "react-calendar/dist/Calendar.css"; // Default calendar styles
 import AuthContext from "../context/AuthContext";
-import "./SpecificAvailabilityCalendar.css";
+import "./SpecificAvailabilityCalendar.css"; // Make sure this CSS file exists and has .message styles or they are in index.css
 
 // --- Constants and Helpers ---
+// Ensure this matches the 'enum' in your Doctor.js model exactly
 const DAYS_OF_WEEK = [
   "Sunday",
   "Monday",
@@ -16,28 +23,30 @@ const DAYS_OF_WEEK = [
   "Saturday",
 ];
 
-// Format date for use as a key or sending to backend (local date parts)
+// Format date for use as a key or sending to backend (YYYY-MM-DD)
 const formatDateYYYYMMDD = (date) => {
-  if (!date) return "";
+  if (!date || !(date instanceof Date)) return "";
+  // Use local date parts to form the key, as this matches user selection intention
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
 
-// Format date for displaying to the user (uses browser's locale)
+// Format date for displaying to the user (e.g., "Wednesday, April 16, 2025")
 const formatDateForDisplay = (date) => {
-  // Takes Date object
   if (!date || !(date instanceof Date)) return "Invalid Date";
   try {
+    // Use the Date object directly for reliable local formatting
     const options = {
       year: "numeric",
       month: "long",
       day: "numeric",
       weekday: "long",
     };
-    return date.toLocaleDateString(undefined, options); // Use the raw date object
+    return date.toLocaleDateString(undefined, options);
   } catch (e) {
+    console.error("Error formatting date for display:", e);
     return "Invalid Date";
   }
 };
@@ -45,17 +54,16 @@ const formatDateForDisplay = (date) => {
 // Get day string from Date object using local day index
 const getDayOfWeekStringFromDate = (date) => {
   if (!date || !(date instanceof Date)) return "";
-  const dayIndex = date.getDay(); // 0=Sun, 6=Sat (local)
+  const dayIndex = date.getDay(); // 0=Sun, 6=Sat (local time)
   return DAYS_OF_WEEK[dayIndex];
 };
 // --- End Constants and Helpers ---
 
 const SpecificAvailabilityCalendar = () => {
-  // Initialize selectedDate without time component for consistency
+  // --- State ---
   const initialDate = new Date();
   initialDate.setHours(0, 0, 0, 0);
   const [selectedDate, setSelectedDate] = useState(initialDate);
-
   const [overrides, setOverrides] = useState({}); // Key: YYYY-MM-DD
   const [dayDetails, setDayDetails] = useState({
     date: formatDateYYYYMMDD(initialDate),
@@ -68,22 +76,44 @@ const SpecificAvailabilityCalendar = () => {
     standardIsWorking: false,
     hasExistingOverride: false,
   });
-  const [loadingOverrides, setLoadingOverrides] = useState(false);
-  const [dayLoading, setDayLoading] = useState(false);
-  const [error, setError] = useState("");
-  const { axiosInstance, user } = useContext(AuthContext);
-  const doctorProfile = user?.doctorProfile;
+  const [loadingOverrides, setLoadingOverrides] = useState(false); // Loading all overrides
+  const [dayLoading, setDayLoading] = useState(false); // Loading/saving specific day
+  const [error, setError] = useState(""); // Error messages for this component
+  const [overrideMessage, setOverrideMessage] = useState(""); // Success messages for this component
+  const overrideMsgTimeoutRef = useRef(null); // Timeout ref for messages
 
-  // --- Fetch Overrides (Keep existing logic) ---
+  const { axiosInstance, user } = useContext(AuthContext);
+  const doctorProfile = user?.doctorProfile; // Access doctor profile from context
+
+  // --- Effects ---
+
+  // Clear message timeout on unmount
+  useEffect(() => {
+    return () => clearTimeout(overrideMsgTimeoutRef.current);
+  }, []);
+
+  // Auto-clear Override success/error messages
+  useEffect(() => {
+    if (overrideMessage || error) {
+      clearTimeout(overrideMsgTimeoutRef.current);
+      overrideMsgTimeoutRef.current = setTimeout(() => {
+        setOverrideMessage("");
+        setError("");
+      }, 3000); // Hide after 3 seconds
+    }
+    return () => clearTimeout(overrideMsgTimeoutRef.current);
+  }, [overrideMessage, error]);
+
+  // Fetch all overrides on mount
   const fetchOverrides = useCallback(async () => {
     setLoadingOverrides(true);
-    setError("");
+    setError(""); // Clear error before fetch
     try {
       const res = await axiosInstance.get("/doctors/availability/overrides");
       const fetchedOverrides = {};
       (res.data || []).forEach((ov) => {
         const ovDate = new Date(ov.date); // Date from backend (likely UTC)
-        // Create key from UTC date parts to match potential backend storage format
+        // Create key using YYYY-MM-DD format from UTC parts
         const year = ovDate.getUTCFullYear();
         const month = String(ovDate.getUTCMonth() + 1).padStart(2, "0");
         const day = String(ovDate.getUTCDate()).padStart(2, "0");
@@ -107,10 +137,15 @@ const SpecificAvailabilityCalendar = () => {
     fetchOverrides();
   }, [fetchOverrides]);
 
-  // --- Get Standard Availability (Keep existing logic from previous fix) ---
+  // Get Standard Availability for a specific date (with safety check)
   const getStandardAvailability = useCallback(
     (date) => {
-      if (!doctorProfile?.standardAvailability) {
+      // ** SAFETY CHECK **
+      if (
+        !doctorProfile ||
+        !Array.isArray(doctorProfile.standardAvailability)
+      ) {
+        // console.log("Standard check: Doctor profile or standardAvailability array is missing/invalid.");
         return {
           standardIsWorking: false,
           standardStartTime: "",
@@ -122,6 +157,7 @@ const SpecificAvailabilityCalendar = () => {
       const standardRule = doctorProfile.standardAvailability.find(
         (slot) => slot.dayOfWeek === dayOfWeekString
       );
+
       if (standardRule) {
         return {
           standardIsWorking: true,
@@ -136,40 +172,36 @@ const SpecificAvailabilityCalendar = () => {
         };
       }
     },
-    [doctorProfile?.standardAvailability]
-  );
+    [doctorProfile]
+  ); // Depend on doctorProfile
 
-  // *** UPDATED useEffect to calculate day details based on selectedDate ***
+  // Update displayed day details when selected date or overrides change
   useEffect(() => {
-    // This effect now runs whenever selectedDate changes OR overrides data is updated
-    if (!selectedDate) return; // Guard clause
-
+    if (!selectedDate) return;
     setDayLoading(true);
-    const dateKey = formatDateYYYYMMDD(selectedDate); // Key based on the currently selected date
-    const override = overrides[dateKey]; // Check if override exists for this date
+    const dateKey = formatDateYYYYMMDD(selectedDate); // Key based on local selected date
+    const override = overrides[dateKey];
     const { standardIsWorking, standardStartTime, standardEndTime } =
-      getStandardAvailability(selectedDate); // Calculate standard for this date
+      getStandardAvailability(selectedDate);
 
-    let initialStartTime = "";
-    let initialEndTime = "";
-    let initialIsDayOff = false;
-    let initialIsEditing = false;
-    let hasExistingOverride = false;
+    let initialStartTime = "",
+      initialEndTime = "",
+      initialIsDayOff = false,
+      initialIsEditing = false,
+      hasExistingOverride = false;
 
     if (override) {
       hasExistingOverride = true;
       initialIsDayOff = !override.isWorking;
-      initialIsEditing = override.isWorking; // Show time inputs if override is 'working'
+      initialIsEditing = override.isWorking;
       initialStartTime = override.startTime;
       initialEndTime = override.endTime;
     } else {
-      // No override - base state on standard availability
       initialIsDayOff = !standardIsWorking;
-      initialStartTime = standardStartTime; // Store standard times for potential prefill
+      initialStartTime = standardStartTime;
       initialEndTime = standardEndTime;
       initialIsEditing = false;
     }
-
     // Update the state for the editor section
     setDayDetails({
       date: dateKey,
@@ -182,29 +214,30 @@ const SpecificAvailabilityCalendar = () => {
       standardIsWorking,
       hasExistingOverride: hasExistingOverride,
     });
-
+    // Clear messages when date changes
+    // setError("");
+    // setOverrideMessage("");
     setDayLoading(false);
-    setError(""); // Clear error when date changes
-  }, [selectedDate, overrides, getStandardAvailability]); // Re-run when selectedDate or overrides change
+  }, [selectedDate, overrides, getStandardAvailability]);
 
-  // Handle date change on calendar
+  // --- Handlers ---
   const handleDateChange = (newDate) => {
-    // Ensure time part is zeroed out to avoid potential timezone shifts affecting the date part
     newDate.setHours(0, 0, 0, 0);
-    setSelectedDate(newDate); // Update the state, triggering the useEffect above
+    setSelectedDate(newDate);
+    // Clear messages on date change
+    setOverrideMessage("");
+    setError("");
   };
 
-  // Handle changes in the override form inputs/checkboxes
   const handleDayInfoChange = (e) => {
-    // ... (Keep existing logic from previous fix) ...
     const { name, value, type, checked } = e.target;
     setDayDetails((prev) => {
       const newState = { ...prev };
       if (type === "checkbox") {
         newState[name] = checked;
-        if (name === "isDayOff" && checked) {
+        // Logic for the two checkboxes
+        if (name === "isDayOff" && checked)
           newState.isEditingSpecificTime = false;
-        }
         if (name === "isEditingSpecificTime" && checked) {
           newState.isDayOff = false;
           if (
@@ -229,17 +262,21 @@ const SpecificAvailabilityCalendar = () => {
       }
       return newState;
     });
+    // Clear messages on input change
+    setOverrideMessage("");
     setError("");
   };
 
-  // --- API Calls (saveOverride, deleteOverride - keep existing logic) ---
+  // Save Override API Call
   const saveOverride = async () => {
-    // ... (Keep existing logic) ...
     setDayLoading(true);
     setError("");
+    setOverrideMessage(""); // Clear previous messages
+
     const { date, isDayOff, isEditingSpecificTime, startTime, endTime } =
       dayDetails;
     let payload;
+    // Determine payload based on checkbox states
     if (isDayOff) {
       payload = { date, isWorking: false };
     } else if (isEditingSpecificTime) {
@@ -251,13 +288,15 @@ const SpecificAvailabilityCalendar = () => {
       payload = { date, isWorking: true, startTime, endTime };
     } else {
       setError(
-        "Select 'Set Specific Hours' or 'Take the day off' to save an override."
+        "Select 'Set specific hours' or 'Take the day off' to save an override."
       );
       setDayLoading(false);
       return;
     }
+
     try {
       await axiosInstance.post("/doctors/availability/overrides", payload);
+      // Update local overrides state to immediately reflect change
       setOverrides((prev) => ({
         ...prev,
         [date]: {
@@ -266,19 +305,23 @@ const SpecificAvailabilityCalendar = () => {
           endTime: payload.endTime || "",
         },
       }));
-      setDayDetails((prev) => ({ ...prev, hasExistingOverride: true }));
-      alert("Override saved successfully!");
+      // Update details state to match saved override
+      setDayDetails((prev) => ({ ...prev, hasExistingOverride: true })); // Ensures 'Remove' button appears
+      setError(""); // Clear error on success
+      setOverrideMessage("Override saved successfully!"); // Set success message
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to save override.");
+      setOverrideMessage(""); // Clear success on error
+      setError(err.response?.data?.message || "Failed to save override."); // Set error message
       console.error("Save Override Error:", err);
     } finally {
       setDayLoading(false);
     }
   };
 
+  // Delete Override API Call
   const deleteOverride = async () => {
-    // ... (Keep existing logic) ...
     if (!dayDetails.hasExistingOverride) return;
+    // Keep browser confirmation
     if (
       !window.confirm(
         `Are you sure you want to remove the specific settings for ${formatDateForDisplay(
@@ -286,39 +329,42 @@ const SpecificAvailabilityCalendar = () => {
         )}? Standard schedule will apply.`
       )
     )
-      return; // Use selectedDate for confirmation msg
+      return;
+
     setDayLoading(true);
     setError("");
+    setOverrideMessage(""); // Clear messages
     try {
       await axiosInstance.delete(
         `/doctors/availability/overrides/${dayDetails.date}`
       );
+      // Update local overrides state (removing the key triggers useEffect)
       const newOverrides = { ...overrides };
       delete newOverrides[dayDetails.date];
-      setOverrides(newOverrides); // This will trigger the useEffect to update dayDetails
-      alert("Override removed successfully.");
+      setOverrides(newOverrides);
+      setError(""); // Clear error on success
+      setOverrideMessage("Override removed successfully."); // Set success message
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to remove override.");
+      setOverrideMessage(""); // Clear success on error
+      setError(err.response?.data?.message || "Failed to remove override."); // Set error message
       console.error("Delete Override Error:", err);
     } finally {
       setDayLoading(false);
     }
   };
-  // --- End API Calls ---
+  // --- End Handlers ---
 
-  // Function to add class names to calendar tiles
+  // --- Tile ClassName (with safety check) ---
   const tileClassName = ({ date, view }) => {
     if (view === "month") {
-      // Zero out time part for consistent comparison
       const dateOnly = new Date(date);
       dateOnly.setHours(0, 0, 0, 0);
-      const dateKey = formatDateYYYYMMDD(dateOnly); // Format key consistently
-
+      const dateKey = formatDateYYYYMMDD(dateOnly);
       const override = overrides[dateKey];
       if (override) {
         return override.isWorking ? "has-override-working" : "has-override-off";
       }
-      const { standardIsWorking } = getStandardAvailability(dateOnly); // Use dateOnly here too
+      const { standardIsWorking } = getStandardAvailability(dateOnly); // Safe call
       if (standardIsWorking) {
         return "standard-working";
       }
@@ -326,9 +372,9 @@ const SpecificAvailabilityCalendar = () => {
     return null;
   };
 
+  // --- Render Logic ---
   const canSaveChanges =
     dayDetails.isDayOff || dayDetails.isEditingSpecificTime;
-
   return (
     <div className="override-manager">
       <h4>Set Specific Date Availability / Time Off</h4>
@@ -341,17 +387,20 @@ const SpecificAvailabilityCalendar = () => {
 
       <div className="calendar-container">
         <Calendar
-          onChange={handleDateChange} // This updates selectedDate state
-          value={selectedDate} // Calendar reflects selectedDate state
-          minDate={new Date()}
+          onChange={handleDateChange}
+          value={selectedDate}
+          minDate={new Date()} // Prevent selecting past dates
           tileClassName={tileClassName}
         />
       </div>
 
       <div className="selected-day-editor">
-        {/* *** FIX: Use selectedDate directly for display formatting *** */}
         <h5>Settings for: {formatDateForDisplay(selectedDate)}</h5>
 
+        {/* Display Inline Override Messages Here */}
+        {overrideMessage && (
+          <div className="message success">{overrideMessage}</div>
+        )}
         {error && <div className="message error">{error}</div>}
 
         {dayLoading ? (
@@ -383,11 +432,10 @@ const SpecificAvailabilityCalendar = () => {
               <label htmlFor="isDayOff">Take the day off?</label>
             </div>
 
-            {/* Time Inputs */}
+            {/* Time Inputs - Shown Conditionally */}
             {dayDetails.isEditingSpecificTime && !dayDetails.isDayOff && (
               <div className="form-group time-range">
                 <label>Specific Hours:</label>
-                {/* ... time inputs ... */}
                 <div>
                   <input
                     type="time"
@@ -408,11 +456,12 @@ const SpecificAvailabilityCalendar = () => {
               </div>
             )}
 
-            {/* {dayDetails.isDayOff && (
+            {/* Day Off Indicator */}
+            {dayDetails.isDayOff && (
               <p className="day-off-indicator">
                 Marked as **Not Working** for this specific date.
               </p>
-            )} */}
+            )}
 
             {/* Buttons */}
             <div className="button-group">
