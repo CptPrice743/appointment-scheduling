@@ -1,4 +1,3 @@
-// File Path: doctor-appointment-scheduling/client/src/components/AvailabilityManager.jsx
 import React, { useState, useEffect, useContext, useCallback } from "react";
 import AuthContext from "../context/AuthContext";
 import "./AvailabilityManager.css";

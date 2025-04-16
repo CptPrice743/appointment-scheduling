@@ -1,11 +1,10 @@
-// File Path: doctor-appointment-scheduling/server/routes/authRoutes.js
 const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
-const Doctor = require("../models/Doctor"); // Import Doctor model
+const Doctor = require("../models/Doctor");
 const jwt = require("jsonwebtoken");
-// const bcrypt = require('bcryptjs'); // Use bcrypt in a real app
-const SECRET_KEY = process.env.JWT_SECRET || "your-insecure-secret-key"; // Use env var
+const bcrypt = require("bcryptjs"); // Ensure bcryptjs is installed
+const SECRET_KEY = process.env.JWT_SECRET || "your-insecure-secret-key";
 
 const timeRegex = /^\d{2}:\d{2}$/;
 const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
@@ -38,16 +37,21 @@ router.post("/register", async (req, res) => {
   if (!["patient", "doctor"].includes(role)) {
     return res.status(400).json({ message: "Invalid role specified" });
   }
+  if (password.length < 6) {
+    // Basic password length validation
+    return res
+      .status(400)
+      .json({ message: "Password must be at least 6 characters" });
+  }
 
   // --- Doctor Specific Validation ---
+  // (Keep the doctor validation block from the previous version here)
   if (role === "doctor") {
     if (!specialization || !appointmentDuration) {
-      return res
-        .status(400)
-        .json({
-          message:
-            "Doctors must provide specialization and default appointment duration.",
-        });
+      return res.status(400).json({
+        message:
+          "Doctors must provide specialization and default appointment duration.",
+      });
     }
     if (
       isNaN(parseInt(appointmentDuration)) ||
@@ -91,31 +95,35 @@ router.post("/register", async (req, res) => {
   // --- End Validation ---
 
   try {
-    let user = await User.findOne({ email });
-    if (user) {
+    // *** MODIFIED: Case-insensitive email check ***
+    const existingUser = await User.findOne({
+      email: { $regex: new RegExp(`^${email}$`, "i") },
+    });
+    if (existingUser) {
       console.log(
-        `Registration attempt failed: Email ${email} already exists.`
+        `Registration attempt failed: Email ${email} (case-insensitive) already exists.`
       );
+      // Use the original, more specific message here
       return res
         .status(400)
         .json({ message: "User already exists with this email" });
     }
 
-    // HASH password in real app:
-    // const salt = await bcrypt.genSalt(10);
-    // const hashedPassword = await bcrypt.hash(password, salt);
-    user = new User({
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const newUser = new User({
+      // Renamed to newUser for clarity
       name,
       email,
-      password: password, // Use hashedPassword in real app
+      password: hashedPassword,
       role,
     });
 
     let doctorProfile = null;
     if (role === "doctor") {
-      // --- Generate Standard Availability Array ---
       const standardAvailability = [];
-      // Add weekday slots
       WEEKDAYS.forEach((day) => {
         standardAvailability.push({
           dayOfWeek: day,
@@ -123,7 +131,6 @@ router.post("/register", async (req, res) => {
           endTime: weekdayEndTime,
         });
       });
-      // Add weekend slots if applicable
       if (worksWeekends) {
         WEEKENDS.forEach((day) => {
           standardAvailability.push({
@@ -133,58 +140,66 @@ router.post("/register", async (req, res) => {
           });
         });
       }
-      // --- End Generate Standard Availability ---
 
       doctorProfile = new Doctor({
-        userId: user._id,
+        userId: newUser._id, // Link before saving User is okay for ObjectId
         name: name,
         specialization: specialization,
         appointmentDuration: parseInt(appointmentDuration),
-        standardAvailability: standardAvailability, // Save generated schedule
-        availabilityOverrides: [], // Initialize overrides as empty
+        standardAvailability: standardAvailability,
+        availabilityOverrides: [],
       });
-      await doctorProfile.save();
-      user.doctorProfile = doctorProfile._id; // Link user to doctor profile
+      await doctorProfile.save(); // Save doctor profile first
+      newUser.doctorProfile = doctorProfile._id; // Assign the saved profile ID
       console.log(`Doctor profile created for user ${email}`);
     }
 
-    await user.save();
+    await newUser.save(); // Save the user
     console.log(`User registered successfully: ${email}, Role: ${role}`);
 
     // Generate token
-    const payload = { id: user._id, role: user.role };
-    // Include doctorProfile ID in token if doctor
-    if (user.doctorProfile) {
-      payload.doctorId = user.doctorProfile.toString();
+    const payload = { id: newUser._id, role: newUser.role };
+    if (newUser.doctorProfile) {
+      payload.doctorId = newUser.doctorProfile.toString();
     }
     const token = jwt.sign(payload, SECRET_KEY, { expiresIn: "1d" });
 
     // Prepare user response (excluding password)
     const userResponse = {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      // Include populated doctor profile if doctor
+      id: newUser._id,
+      name: newUser.name,
+      email: newUser.email,
+      role: newUser.role,
+      // Use the saved doctorProfile if it exists
       ...(doctorProfile && { doctorProfile: doctorProfile.toObject() }),
     };
 
     res.status(201).json({ token, user: userResponse });
   } catch (err) {
-    console.error("Registration Error:", err);
+    console.error("Detailed Registration Error:", err);
     if (err.name === "ValidationError") {
+      const messages = Object.values(err.errors).map((e) => e.message);
       return res
         .status(400)
-        .json({ message: `Validation Error: ${err.message}` });
+        .json({ message: `Validation Error: ${messages.join(", ")}` });
     }
-    // Handle other potential errors (e.g., duplicate key for user/doctor)
+    if (err.code === 11000) {
+      // This specific message is now less likely for email if the findOne check works,
+      // but good to keep for other potential unique index issues (e.g., doctor userId)
+      return res
+        .status(400)
+        .json({
+          message: `Duplicate key error: ${Object.keys(err.keyValue).join(
+            ", "
+          )} already exists.`,
+        });
+    }
     res.status(500).json({ message: "Server error during registration" });
   }
 });
 
-// Login User (Patient or Doctor) - No changes needed here from previous versions
+// Login User (Patient or Doctor) - Keep the updated version from the previous step
 router.post("/login", async (req, res) => {
-  // ... (keep existing login logic) ...
   const { email, password } = req.body;
   if (!email || !password) {
     return res
@@ -193,11 +208,18 @@ router.post("/login", async (req, res) => {
   }
 
   try {
-    const user = await User.findOne({ email }).populate("doctorProfile"); // Populate doctor profile
+    // Fetch user WITH password field for comparison
+    const user = await User.findOne({ email })
+      .select("+password")
+      .populate("doctorProfile");
 
-    // In real app use bcrypt.compare:
-    // const isMatch = user && await bcrypt.compare(password, user.password);
-    const isMatch = user && user.password === password; // Replace with bcrypt compare
+    if (!user) {
+      console.log(`Login failed: User not found for email ${email}`);
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    // Compare hashed password
+    const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
       console.log(`Login failed: Invalid credentials for email ${email}`);
@@ -219,9 +241,10 @@ router.post("/login", async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
-      // Include populated doctor profile if doctor
       ...(user.doctorProfile && {
-        doctorProfile: user.doctorProfile.toObject(),
+        doctorProfile: user.doctorProfile.toObject
+          ? user.doctorProfile.toObject()
+          : user.doctorProfile,
       }),
     };
 

@@ -1,4 +1,3 @@
-// server/models/appointment.js
 const mongoose = require("mongoose");
 
 const AppointmentSchema = new mongoose.Schema(

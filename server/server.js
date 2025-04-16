@@ -1,15 +1,14 @@
-// require("dotenv").config(); // Load environment variables
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const appointmentRoutes = require("./routes/appointmentRoutes");
 const authRoutes = require("./routes/authRoutes");
 const doctorRoutes = require("./routes/doctorRoutes"); // Import doctor routes
-const userRoutes = require('./routes/userRoutes');
+const userRoutes = require("./routes/userRoutes");
 
 const app = express();
 const PORT = 8000;
-const MONGO_URI = 'mongodb://localhost:27017/appointmentScheduler';
+const MONGO_URI = "mongodb://localhost:27017/appointmentScheduler";
 
 if (!MONGO_URI) {
   console.error("FATAL ERROR: MONGO_URI is not defined in .env file.");
@@ -50,7 +49,7 @@ app.get("/", (req, res) => res.send("API Running")); // Basic health check route
 app.use("/api/auth", authRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/doctors", doctorRoutes); // Add doctor routes
-app.use('/api/users', userRoutes);
+app.use("/api/users", userRoutes);
 
 // --- Basic Error Handling (Example) ---
 app.use((err, req, res, next) => {

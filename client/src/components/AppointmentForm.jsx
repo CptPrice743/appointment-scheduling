@@ -1,4 +1,3 @@
-// File Path: doctor-appointment-scheduling/client/src/components/AppointmentForm.jsx
 import React, { useState, useEffect, useContext, useCallback } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import AuthContext from "../context/AuthContext";

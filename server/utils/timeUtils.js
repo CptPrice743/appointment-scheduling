@@ -1,5 +1,3 @@
-// File Path: doctor-appointment-scheduling/server/utils/timeUtils.js
-
 /**
  * Converts time string "HH:MM" to minutes since midnight.
  * @param {string} timeStr - Time string in HH:MM format.

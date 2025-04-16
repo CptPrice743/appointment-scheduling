@@ -100,8 +100,8 @@ const AuthProvider = ({ children }) => {
       } catch (err) {
         const message =
           err.response?.data?.message || err.message || "Registration failed";
-        console.error("Registration Error:", message);
-        setError(message);
+        console.error("Registration Error:", message); // Log the specific error message
+        setError(message); // Set the error state with the specific message
         // Ensure state reflects failed registration
         setToken(null);
         setUser(null);
@@ -144,7 +144,7 @@ const AuthProvider = ({ children }) => {
     [
       token,
       user,
-      setUser,
+      setUser, // <-- Include setUser in dependencies
       isAuthenticated,
       isLoading,
       error,
@@ -154,7 +154,7 @@ const AuthProvider = ({ children }) => {
       clearError,
       axiosInstance,
     ]
-  ); // <-- Add setUser to dependency array
+  );
 
   return (
     <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>

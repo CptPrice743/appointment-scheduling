@@ -1,4 +1,3 @@
-// File Path: doctor-appointment-scheduling/server/models/Doctor.js
 const mongoose = require("mongoose");
 
 // Schema for general weekly slots

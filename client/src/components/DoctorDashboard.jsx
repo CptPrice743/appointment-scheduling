@@ -1,4 +1,3 @@
-// File Path: doctor-appointment-scheduling/client/src/components/DoctorDashboard.jsx
 import React, { useContext } from "react";
 import { Link } from "react-router-dom"; // Import Link
 import AuthContext from "../context/AuthContext";
