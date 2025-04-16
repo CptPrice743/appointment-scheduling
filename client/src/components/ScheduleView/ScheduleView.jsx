@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useMemo } from "react";
-import AuthContext from "../context/AuthContext";
+import AuthContext from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import "./ScheduleView.css";
 

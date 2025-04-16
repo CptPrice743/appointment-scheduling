@@ -1,6 +1,7 @@
 import React, { useState, useContext, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AuthContext from "../context/AuthContext.jsx";
+// Corrected CSS import path assuming the CSS is in the same directory
 import "./Register.css";
 
 const Register = () => {

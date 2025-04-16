@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext, useCallback } from "react";
-import AuthContext from "../context/AuthContext";
+import AuthContext from "../../context/AuthContext";
 import "./AvailabilityManager.css";
 
 const DAYS_OF_WEEK = [

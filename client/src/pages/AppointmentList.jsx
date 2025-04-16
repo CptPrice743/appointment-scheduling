@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import AuthContext from "../context/AuthContext";
+// Corrected CSS import path assuming the CSS is in the same directory
 import "./AppointmentList.css";
 
 // --- Helper Functions ---

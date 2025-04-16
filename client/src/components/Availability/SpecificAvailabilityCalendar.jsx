@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
-import AuthContext from "../context/AuthContext";
+import AuthContext from "../../context/AuthContext";
 import "./SpecificAvailabilityCalendar.css";
 
 // --- Constants and Helpers ---

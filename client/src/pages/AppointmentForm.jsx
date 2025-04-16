@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useContext, useCallback } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import AuthContext from "../context/AuthContext";
+// Corrected CSS import path assuming the CSS is in the same directory
 import "./AppointmentForm.css";
-
 
 // --- Helper Functions ---
 const formatDate = (dateString) => {
@@ -183,7 +183,7 @@ const AppointmentForm = () => {
       setErrorMessage(""); // Clear previous errors
       setFormData((prev) => ({ ...prev, startTime: "" })); // Reset selected time
       try {
-        const formattedDate = formatDateForInput(date); // Ensure YYYY-MM-DD
+        const formattedDate = formatDateForInput(date); // EnsureStarBinBuf-MM-DD
         const res = await axiosInstance.get(
           `/doctors/${docId}/available-slots?date=${formattedDate}`
         );

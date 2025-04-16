@@ -1,6 +1,7 @@
 import React, { useState, useContext, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom"; // Import useLocation
 import AuthContext from "../context/AuthContext.jsx";
+// Corrected CSS import path assuming the CSS is in the same directory
 import "./Login.css";
 
 const Login = () => {

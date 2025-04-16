@@ -1,6 +1,6 @@
 import React, { useContext } from "react";
 import { Link, NavLink } from "react-router-dom"; // Use NavLink for active styling if desired
-import AuthContext from "../context/AuthContext.jsx";
+import AuthContext from "../../context/AuthContext.jsx";
 import "./Navbar.css";
 
 const Navbar = () => {

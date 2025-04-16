@@ -5,20 +5,24 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import Navbar from "./components/Navbar";
-import Home from "./components/Home";
-import AppointmentList from "./components/AppointmentList"; // Patient's List
-import AppointmentForm from "./components/AppointmentForm";
-import Login from "./components/Login";
-import Register from "./components/Register";
-import DoctorDashboard from "./components/DoctorDashboard"; // Doctor's Dashboard
-import UserProfileEdit from './components/UserProfileEdit';
-// Import AvailabilityManager if you create a separate route for it
-// import AvailabilityManager from './components/AvailabilityManager';
-import { AuthProvider, AuthContext } from "./context/AuthContext.jsx"; // Import AuthContext too
-import PrivateRoute from "./components/PrivateRoute.jsx";
-import DoctorRoute from "./components/DoctorRoute.jsx"; // Import DoctorRoute
-import "./index.css";
+
+// Core Components & Context
+import Navbar from "./components/Navbar/Navbar.jsx"; // Correct path
+import { AuthProvider, AuthContext } from "./context/AuthContext.jsx"; // Correct path
+import PrivateRoute from "./components/Auth/PrivateRoute.jsx"; // Correct path
+import DoctorRoute from "./components/Auth/DoctorRoute.jsx"; // Correct path
+
+// Page Components (Corrected Paths)
+import Home from "./pages/Home.jsx";
+import AppointmentList from "./pages/AppointmentList.jsx"; // Patient's List
+import AppointmentForm from "./pages/AppointmentForm.jsx";
+import Login from "./pages/Login.jsx";
+import Register from "./pages/Register.jsx";
+import DoctorDashboard from "./pages/DoctorDashboard.jsx"; // Doctor's Dashboard
+import UserProfileEdit from "./pages/UserProfileEdit.jsx";
+
+// Global Styles
+import "./index.css"; // Correct path
 
 // Helper component to redirect based on role after login
 const RoleBasedRedirect = () => {
@@ -44,19 +48,19 @@ function App() {
           <div className="container">
             <Routes>
               {/* Public Routes */}
-              <Route path="/" element={<Home />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-
+              <Route path="/" element={<Home />} /> {/* [cite: 1] */}
+              <Route path="/login" element={<Login />} /> {/* [cite: 7] */}
+              <Route path="/register" element={<Register />} />{" "}
+              {/* [cite: 3] */}
               {/* === PATIENT Routes === */}
               <Route
                 path="/appointments" // Patient's appointment list
                 element={
                   <PrivateRoute>
                     {" "}
-                    {/* Ensures logged in */}
+                    {/* [cite: 24] */}
                     {/* We might add a check here or in the component to ensure role is patient */}
-                    <AppointmentList />
+                    <AppointmentList /> {/* [cite: 5] */}
                   </PrivateRoute>
                 }
               />
@@ -64,8 +68,10 @@ function App() {
                 path="/add" // Patient books an appointment
                 element={
                   <PrivateRoute>
+                    {" "}
+                    {/* [cite: 24] */}
                     {/* AppointmentForm can handle patient context */}
-                    <AppointmentForm />
+                    <AppointmentForm /> {/* [cite: 20] */}
                   </PrivateRoute>
                 }
               />
@@ -75,31 +81,33 @@ function App() {
                 path="/edit/:id"
                 element={
                   <PrivateRoute>
-                    <AppointmentForm />
+                    {" "}
+                    {/* [cite: 24] */}
+                    <AppointmentForm /> {/* [cite: 20] */}
                   </PrivateRoute>
                 }
               />
-
               {/* === USER PROFILE Route === */}
               <Route
                 path="/profile/edit"
                 element={
                   <PrivateRoute>
                     {" "}
+                    {/* [cite: 24] */}
                     {/* Ensures logged in */}
-                    <UserProfileEdit />
+                    <UserProfileEdit /> {/* [cite: 6] */}
                   </PrivateRoute>
                 }
               />
-
               {/* === DOCTOR Routes === */}
               <Route
                 path="/doctor/dashboard"
                 element={
                   <DoctorRoute>
                     {" "}
+                    {/* [cite: 23] */}
                     {/* Ensures logged in AND role is doctor */}
-                    <DoctorDashboard />
+                    <DoctorDashboard /> {/* [cite: 8] */}
                   </DoctorRoute>
                 }
               />
@@ -110,28 +118,30 @@ function App() {
                 path="/doctor/availability"
                 element={
                   <DoctorRoute>
-                    <AvailabilityManager />
+                    <AvailabilityManager /> // You would need to import this if used
                   </DoctorRoute>
                 }
               />
               */}
-
               {/* === Post-Login Redirect === */}
               {/* Route to redirect users after login based on their role */}
               <Route
                 path="/dashboard"
                 element={
                   <PrivateRoute>
+                    {" "}
+                    {/* [cite: 24] */}
                     <RoleBasedRedirect />
                   </PrivateRoute>
                 }
               />
-
               {/* Catch-all Route - Redirects unauthenticated to home, authenticated to their dashboard */}
               <Route
                 path="*"
                 element={
                   <AuthContext.Consumer>
+                    {" "}
+                    {/* [cite: 31] */}
                     {({ isAuthenticated }) =>
                       isAuthenticated ? (
                         <Navigate to="/dashboard" replace />
@@ -146,7 +156,7 @@ function App() {
           </div>
         </div>
       </Router>
-    </AuthProvider>
+    </AuthProvider> /* [cite: 31] */
   );
 }
 

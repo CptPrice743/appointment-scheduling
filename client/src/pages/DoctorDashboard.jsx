@@ -1,7 +1,8 @@
 import React, { useContext } from "react";
 import { Link } from "react-router-dom"; // Import Link
 import AuthContext from "../context/AuthContext";
-import ScheduleView from "./ScheduleView"; // Component to show appointments
+import ScheduleView from "../components/ScheduleView/ScheduleView"; // Corrected path
+// Corrected CSS import path assuming the CSS is in the same directory
 import "./DoctorDashboard.css";
 
 const DoctorDashboard = () => {

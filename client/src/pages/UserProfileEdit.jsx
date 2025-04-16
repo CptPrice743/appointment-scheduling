@@ -7,11 +7,10 @@ import React, {
 } from "react"; // Import useRef
 import { useNavigate } from "react-router-dom";
 import AuthContext from "../context/AuthContext";
-import SpecificAvailabilityCalendar from "./SpecificAvailabilityCalendar";
-import "./AvailabilityManager.css";
-import "./SpecificAvailabilityCalendar.css";
-import "./UserProfileEdit.css";
-import "../index.css";
+import SpecificAvailabilityCalendar from "../components/Availability/SpecificAvailabilityCalendar";
+// Corrected CSS imports: Remove imports belonging to other components
+import "./UserProfileEdit.css"; // Import CSS for this component/page
+import "../index.css"; // Keep global CSS import
 
 const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
 const WEEKENDS = ["Saturday", "Sunday"];
