@@ -7,6 +7,11 @@ const {
   updateUserStatus,
   deleteUser,
   updateUserRole,
+  getAllDoctors,
+  getDoctorById,
+  addDoctor,
+  updateDoctor,
+  deleteDoctor,
 } = require("../controllers/adminController"); // Import controller functions
 
 const router = express.Router();
@@ -20,10 +25,12 @@ router.put("/users/:userId/status", updateUserStatus); // PUT /api/admin/users/:
 router.delete("/users/:userId", deleteUser); // DELETE /api/admin/users/:userId
 router.put("/users/:userId/role", updateUserRole); // PUT /api/admin/users/:userId/role
 
-// Add Doctor Management routes here later (Step 3)
-// router.post('/doctors', ...)
-// router.put('/doctors/:doctorId', ...)
-// router.delete('/doctors/:doctorId', ...)
+// Doctor Management Routes
+router.get("/doctors", getAllDoctors); // GET /api/admin/doctors
+router.get("/doctors/:doctorId", getDoctorById); // GET /api/admin/doctors/:doctorId
+router.post("/doctors", addDoctor); // POST /api/admin/doctors
+router.put("/doctors/:doctorId", updateDoctor); // PUT /api/admin/doctors/:doctorId
+router.delete("/doctors/:doctorId", deleteDoctor); // DELETE /api/admin/doctors/:doctorId
 
 // Add Appointment Oversight routes here later (Step 4)
 // router.get('/appointments/all', ...)

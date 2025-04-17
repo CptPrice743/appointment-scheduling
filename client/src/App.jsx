@@ -24,6 +24,7 @@ import UserProfileEdit from "./pages/UserProfileEdit.jsx";
 
 // Admin Pages
 import UserManagement from "./pages/admin/UserManagement.jsx";
+import DoctorManagement from "./pages/admin/DoctorManagement.jsx";
 
 // Global Styles
 import "./index.css"; // Correct path
@@ -140,8 +141,7 @@ function App() {
               {/* *** Admin Specific Routes *** */}
               <Route element={<AdminRoute />}>
                 <Route path="/admin/users" element={<UserManagement />} />
-                {/* Add other admin routes here as you build them */}
-                {/* <Route path="/admin/doctors" element={<DoctorManagement />} /> */}
+                <Route path="/admin/doctors" element={<DoctorManagement />} />
                 {/* <Route path="/admin/appointments" element={<AppointmentOversight />} /> */}
               </Route>
               {/* Catch-all Route - Redirects unauthenticated to home, authenticated to their dashboard */}
