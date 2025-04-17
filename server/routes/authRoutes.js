@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
 const Doctor = require("../models/Doctor");
+const { protect } = require('../middleware/authMiddleware');
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs"); // Ensure bcryptjs is installed
 const SECRET_KEY = process.env.JWT_SECRET || "your-insecure-secret-key";
@@ -186,19 +187,17 @@ router.post("/register", async (req, res) => {
     if (err.code === 11000) {
       // This specific message is now less likely for email if the findOne check works,
       // but good to keep for other potential unique index issues (e.g., doctor userId)
-      return res
-        .status(400)
-        .json({
-          message: `Duplicate key error: ${Object.keys(err.keyValue).join(
-            ", "
-          )} already exists.`,
-        });
+      return res.status(400).json({
+        message: `Duplicate key error: ${Object.keys(err.keyValue).join(
+          ", "
+        )} already exists.`,
+      });
     }
     res.status(500).json({ message: "Server error during registration" });
   }
 });
 
-// Login User (Patient or Doctor) - Keep the updated version from the previous step
+// Login User (Patient or Doctor) - Verify role is included in response
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
@@ -210,12 +209,19 @@ router.post("/login", async (req, res) => {
   try {
     // Fetch user WITH password field for comparison
     const user = await User.findOne({ email })
-      .select("+password")
-      .populate("doctorProfile");
+      .select("+password") // <-- Select password only for comparison
+      .populate("doctorProfile"); // Keep populating profile if needed
 
     if (!user) {
       console.log(`Login failed: User not found for email ${email}`);
       return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    if (!user.isActive) {
+      console.log(`Login failed: Account inactive for email ${email}`);
+      return res
+        .status(403)
+        .json({ message: "Account is deactivated. Please contact support." });
     }
 
     // Compare hashed password
@@ -227,7 +233,7 @@ router.post("/login", async (req, res) => {
     }
 
     // Generate token
-    const payload = { id: user._id, role: user.role };
+    const payload = { id: user._id, role: user.role }; // Ensure role is in payload
     if (user.doctorProfile) {
       payload.doctorId = user.doctorProfile._id.toString();
     }
@@ -235,23 +241,28 @@ router.post("/login", async (req, res) => {
 
     console.log(`User logged in successfully: ${email}, Role: ${user.role}`);
 
-    // Prepare user object for response (exclude password)
-    const userResponse = {
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      ...(user.doctorProfile && {
-        doctorProfile: user.doctorProfile.toObject
-          ? user.doctorProfile.toObject()
-          : user.doctorProfile,
-      }),
-    };
-
-    res.json({ token, user: userResponse });
+    // User object is automatically converted to JSON, which should exclude password via the model's toJSON method
+    // The role is included by default.
+    res.json({ token, user: user }); // Send the user object
   } catch (err) {
     console.error("Login Error:", err);
     res.status(500).json({ message: "Server error during login" });
+  }
+});
+
+// Example: Get current user profile (protected)
+router.get('/me', protect, async (req, res) => {
+  try {
+      // req.user is populated by the 'protect' middleware
+      // We fetch again to ensure we get the latest data and can populate doctorProfile if needed
+      const user = await User.findById(req.user.id).populate('doctorProfile');
+      if (!user) {
+          return res.status(404).json({ message: 'User not found' });
+      }
+      res.json(user); // user.toJSON() removes password
+  } catch (err) {
+      console.error("Get Profile Error:", err);
+      res.status(500).json({ message: 'Server Error' });
   }
 });
 

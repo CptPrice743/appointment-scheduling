@@ -7,10 +7,11 @@ import {
 } from "react-router-dom";
 
 // Core Components & Context
-import Navbar from "./components/Navbar/Navbar.jsx"; // Correct path
-import { AuthProvider, AuthContext } from "./context/AuthContext.jsx"; // Correct path
-import PrivateRoute from "./components/Auth/PrivateRoute.jsx"; // Correct path
-import DoctorRoute from "./components/Auth/DoctorRoute.jsx"; // Correct path
+import Navbar from "./components/Navbar/Navbar.jsx";
+import { AuthProvider, AuthContext } from "./context/AuthContext.jsx";
+import PrivateRoute from "./components/Auth/PrivateRoute.jsx";
+import DoctorRoute from "./components/Auth/DoctorRoute.jsx";
+import AdminRoute from "./components/Auth/AdminRoute.jsx";
 
 // Page Components (Corrected Paths)
 import Home from "./pages/Home.jsx";
@@ -20,6 +21,9 @@ import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
 import DoctorDashboard from "./pages/DoctorDashboard.jsx"; // Doctor's Dashboard
 import UserProfileEdit from "./pages/UserProfileEdit.jsx";
+
+// Admin Pages
+import UserManagement from "./pages/admin/UserManagement.jsx";
 
 // Global Styles
 import "./index.css"; // Correct path
@@ -48,19 +52,17 @@ function App() {
           <div className="container">
             <Routes>
               {/* Public Routes */}
-              <Route path="/" element={<Home />} /> {/* [cite: 1] */}
-              <Route path="/login" element={<Login />} /> {/* [cite: 7] */}
+              <Route path="/" element={<Home />} />
+              <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />{" "}
-              {/* [cite: 3] */}
               {/* === PATIENT Routes === */}
               <Route
                 path="/appointments" // Patient's appointment list
                 element={
                   <PrivateRoute>
                     {" "}
-                    {/* [cite: 24] */}
                     {/* We might add a check here or in the component to ensure role is patient */}
-                    <AppointmentList /> {/* [cite: 5] */}
+                    <AppointmentList />
                   </PrivateRoute>
                 }
               />
@@ -135,6 +137,13 @@ function App() {
                   </PrivateRoute>
                 }
               />
+              {/* *** Admin Specific Routes *** */}
+              <Route element={<AdminRoute />}>
+                <Route path="/admin/users" element={<UserManagement />} />
+                {/* Add other admin routes here as you build them */}
+                {/* <Route path="/admin/doctors" element={<DoctorManagement />} /> */}
+                {/* <Route path="/admin/appointments" element={<AppointmentOversight />} /> */}
+              </Route>
               {/* Catch-all Route - Redirects unauthenticated to home, authenticated to their dashboard */}
               <Route
                 path="*"

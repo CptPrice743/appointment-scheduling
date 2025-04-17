@@ -5,6 +5,7 @@ const appointmentRoutes = require("./routes/appointmentRoutes");
 const authRoutes = require("./routes/authRoutes");
 const doctorRoutes = require("./routes/doctorRoutes"); // Import doctor routes
 const userRoutes = require("./routes/userRoutes");
+const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
 const PORT = 8000;
@@ -50,6 +51,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/appointments", appointmentRoutes);
 app.use("/api/doctors", doctorRoutes); // Add doctor routes
 app.use("/api/users", userRoutes);
+app.use('/api/admin', adminRoutes); 
 
 // --- Basic Error Handling (Example) ---
 app.use((err, req, res, next) => {

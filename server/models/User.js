@@ -1,3 +1,4 @@
+// server/models/User.js
 const mongoose = require("mongoose");
 
 const UserSchema = new mongoose.Schema(
@@ -17,11 +18,13 @@ const UserSchema = new mongoose.Schema(
       // In a real app, ALWAYS hash passwords
       type: String,
       required: true,
+      select: false, // Explicitly exclude password by default
     },
     role: {
       // Added role field
       type: String,
-      enum: ["patient", "doctor"],
+      // *** MODIFIED ENUM TO INCLUDE ADMIN ***
+      enum: ["patient", "doctor", "admin"], // <-- Added 'admin'
       default: "patient",
       required: true,
     },
@@ -33,6 +36,11 @@ const UserSchema = new mongoose.Schema(
         return this.role === "doctor";
       }, // Required only for doctors
       default: null,
+    },
+    // Optional: Add an isActive flag later for Step 2
+    isActive: {
+      type: Boolean,
+      default: true,
     },
     createdAt: {
       type: Date,
@@ -50,5 +58,19 @@ UserSchema.index(
     partialFilterExpression: { doctorProfile: { $type: "objectId" } },
   }
 );
+
+// Re-add select: false for password after hashing in routes if needed there
+// This ensures it's not returned unless explicitly selected (like in login)
+UserSchema.pre("save", async function (next) {
+  // Hash password logic would typically be here if not handled in route
+  next();
+});
+
+// Explicitly exclude password when converting to JSON unless selected
+UserSchema.methods.toJSON = function () {
+  const userObject = this.toObject();
+  delete userObject.password;
+  return userObject;
+};
 
 module.exports = mongoose.model("User", UserSchema);

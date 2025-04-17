@@ -105,6 +105,43 @@ const Navbar = () => {
                 </>
               )}
 
+              {/* *** ADDED: Admin Specific Links *** */}
+              {user?.role === "admin" && (
+                <>
+                  <li className="nav-item">
+                    <NavLink
+                      to="/admin/users"
+                      className={({ isActive }) =>
+                        isActive ? "nav-links active" : "nav-links"
+                      }
+                    >
+                      User Management
+                    </NavLink>
+                  </li>
+                  <li className="nav-item">
+                    <NavLink
+                      to="/admin/doctors"
+                      className={({ isActive }) =>
+                        isActive ? "nav-links active" : "nav-links"
+                      }
+                    >
+                      Doctor Management
+                    </NavLink>
+                  </li>
+                  <li className="nav-item">
+                    <NavLink
+                      to="/admin/appointments"
+                      className={({ isActive }) =>
+                        isActive ? "nav-links active" : "nav-links"
+                      }
+                    >
+                      All Appointments
+                    </NavLink>
+                  </li>
+                  {/* Add more admin links as needed */}
+                </>
+              )}
+
               {/* Common Authenticated Links */}
               <li className="nav-item">
                 <NavLink
