@@ -1,11 +1,12 @@
+require("dotenv").config();
 const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
 const Doctor = require("../models/Doctor");
-const { protect } = require('../middleware/authMiddleware');
+const { protect } = require("../middleware/authMiddleware");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs"); // Ensure bcryptjs is installed
-const SECRET_KEY = process.env.JWT_SECRET || "your-insecure-secret-key";
+const SECRET_KEY = process.env.JWT_SECRET;
 
 const timeRegex = /^\d{2}:\d{2}$/;
 const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
@@ -111,7 +112,9 @@ router.post("/register", async (req, res) => {
     }
 
     // Hash password
-    const salt = await bcrypt.genSalt(10);
+    const salt = await bcrypt.genSalt(
+      parseInt(process.env.SALT_ROUNDS || "10")
+    );
     const hashedPassword = await bcrypt.hash(password, salt);
 
     const newUser = new User({
@@ -163,7 +166,9 @@ router.post("/register", async (req, res) => {
     if (newUser.doctorProfile) {
       payload.doctorId = newUser.doctorProfile.toString();
     }
-    const token = jwt.sign(payload, SECRET_KEY, { expiresIn: "1d" });
+    const token = jwt.sign(payload, SECRET_KEY, {
+      expiresIn: process.env.JWT_EXPIRES_IN || "1d",
+    });
 
     // Prepare user response (excluding password)
     const userResponse = {
@@ -237,7 +242,9 @@ router.post("/login", async (req, res) => {
     if (user.doctorProfile) {
       payload.doctorId = user.doctorProfile._id.toString();
     }
-    const token = jwt.sign(payload, SECRET_KEY, { expiresIn: "1d" });
+    const token = jwt.sign(payload, SECRET_KEY, {
+      expiresIn: process.env.JWT_EXPIRES_IN || "1d",
+    });
 
     console.log(`User logged in successfully: ${email}, Role: ${user.role}`);
 
@@ -251,18 +258,18 @@ router.post("/login", async (req, res) => {
 });
 
 // Example: Get current user profile (protected)
-router.get('/me', protect, async (req, res) => {
+router.get("/me", protect, async (req, res) => {
   try {
-      // req.user is populated by the 'protect' middleware
-      // We fetch again to ensure we get the latest data and can populate doctorProfile if needed
-      const user = await User.findById(req.user.id).populate('doctorProfile');
-      if (!user) {
-          return res.status(404).json({ message: 'User not found' });
-      }
-      res.json(user); // user.toJSON() removes password
+    // req.user is populated by the 'protect' middleware
+    // We fetch again to ensure we get the latest data and can populate doctorProfile if needed
+    const user = await User.findById(req.user.id).populate("doctorProfile");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.json(user); // user.toJSON() removes password
   } catch (err) {
-      console.error("Get Profile Error:", err);
-      res.status(500).json({ message: 'Server Error' });
+    console.error("Get Profile Error:", err);
+    res.status(500).json({ message: "Server Error" });
   }
 });
 

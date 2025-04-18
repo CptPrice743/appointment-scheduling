@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const { protect } = require('../middleware/authMiddleware');
-// const bcrypt = require('bcryptjs'); // Import if implementing password change
+
 
 // GET My Profile
 router.get('/profile/me', protect, async (req, res) => {

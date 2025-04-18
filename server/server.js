@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
@@ -8,8 +9,8 @@ const userRoutes = require("./routes/userRoutes");
 const adminRoutes = require('./routes/adminRoutes');
 
 const app = express();
-const PORT = 8000;
-const MONGO_URI = "mongodb://localhost:27017/appointmentScheduler";
+const PORT = process.env.PORT || 8000;
+const MONGO_URI = process.env.MONGO_URI;
 
 if (!MONGO_URI) {
   console.error("FATAL ERROR: MONGO_URI is not defined in .env file.");
@@ -25,7 +26,7 @@ if (!process.env.JWT_SECRET) {
 // Configure CORS more securely in production
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "*", // Allow requests from your frontend URL
+    origin: process.env.CLIENT_URL,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })

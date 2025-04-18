@@ -207,7 +207,6 @@ const AdminDashboard = () => {
         <div className="dashboard-context">
           <span>{format(currentTime, "PPpp")}</span>{" "}
           {/* Format: Apr 18, 2025, 6:04:27 AM */}
-          <span>Gandhidham, Gujarat, India</span> {/* Hardcoded Location */}
         </div>
       </div>
 
