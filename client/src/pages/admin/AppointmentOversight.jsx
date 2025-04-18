@@ -129,7 +129,7 @@ const AppointmentOversight = () => {
       setIsLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]); // Run only when token changes (effectively once on login)
+  }, [token, fetchData]); // Run only when token changes (effectively once on login)
 
   // Handler for changes in filter inputs
   const handleFilterChange = (e) => {
@@ -154,7 +154,7 @@ const AppointmentOversight = () => {
     setFilters(clearedFilters);
     // Calling setFilters will trigger the useEffect that depends on `filters` via fetchData
     // Or call fetchData() explicitly here if preferred/needed
-    fetchData();
+    // fetchData();
   };
 
   // --- Edit Modal Logic ---

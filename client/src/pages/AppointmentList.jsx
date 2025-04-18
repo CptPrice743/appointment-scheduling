@@ -106,6 +106,12 @@ const AppointmentList = () => {
   const [filterStartDate, setFilterStartDate] = useState("");
   const [filterEndDate, setFilterEndDate] = useState("");
   const [doctorsList, setDoctorsList] = useState([]);
+  const handleResetFilters = () => {
+    setFilterDoctor("");
+    setFilterStatus("");
+    setFilterStartDate("");
+    setFilterEndDate("");
+  };
 
   // Fetch doctors list (for filter dropdown)
   useEffect(() => {
@@ -459,6 +465,14 @@ const AppointmentList = () => {
             onChange={(e) => setFilterEndDate(e.target.value)}
             max={formatDateForInput(new Date())}
           />
+        </div>
+        <div className="filter-group filter-action-group">
+          {" "}
+          {/* Optional: Group button */}
+          <label>&nbsp;</label> {/* Align with other labels */}
+          <button onClick={handleResetFilters} className="btn btn-reset">
+            Reset Filters
+          </button>
         </div>
       </div>
 

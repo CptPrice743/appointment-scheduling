@@ -174,3 +174,30 @@
 .action-button.cancel:hover {
   background-color: #d32f2f;
 }
+
+/* Style for the reset button */
+.btn.btn-reset {
+  /* Copy styles from .btn-secondary in AppointmentOversight.css or define new */
+  background-color: #3B4BB3;
+  color: white;
+  border: 1px solid #ced4da;
+  padding: 8px 15px; /* Match filter input padding */
+  border-radius: 20px;
+  cursor: pointer;
+  font-size: 0.95rem; /* Match filter input font-size */
+  transition: background-color 0.2s ease, border-color 0.2s ease,
+    color 0.2s ease;
+  line-height: 1.5; /* Match input line-height */
+  width: 100%; /* Make button fill its group */
+}
+
+.btn.btn-reset:hover {
+  background-color: #f8f9fa;
+  color: #495057;
+  border-color: #adb5bd;
+}
+
+.btn.btn-reset:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}

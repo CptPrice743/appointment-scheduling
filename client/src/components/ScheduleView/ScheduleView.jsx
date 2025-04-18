@@ -109,6 +109,12 @@ const ScheduleView = () => {
   const [filterStatus, setFilterStatus] = useState("");
   const [filterStartDate, setFilterStartDate] = useState("");
   const [filterEndDate, setFilterEndDate] = useState("");
+  const handleResetFilters = () => {
+    setFilterPatientName("");
+    setFilterStatus("");
+    setFilterStartDate("");
+    setFilterEndDate("");
+  };
 
   const fetchDoctorSchedule = async () => {
     if (!user?.doctorProfile?._id) {
@@ -300,7 +306,11 @@ const ScheduleView = () => {
         </div>
 
         {/* Rest of the card content */}
-        {apt.patientUserId?.email && <p><strong>Email:</strong> {apt.patientUserId.email}</p>}
+        {apt.patientUserId?.email && (
+          <p>
+            <strong>Email:</strong> {apt.patientUserId.email}
+          </p>
+        )}
         <p>
           <strong>Date:</strong> {formatDate(apt.appointmentDate)}
         </p>
@@ -423,6 +433,14 @@ const ScheduleView = () => {
             value={filterEndDate}
             onChange={(e) => setFilterEndDate(e.target.value)}
           />
+        </div>
+        <div className="filter-group filter-action-group">
+          {" "}
+          {/* Optional: Group button */}
+          <label>&nbsp;</label> {/* Align with other labels */}
+          <button onClick={handleResetFilters} className="btn btn-reset">
+            Reset Filters
+          </button>
         </div>
       </div>
 
