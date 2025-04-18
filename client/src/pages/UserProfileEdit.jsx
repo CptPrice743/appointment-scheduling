@@ -189,7 +189,7 @@ const UserProfileEdit = () => {
     if (!isDoctor) return;
     setAvailabilityMessage("");
     setAvailabilityError(""); // Clear before submit
-    setLoadingAvailability(true);
+    setAvailabilityLoading(true);
     console.log("Submitting availability update..."); // DEBUG
     const { weekdayStartTime /*...*/ } = stdAvailabilityData; // Destructure all needed vars
     // Validation

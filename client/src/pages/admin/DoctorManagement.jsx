@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useContext } from "react";
 import axios from "axios";
-import AuthContext from "../../context/AuthContext"; // Adjust path
+import AuthContext from "../../context/AuthContext"; // Adjust path if needed
 import "./DoctorManagement.css"; // Create this CSS file
 
 const DoctorManagement = () => {
@@ -20,7 +20,7 @@ const DoctorManagement = () => {
   });
 
   const { token } = useContext(AuthContext);
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001/api";
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 
   // Fetch doctors and potential users to link
   const fetchData = async () => {
@@ -30,21 +30,38 @@ const DoctorManagement = () => {
       const config = { headers: { Authorization: `Bearer ${token}` } };
       // Fetch doctors
       const doctorsRes = await axios.get(`${API_URL}/admin/doctors`, config);
-      setDoctors(doctorsRes.data);
+      if (Array.isArray(doctorsRes.data)) {
+        setDoctors(doctorsRes.data);
+      } else {
+        console.error(
+          "API did not return an array for doctors:",
+          doctorsRes.data
+        );
+        setDoctors([]);
+      }
 
       // Fetch all users to find potential candidates for linking
       const usersRes = await axios.get(`${API_URL}/admin/users`, config);
-      // Filter users who are not admins and don't already have a doctor profile
-      const potentialUsers = usersRes.data.filter(
-        (user) => user.role !== "admin" && !user.doctorProfile && user.isActive
-      );
-      setUsersWithoutProfile(potentialUsers);
+      if (Array.isArray(usersRes.data)) {
+        // Filter users who are not admins and don't already have a doctor profile
+        const potentialUsers = usersRes.data.filter(
+          (user) =>
+            user.role !== "admin" && !user.doctorProfile && user.isActive
+        );
+        setUsersWithoutProfile(potentialUsers);
+      } else {
+        console.error("API did not return an array for users:", usersRes.data);
+        setUsersWithoutProfile([]);
+      }
     } catch (err) {
       console.error("Error fetching data:", err);
       setError(
         err.response?.data?.message ||
           "Failed to fetch data. Ensure you are an admin."
       );
+      // Clear lists on error
+      setDoctors([]);
+      setUsersWithoutProfile([]);
     } finally {
       setIsLoading(false);
     }
@@ -57,7 +74,8 @@ const DoctorManagement = () => {
       setError("Authentication token not found.");
       setIsLoading(false);
     }
-  }, [token, API_URL]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]); // Depend only on token for initial load
 
   // Handle input changes for add/edit form
   const handleInputChange = (e) => {
@@ -92,12 +110,14 @@ const DoctorManagement = () => {
           "Content-Type": "application/json",
         },
       };
+      // Use correct template literal for URL
       const response = await axios.post(
-        `${API_URL}/admin/doctors`,
+        `${API_URL}/admin/doctors`, // Correct path
         formData,
         config
       );
-      setDoctors((prev) => [...prev, response.data.doctor]); // Add new doctor to list
+      // Refresh data fully after adding
+      fetchData();
       setIsAdding(false); // Hide form
       setFormData({
         userId: "",
@@ -105,7 +125,6 @@ const DoctorManagement = () => {
         specialization: "",
         appointmentDuration: 30,
       }); // Reset form
-      fetchData(); // Refresh data to update user list etc.
       alert("Doctor added successfully!");
     } catch (err) {
       console.error("Error adding doctor:", err);
@@ -117,7 +136,8 @@ const DoctorManagement = () => {
   const handleEditClick = (doctor) => {
     setEditingDoctor(doctor);
     setFormData({
-      userId: doctor.userId._id, // Cannot change linked user here
+      // IMPORTANT: Do NOT put userId in formData for edit, it cannot be changed
+      // userId: doctor.userId._id, // DO NOT INCLUDE THIS
       name: doctor.name,
       specialization: doctor.specialization,
       appointmentDuration: doctor.appointmentDuration,
@@ -139,18 +159,22 @@ const DoctorManagement = () => {
           "Content-Type": "application/json",
         },
       };
-      // Only send fields that can be updated (name, specialization, duration)
+      // Only send fields that can be updated
       const updateData = {
         name: formData.name,
         specialization: formData.specialization,
         appointmentDuration: formData.appointmentDuration,
-        // Add availability updates here if implementing
       };
+
+      // *** CORRECTED URL CONSTRUCTION ***
       const response = await axios.put(
-        `<span class="math-inline">\{API\_URL\}/admin/doctors/</span>{editingDoctor._id}`,
+        `${API_URL}/admin/doctors/${editingDoctor._id}`, // Correct template literal
         updateData,
         config
       );
+      // *** END CORRECTION ***
+
+      // Update the list locally with the returned doctor data
       setDoctors((prev) =>
         prev.map((doc) =>
           doc._id === editingDoctor._id ? response.data.doctor : doc
@@ -191,12 +215,16 @@ const DoctorManagement = () => {
     ) {
       try {
         const config = { headers: { Authorization: `Bearer ${token}` } };
+
+        // *** CORRECTED URL CONSTRUCTION ***
         await axios.delete(
-          `<span class="math-inline">\{API\_URL\}/admin/doctors/</span>{doctorId}`,
+          `${API_URL}/admin/doctors/${doctorId}`, // Correct template literal
           config
         );
-        setDoctors((prev) => prev.filter((doc) => doc._id !== doctorId));
-        fetchData(); // Refresh users list as well
+        // *** END CORRECTION ***
+
+        // Refresh data fully after deleting
+        fetchData();
         alert(`Doctor "${doctorName}" deleted successfully.`);
       } catch (err) {
         console.error("Error deleting doctor:", err);
@@ -205,57 +233,82 @@ const DoctorManagement = () => {
     }
   };
 
+  // --- Render Logic ---
+
+  // Show loading state
   if (isLoading) return <div className="loading">Loading doctors...</div>;
+  // Show error state
   if (error) return <div className="error-message">{error}</div>;
 
+  // Main component render
   return (
     <div className="doctor-management-container">
       <h2>Doctor Management</h2>
 
-      {/* Add/Edit Form Section */}
+      {/* Button to show Add form */}
       {!isAdding && !editingDoctor && (
-        <button onClick={() => setIsAdding(true)} className="btn btn-add-new">
+        <button
+          onClick={() => {
+            setIsAdding(true);
+            setFormData({
+              userId: "",
+              name: "",
+              specialization: "",
+              appointmentDuration: 30,
+            }); // Reset form when opening
+          }}
+          className="btn btn-add-new"
+        >
           Add New Doctor
         </button>
       )}
 
+      {/* Add or Edit Form */}
       {(isAdding || editingDoctor) && (
         <div className="form-section">
           <h3>{editingDoctor ? "Edit Doctor" : "Add New Doctor"}</h3>
           <form onSubmit={editingDoctor ? handleUpdateDoctor : handleAddDoctor}>
-            {isAdding && ( // Only show User selection when adding
+            {/* User Selection - Only show when ADDING */}
+            {isAdding && (
               <div className="form-group">
                 <label htmlFor="userId">Link to User:</label>
                 <select
                   id="userId"
                   name="userId"
                   value={formData.userId}
-                  onChange={handleUserSelectChange} // Use specific handler
+                  onChange={handleUserSelectChange}
                   required
                 >
                   <option value="">-- Select User --</option>
                   {usersWithoutProfile.map((user) => (
                     <option key={user._id} value={user._id}>
-                      {user.name} ({user.email})
+                      {" "}
+                      {user.name} ({user.email}){" "}
                     </option>
                   ))}
                 </select>
-                {usersWithoutProfile.length === 0 && (
-                  <p className="info-text">
-                    No available users found to link. Create a new user first.
-                  </p>
-                )}
+                {usersWithoutProfile.length === 0 &&
+                  !isLoading && ( // Added !isLoading check
+                    <p className="info-text">
+                      {" "}
+                      No available users found to link. Create a new user first.{" "}
+                    </p>
+                  )}
               </div>
             )}
-            {editingDoctor && ( // Show linked user when editing (read-only)
+            {/* Linked User Display - Only show when EDITING */}
+            {editingDoctor && (
               <div className="form-group">
                 <label>Linked User:</label>
+                {/* Safely access potentially nested data */}
                 <p>
-                  {editingDoctor.userId.name} ({editingDoctor.userId.email})
+                  {editingDoctor.userId?.name || "N/A"} (
+                  {editingDoctor.userId?.email || "N/A"})
                 </p>
               </div>
             )}
 
+            {/* Doctor Name Input */}
             <div className="form-group">
               <label htmlFor="name">Doctor Name:</label>
               <input
@@ -267,6 +320,7 @@ const DoctorManagement = () => {
                 required
               />
             </div>
+            {/* Specialization Input */}
             <div className="form-group">
               <label htmlFor="specialization">Specialization:</label>
               <input
@@ -278,9 +332,11 @@ const DoctorManagement = () => {
                 required
               />
             </div>
+            {/* Appointment Duration Input */}
             <div className="form-group">
               <label htmlFor="appointmentDuration">
-                Appt. Duration (mins):
+                {" "}
+                Appt. Duration (mins):{" "}
               </label>
               <input
                 type="number"
@@ -292,18 +348,20 @@ const DoctorManagement = () => {
                 min="5"
               />
             </div>
-            {/* Add fields for availability management later if needed */}
 
+            {/* Form Action Buttons */}
             <div className="form-actions">
               <button type="submit" className="btn btn-save">
-                {editingDoctor ? "Update Doctor" : "Add Doctor"}
+                {" "}
+                {editingDoctor ? "Update Doctor" : "Add Doctor"}{" "}
               </button>
               <button
                 type="button"
                 onClick={handleCancel}
                 className="btn btn-cancel"
               >
-                Cancel
+                {" "}
+                Cancel{" "}
               </button>
             </div>
           </form>
@@ -326,35 +384,39 @@ const DoctorManagement = () => {
             </tr>
           </thead>
           <tbody>
-            {doctors.map((doctor) => (
-              <tr key={doctor._id}>
-                <td>{doctor.name}</td>
-                <td>{doctor.specialization}</td>
-                {/* Safely access populated user details */}
-                <td>
-                  {doctor.userId
-                    ? `<span class="math-inline">\{doctor\.userId\.name\} \(</span>{doctor.userId.email})`
-                    : "N/A"}
-                </td>
-                <td>{doctor.appointmentDuration} mins</td>
-                <td className="action-buttons">
-                  <button
-                    onClick={() => handleEditClick(doctor)}
-                    className="btn btn-edit"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDeleteDoctor(doctor._id, doctor.name)}
-                    className="btn btn-delete"
-                  >
-                    Delete
-                  </button>
-                  {/* Add button to manage availability later */}
-                  {/* <button className="btn btn-manage-availability">Availability</button> */}
-                </td>
-              </tr>
-            ))}
+            {/* Ensure doctors is an array before mapping */}
+            {Array.isArray(doctors) &&
+              doctors.map((doctor) => (
+                <tr key={doctor._id}>
+                  <td>{doctor.name}</td>
+                  <td>{doctor.specialization}</td>
+                  {/* Safely access populated user details */}
+                  <td>
+                    {doctor.userId
+                      ? `${doctor.userId.name} (${doctor.userId.email})`
+                      : "N/A"}
+                  </td>
+                  <td>{doctor.appointmentDuration} mins</td>
+                  <td className="action-buttons">
+                    <button
+                      onClick={() => handleEditClick(doctor)}
+                      className="btn btn-edit"
+                    >
+                      {" "}
+                      Edit{" "}
+                    </button>
+                    <button
+                      onClick={() =>
+                        handleDeleteDoctor(doctor._id, doctor.name)
+                      }
+                      className="btn btn-delete"
+                    >
+                      {" "}
+                      Delete{" "}
+                    </button>
+                  </td>
+                </tr>
+              ))}
           </tbody>
         </table>
       )}

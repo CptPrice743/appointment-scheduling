@@ -1,7 +1,7 @@
 // client/src/pages/admin/UserManagement.jsx
 import React, { useState, useEffect, useContext } from "react";
 import axios from "axios"; // Make sure axios is installed (npm install axios)
-import AuthContext from "../../context/AuthContext"; // Adjust path
+import AuthContext from "../../context/AuthContext"; // Adjust path if needed
 import "./UserManagement.css"; // Create this CSS file
 
 const UserManagement = () => {
@@ -13,40 +13,55 @@ const UserManagement = () => {
 
   const { token } = useContext(AuthContext); // Get token for API requests
 
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001/api"; // Use environment variable
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api"; // Use environment variable
 
-  // Fetch users on component mount
-  useEffect(() => {
-    const fetchUsers = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const config = {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        };
-        const response = await axios.get(`${API_URL}/admin/users`, config);
+  // --- Fetch users ---
+  const fetchUsers = async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const config = {
+        headers: {
+          // Content-Type is not needed for GET request usually
+          Authorization: `Bearer ${token}`,
+        },
+      };
+      const response = await axios.get(`${API_URL}/admin/users`, config);
+      if (Array.isArray(response.data)) {
         setUsers(response.data);
-      } catch (err) {
-        console.error("Error fetching users:", err);
+      } else {
+        console.error("API did not return an array for users:", response.data);
+        setUsers([]);
+        setError("Received unexpected user data format from server.");
+      }
+    } catch (err) {
+      console.error("Error fetching users:", err);
+      if (err.code === "ERR_NETWORK") {
+        setError("Connection failed fetching users. Is the server running?");
+      } else {
         setError(
           err.response?.data?.message ||
             "Failed to fetch users. Are you logged in as an admin?"
         );
-      } finally {
-        setIsLoading(false);
       }
-    };
+      setUsers([]); // Clear users on error
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
+  // Fetch users on component mount
+  useEffect(() => {
     if (token) {
       fetchUsers();
     } else {
       setError("Authentication token not found.");
       setIsLoading(false);
     }
-  }, [token, API_URL]); // Re-fetch if token changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]); // Depend only on token for initial fetch
+
+  // --- Action Handlers ---
 
   // Handler for Activate/Deactivate button
   const handleToggleStatus = async (userId, currentStatus) => {
@@ -61,16 +76,19 @@ const UserManagement = () => {
       try {
         const config = {
           headers: {
-            "Content-Type": "application/json",
+            "Content-Type": "application/json", // Needed for PUT with body
             Authorization: `Bearer ${token}`,
           },
         };
+        // *** CORRECTED URL for axios.put ***
         await axios.put(
-          `<span class="math-inline">\{API\_URL\}/admin/users/</span>{userId}/status`,
-          { isActive: newStatus },
+          `${API_URL}/admin/users/${userId}/status`, // Correct template literal
+          { isActive: newStatus }, // Request body
           config
         );
-        // Update user list locally
+        // *** END CORRECTION ***
+
+        // Update user list locally for immediate feedback
         setUsers((prevUsers) =>
           prevUsers.map((user) =>
             user._id === userId ? { ...user, isActive: newStatus } : user
@@ -94,13 +112,16 @@ const UserManagement = () => {
       try {
         const config = {
           headers: {
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${token}`, // Content-Type not needed for DELETE
           },
         };
+        // *** CORRECTED URL for axios.delete ***
         await axios.delete(
-          `<span class="math-inline">\{API\_URL\}/admin/users/</span>{userId}`,
+          `${API_URL}/admin/users/${userId}`, // Correct template literal
           config
         );
+        // *** END CORRECTION ***
+
         // Remove user from list locally
         setUsers((prevUsers) =>
           prevUsers.filter((user) => user._id !== userId)
@@ -125,7 +146,7 @@ const UserManagement = () => {
     setSelectedRole("");
   };
 
-  // Handler for Role change dropdown
+  // Handler for Role change dropdown selection
   const handleRoleChange = (event) => {
     setSelectedRole(event.target.value);
   };
@@ -139,19 +160,25 @@ const UserManagement = () => {
     try {
       const config = {
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/json", // Needed for PUT with body
           Authorization: `Bearer ${token}`,
         },
       };
+      // *** CORRECTED URL for axios.put ***
       const response = await axios.put(
-        `<span class="math-inline">\{API\_URL\}/admin/users/</span>{userId}/role`,
-        { role: selectedRole },
+        `${API_URL}/admin/users/${userId}/role`, // Correct template literal
+        { role: selectedRole }, // Request body
         config
       );
-      // Update user list locally
+      // *** END CORRECTION ***
+
+      // Update user list locally using data from response if needed, or just selectedRole
+      const updatedUser = response.data.user; // Assuming backend returns updated user
       setUsers((prevUsers) =>
-        prevUsers.map((user) =>
-          user._id === userId ? { ...user, role: selectedRole } : user
+        prevUsers.map(
+          (user) =>
+            user._id === userId ? { ...user, role: updatedUser.role } : user // Use response data
+          // Or simpler: user._id === userId ? { ...user, role: selectedRole } : user
         )
       );
       alert(`User role updated to ${selectedRole} successfully.`);
@@ -163,14 +190,18 @@ const UserManagement = () => {
     }
   };
 
-  if (isLoading) return <div className="loading">Loading users...</div>;
-  if (error) return <div className="error-message">{error}</div>;
+  // --- Render Logic ---
+
+  if (isLoading)
+    return <div className="loading status-message">Loading users...</div>; // Use status-message class for consistency
+  if (error) return <div className="error-message status-message">{error}</div>; // Use status-message class
 
   return (
     <div className="user-management-container">
       <h2>User Management</h2>
-      {users.length === 0 ? (
-        <p>No users found.</p>
+      {/* Check if users array is valid and has length */}
+      {!Array.isArray(users) || users.length === 0 ? (
+        <div className="info-message status-message">No users found.</div> // Use status-message class
       ) : (
         <table className="users-table">
           <thead>
@@ -184,13 +215,17 @@ const UserManagement = () => {
             </tr>
           </thead>
           <tbody>
+            {/* Map users array */}
             {users.map((user) => (
               <tr
                 key={user._id}
-                className={!user.isActive ? "inactive-user" : ""}
+                className={!user.isActive ? "inactive-user" : ""} // Optional styling for inactive
               >
-                <td>{user.name}</td>
-                <td>{user.email}</td>
+                {/* Name */}
+                <td>{user.name || "N/A"}</td>
+                {/* Email */}
+                <td>{user.email || "N/A"}</td>
+                {/* Role */}
                 <td>
                   {editingRoleUserId === user._id ? (
                     <select value={selectedRole} onChange={handleRoleChange}>
@@ -198,28 +233,34 @@ const UserManagement = () => {
                       <option value="doctor">Doctor</option>
                       <option value="admin">Admin</option>
                     </select>
+                  ) : // Display role capitalized
+                  user.role ? (
+                    user.role.charAt(0).toUpperCase() + user.role.slice(1)
                   ) : (
-                    user.role
+                    "N/A"
                   )}
                 </td>
+                {/* Status */}
                 <td>
-                  <span
-                    className={`status-badge status-${
-                      user.isActive ? "active" : "inactive"
-                    }`}
-                  >
-                    {user.isActive ? "Active" : "Inactive"}
-                  </span>
+                  {/* Removed status badge span */}
+                  {user.isActive ? "Active" : "Inactive"}
                 </td>
-                <td>{new Date(user.createdAt).toLocaleDateString()}</td>
+                {/* Joined Date */}
+                <td>
+                  {user.createdAt
+                    ? new Date(user.createdAt).toLocaleDateString()
+                    : "N/A"}
+                </td>
+                {/* Actions */}
                 <td className="action-buttons">
                   {editingRoleUserId === user._id ? (
+                    // Save/Cancel buttons when editing role
                     <>
                       <button
                         onClick={() => handleSaveRole(user._id)}
                         className="btn btn-save"
                       >
-                        Save
+                        Save Role
                       </button>
                       <button
                         onClick={handleCancelEditRole}
@@ -229,7 +270,9 @@ const UserManagement = () => {
                       </button>
                     </>
                   ) : (
+                    // Action buttons when not editing role
                     <>
+                      {/* Activate/Deactivate Button */}
                       <button
                         onClick={() =>
                           handleToggleStatus(user._id, user.isActive)
@@ -243,13 +286,15 @@ const UserManagement = () => {
                       >
                         {user.isActive ? "Deactivate" : "Activate"}
                       </button>
+                      {/* Change Role Button */}
                       <button
                         onClick={() => handleEditRoleClick(user)}
-                        className="btn btn-edit"
+                        className="btn btn-edit" // Use a consistent class if needed e.g., btn-primary or btn-info
                         title="Change Role"
                       >
                         Change Role
                       </button>
+                      {/* Delete User Button */}
                       <button
                         onClick={() => handleDeleteUser(user._id, user.name)}
                         className="btn btn-delete"

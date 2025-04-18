@@ -1,0 +1,468 @@
+/* client/src/pages/admin/AppointmentOversight.css */
+
+.appointment-oversight-container {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 1.5rem;
+  background-color: #ffffff; /* Cleaner white background */
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.08); /* Slightly softer shadow */
+}
+
+.appointment-oversight-container h2 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: #333;
+}
+
+/* Updated styles for status messages (Loading, Error, Info) */
+.content-area {
+  margin-top: 1.5rem;
+  text-align: center; /* Center messages */
+}
+
+.status-message {
+  padding: 1rem 1.5rem;
+  border-radius: 5px;
+  margin: 1rem auto; /* Center block element */
+  max-width: 80%; /* Limit width */
+  font-size: 1.1em;
+}
+
+.loading.status-message {
+  background-color: #eef1f5;
+  color: #555;
+  border: 1px solid #ddd;
+}
+
+.error-message.status-message {
+  color: #d9534f;
+  background-color: #f2dede;
+  border: 1px solid #ebccd1;
+}
+
+.info-message.status-message {
+  color: #31708f;
+  background-color: #d9edf7;
+  border: 1px solid #bce8f1;
+}
+/* End Status Message Styles */
+
+/* Filter Section Styling */
+.filter-section.card {
+  background-color: #fff;
+  padding: 1.5rem;
+  border-radius: 5px;
+  margin-bottom: 2rem;
+  border: 1px solid #e0e0e0;
+}
+.filter-section h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  text-align: center;
+  font-size: 1.3em;
+  color: #444;
+}
+.filter-grid {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(200px, 1fr)
+  ); /* Responsive grid */
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.filter-item label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 600;
+  font-size: 0.9em;
+  color: #555;
+}
+.filter-item input[type="date"],
+.filter-item select {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+  font-size: 0.95em;
+}
+
+/* --- START: Updated Button Styling --- */
+
+/* General Button Style */
+.btn {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.95em;
+  transition: background-color 0.2s ease, box-shadow 0.2s ease,
+    border-color 0.2s ease, color 0.2s ease;
+  color: #fff;
+  text-align: center;
+  vertical-align: middle;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  white-space: nowrap;
+}
+.btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.btn:hover:not(:disabled) {
+  opacity: 0.9;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Filter Action Buttons */
+.filter-actions {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  align-items: center;
+}
+.filter-actions .btn {
+  /* Keep original padding for filter buttons */
+  padding: 8px 15px;
+}
+
+/* Primary Apply Button */
+.filter-actions .btn-primary {
+  background-color: #0d6efd; /* Keep primary blue */
+  color: white;
+}
+
+/* Improved Clear Filters Button (Outline Style) */
+.filter-actions .btn-secondary {
+  background-color: #ffffff; /* White background */
+  color: #6c757d; /* Grey text */
+  border: 1px solid #ced4da; /* Light grey border */
+  box-shadow: none;
+}
+.filter-actions .btn-secondary:hover:not(:disabled) {
+  background-color: #f8f9fa; /* Slightly grey background on hover */
+  color: #495057;
+  border-color: #adb5bd;
+  opacity: 1; /* Reset opacity if needed */
+  box-shadow: none;
+}
+
+/* Table Row Action Buttons */
+.action-buttons {
+  display: flex;
+  gap: 6px; /* Slightly reduced gap */
+  flex-wrap: nowrap;
+  align-items: center;
+}
+.action-buttons .btn {
+  /* Row buttons are smaller */
+  padding: 5px 10px;
+  font-size: 0.85em;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+}
+
+/* Lighter Edit Button */
+.action-buttons .btn-edit {
+  background-color: #5bc0de; /* Lighter info blue */
+}
+
+/* Lighter Cancel Button */
+.action-buttons .btn-cancel {
+  background-color: #ffda6a; /* Lighter yellow */
+  color: #594b1e; /* Darker text for contrast */
+}
+.action-buttons .btn-cancel:hover:not(:disabled) {
+  background-color: #ffca2c;
+}
+
+/* Lighter Delete Button */
+.action-buttons .btn-delete {
+  background-color: #f17c86; /* Lighter red */
+}
+.action-buttons .btn-delete:hover:not(:disabled) {
+  background-color: #e95d6a;
+}
+
+/* Modal Action Buttons */
+.modal-actions {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: flex-end; /* Align to the right */
+  gap: 10px; /* Space between buttons */
+}
+
+/* Apply general button styles to modal buttons */
+.modal-actions .btn {
+  padding: 8px 18px; /* Standard padding for modal buttons */
+  font-size: 0.95em; /* Standard font size */
+}
+
+/* Styled Save Button (Green) */
+.modal-actions .btn-save {
+  background-color: #198754; /* Standard success green */
+  color: white;
+}
+.modal-actions .btn-save:hover:not(:disabled) {
+  background-color: #157347;
+}
+
+/* Styled Cancel Button (Grey - using secondary style) */
+.modal-actions .btn-cancel {
+  background-color: #6c757d; /* Standard secondary grey */
+  color: white;
+}
+.modal-actions .btn-cancel:hover:not(:disabled) {
+  background-color: #5c636a;
+}
+
+/* Fallback/Original colors (If needed - These are overridden above for specific contexts) */
+.btn-primary {
+  background-color: #0d6efd;
+}
+.btn-secondary {
+  background-color: #6c757d;
+}
+.btn-success,
+.btn-save {
+  background-color: #198754;
+}
+.btn-danger,
+.btn-delete {
+  background-color: #dc3545;
+}
+.btn-warning,
+.action-buttons .btn-cancel {
+  background-color: #ffc107;
+  color: #333;
+} /* Ensure action button cancel gets this if not overridden*/
+.btn-info,
+.action-buttons .btn-edit {
+  background-color: #0dcaf0;
+} /* Ensure action button edit gets this if not overridden */
+.btn-light {
+  background-color: #f8f9fa;
+  color: #333;
+  border: 1px solid #dee2e6;
+}
+.btn-dark {
+  background-color: #212529;
+}
+
+/* --- END: Updated Button Styling --- */
+
+/* Table Styling */
+.appointments-table-container {
+  position: relative;
+  overflow-x: auto; /* Keep horizontal scroll */
+  margin-top: 1.5rem;
+  border: 1px solid #e0e0e0; /* Add a light border around the table */
+  border-radius: 6px; /* Optional: Rounded corners for the container */
+}
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 1.2em;
+  color: #555;
+  z-index: 10;
+}
+
+.appointments-table {
+  width: 100%;
+  border-collapse: collapse; /* Remove gaps between cells */
+  white-space: nowrap;
+}
+
+/* Table Header Styling */
+.appointments-table th {
+  background-color: #f8f9fa; /* Lighter grey header */
+  color: #495057; /* Darker grey text for header */
+  padding: 12px 15px; /* Adjust padding */
+  text-align: left;
+  font-weight: 600; /* Slightly bolder header text */
+  border-bottom: 2px solid #dee2e6; /* Stronger bottom border for header */
+  white-space: normal;
+}
+
+/* Table Cell Styling */
+.appointments-table td {
+  padding: 12px 15px; /* Consistent padding */
+  text-align: left;
+  border-bottom: 1px solid #e9ecef; /* Lighter border between rows */
+  vertical-align: middle;
+  font-size: 0.95em;
+  color: #495057; /* Standard text color */
+  white-space: normal;
+}
+
+/* Zebra Striping for Rows */
+.appointments-table tbody tr:nth-of-type(even) {
+  background-color: #fbfcfd; /* Very light blue/grey for even rows */
+}
+
+.appointments-table tbody tr:hover {
+  background-color: #eef1f5; /* Slightly darker hover */
+}
+
+/* Reason Column Specific Styling */
+.appointments-table td:nth-child(5) {
+  /* Assuming Reason is the 5th column */
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.appointments-table td:nth-child(5):hover {
+  /* Show full reason on hover */
+  white-space: normal;
+  overflow: visible;
+  max-width: none;
+}
+
+/* Remove status badge and row background styles */
+/* .status-badge { display: none; } */
+/* Remove all .status-badge.status-* rules */
+/* Remove all tr.status-* rules */
+
+/* Modal Styling */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background-color: #fff;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  width: 90%;
+  max-width: 500px; /* Limit modal width */
+  max-height: 90vh; /* Limit modal height */
+  overflow-y: auto; /* Allow scrolling within modal if needed */
+}
+
+.modal-content h3 {
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  color: #333;
+}
+
+.modal-content .form-group {
+  margin-bottom: 1rem;
+}
+.modal-content .form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 600;
+  color: #555;
+}
+.modal-content .form-group input,
+.modal-content .form-group select,
+.modal-content .form-group textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box;
+}
+.modal-content .form-group textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+/* Responsive table adjustments */
+@media (max-width: 992px) {
+  .appointments-table {
+    font-size: 0.9em;
+  }
+  .appointments-table th,
+  .appointments-table td {
+    padding: 8px 10px;
+  }
+}
+@media (max-width: 768px) {
+  .filter-grid {
+    grid-template-columns: 1fr; /* Stack filters */
+  }
+  .appointments-table {
+    display: block; /* Switch to block layout */
+    width: 100%;
+  }
+  .appointments-table thead {
+    display: none;
+  } /* Hide table header */
+  .appointments-table tbody,
+  .appointments-table tr,
+  .appointments-table td {
+    display: block; /* Make rows and cells block elements */
+    width: 100% !important;
+    box-sizing: border-box;
+  }
+  .appointments-table tr {
+    border: 1px solid #ddd;
+    margin-bottom: 1rem;
+    padding: 1rem;
+    background-color: #fff;
+    border-radius: 4px;
+  }
+  /* Reset zebra striping for stacked view */
+  .appointments-table tbody tr:nth-of-type(even) {
+    background-color: #fff;
+  }
+
+  .appointments-table td {
+    border: none;
+    border-bottom: 1px dashed #eee; /* Separator line */
+    padding-left: 50%; /* Indent content */
+    position: relative;
+    text-align: right; /* Align content to the right */
+    white-space: normal;
+  }
+  .appointments-table td:last-child {
+    border-bottom: none; /* Remove border from last cell (actions) */
+  }
+  .appointments-table td:before {
+    /* Use data-* attribute for label */
+    content: attr(
+      data-label
+    ); /* Make sure you add data-label="Header Text" to your <td> elements in JSX for this to work */
+    position: absolute;
+    left: 10px;
+    width: 45%; /* Width of the label */
+    padding-right: 10px;
+    font-weight: bold;
+    text-align: left; /* Align label to the left */
+    white-space: nowrap;
+  }
+  .appointments-table td.action-buttons {
+    padding-left: 10px; /* Reset padding for actions */
+    text-align: center; /* Center buttons */
+    padding-top: 15px; /* Add space above buttons */
+    border-bottom: none; /* Ensure no border */
+  }
+  .appointments-table td.action-buttons:before {
+    display: none;
+  } /* No label for actions */
+
+  .action-buttons {
+    justify-content: center; /* Center buttons within the TD */
+  }
+}

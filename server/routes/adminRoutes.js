@@ -12,6 +12,9 @@ const {
   addDoctor,
   updateDoctor,
   deleteDoctor,
+  getAllAppointmentsAdmin,
+  updateAppointmentAdmin,
+  deleteAppointmentAdmin,
 } = require("../controllers/adminController"); // Import controller functions
 
 const router = express.Router();
@@ -32,9 +35,9 @@ router.post("/doctors", addDoctor); // POST /api/admin/doctors
 router.put("/doctors/:doctorId", updateDoctor); // PUT /api/admin/doctors/:doctorId
 router.delete("/doctors/:doctorId", deleteDoctor); // DELETE /api/admin/doctors/:doctorId
 
-// Add Appointment Oversight routes here later (Step 4)
-// router.get('/appointments/all', ...)
-// router.put('/appointments/admin/:appointmentId', ...)
-// router.delete('/appointments/admin/:appointmentId', ...)
+// --- Appointment Oversight Routes ---
+router.get("/appointments/all", getAllAppointmentsAdmin); // GET /api/admin/appointments/all
+router.put("/appointments/:appointmentId", updateAppointmentAdmin); // PUT /api/admin/appointments/:appointmentId
+router.delete("/appointments/:appointmentId", deleteAppointmentAdmin); // DELETE /api/admin/appointments/:appointmentId
 
 module.exports = router;
