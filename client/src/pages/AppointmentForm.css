@@ -82,3 +82,31 @@
   font-size: 0.85rem;
   color: #666;
 }
+
+/* --- Add these styles for the Cancel Button --- */
+.cancel-btn {
+  display: block; /* Match submit-btn */
+  width: 100%; /* Match submit-btn */
+  padding: 12px; /* Match submit-btn */
+  background-color: #6c757d; /* Neutral secondary/cancel color (grey) */
+  color: white; /* Match submit-btn */
+  border: none; /* Match submit-btn */
+  border-radius: 4px; /* Match submit-btn */
+  font-size: 1rem; /* Match submit-btn */
+  cursor: pointer; /* Match submit-btn */
+  transition: background-color 0.3s; /* Match submit-btn */
+  margin-top: 10px; /* Add space above the cancel button */
+}
+
+.cancel-btn:hover {
+  background-color: #5a6268; /* Darker grey on hover */
+}
+
+.cancel-btn:disabled {
+  background-color: #cccccc; /* Match submit-btn disabled */
+  cursor: not-allowed; /* Match submit-btn disabled */
+  opacity: 0.7; /* Add opacity for disabled state */
+}
+.cancel-btn:disabled:hover {
+  background-color: #cccccc; /* Keep disabled color on hover */
+}

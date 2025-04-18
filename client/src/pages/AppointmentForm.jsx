@@ -68,39 +68,46 @@ const AppointmentForm = () => {
   const prefillData = location.state?.prefillData;
 
   const [formData, setFormData] = useState({
-    appointmentDate: formatDateForInput(new Date()), // Default to today for new appointments
-    startTime: "", // This will now be selected from available slots
+    appointmentDate: formatDateForInput(
+      prefillData?.appointmentDate || new Date()
+    ),
+    startTime: prefillData?.startTime || "",
     reason: prefillData?.reason || "",
     status: "scheduled",
     remarks: "",
-    patientUserId: "", // Set when editing
+    patientUserId: "",
     patientName: isDoctorView ? "" : user?.name || "",
     patientEmail: isDoctorView ? "" : user?.email || "",
-    patientPhone: "", // Patient will fill this in
-    doctorId: prefillData?.doctorId || "", // Use prefill data or default
-    duration: "", // Will be fetched from doctor
-    // Fields to store fetched data
-    _doctorName: "", // Store doctor name when editing/viewing
-    _doctorSpecialization: "", // Store doctor spec when editing/viewing
+    patientPhone: isDoctorView ? "" : user?.phone || "",
+    doctorId: prefillData?.doctorId || "",
+    duration: "",
+    _doctorName: "",
+    _doctorSpecialization: "",
   });
+
+  // State to store the original time when editing
+  const [originalStartTime, setOriginalStartTime] = useState(null);
+  // State to track initial data load to prevent premature validation checks if needed
+  const [initialDataLoaded, setInitialDataLoaded] = useState(!isEditing);
 
   const [doctors, setDoctors] = useState([]);
   const [availableSlots, setAvailableSlots] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(isEditing); // Start loading if editing
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [submitMessage, setSubmitMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
+  // Logic to determine if time/date can be changed
+  const allowTimeChange = !isEditing || formData.status === "scheduled";
+
   // Fetch list of doctors (for patient booking dropdown)
   useEffect(() => {
     if (!isEditing && !isDoctorView) {
-      // Only needed when patient is creating
-      setLoading(true);
+      setLoading(true); // Ensure loading is true while fetching doctors
       axiosInstance
         .get("/doctors/list")
         .then((res) => {
           setDoctors(res.data || []);
-          // If doctorId was prefilled, set the duration
           if (prefillData?.doctorId) {
             const selectedDoc = (res.data || []).find(
               (doc) => doc._id === prefillData.doctorId
@@ -120,12 +127,13 @@ const AppointmentForm = () => {
           setLoading(false);
         });
     }
-  }, [axiosInstance, isEditing, isDoctorView, prefillData?.doctorId]); // Dependency on prefill data
+    // No else needed here, loading state handled by appointment fetch effect when editing
+  }, [axiosInstance, isEditing, isDoctorView, prefillData?.doctorId]);
 
   // Fetch appointment data if editing
   useEffect(() => {
     if (isEditing && id) {
-      setLoading(true);
+      // setLoading(true); // Loading is set initially
       axiosInstance
         .get(`/appointments/${id}`)
         .then((res) => {
@@ -136,19 +144,21 @@ const AppointmentForm = () => {
             startTime,
             duration,
             patientPhone,
-            patientName: fetchedPatientName, // Renamed to avoid conflict
+            patientName: fetchedPatientName,
             reason,
             status,
             remarks,
-            // doctorId might be populated or just an ID, handle both
           } = res.data;
+
+          const populatedDoctorId = doctorId?._id || doctorId || "";
+          const fetchedDuration = duration || "";
 
           setFormData((prev) => ({
             ...prev,
             appointmentDate: formatDateForInput(appointmentDate),
             startTime: startTime || "",
-            duration: duration || "",
-            doctorId: doctorId?._id || doctorId || "", // Store just the ID
+            duration: fetchedDuration, // Use fetched duration directly
+            doctorId: populatedDoctorId,
             patientUserId: patientUserId?._id || "",
             patientName: fetchedPatientName || patientUserId?.name || "",
             patientEmail: patientUserId?.email || "",
@@ -156,11 +166,38 @@ const AppointmentForm = () => {
             reason: reason || "",
             status: status || "scheduled",
             remarks: remarks || "",
-            // Store doctor details separately for display
             _doctorName: doctorId?.name || "N/A",
             _doctorSpecialization: doctorId?.specialization || "N/A",
           }));
-          setLoading(false);
+          setOriginalStartTime(startTime || null); // Store the original time
+
+          // Fetch doctor's duration if not included in appointment data (or if needed for consistency)
+          if (populatedDoctorId) {
+            // Always fetch associated doctor details for consistency, like duration
+            axiosInstance
+              .get(`/doctors/${populatedDoctorId}`)
+              .then((docRes) => {
+                if (docRes.data?.appointmentDuration) {
+                  setFormData((prev) => ({
+                    ...prev,
+                    duration: docRes.data.appointmentDuration,
+                  }));
+                }
+              })
+              .catch((err) =>
+                console.error(
+                  "Could not fetch doctor details on edit load",
+                  err
+                )
+              )
+              .finally(() => {
+                setLoading(false); // Stop loading after appointment and doctor details are fetched
+                setInitialDataLoaded(true); // Mark initial load complete
+              });
+          } else {
+            setLoading(false); // Stop loading if no doctorId to fetch
+            setInitialDataLoaded(true); // Mark initial load complete
+          }
         })
         .catch((err) => {
           console.error("Error fetching appointment:", err);
@@ -168,6 +205,7 @@ const AppointmentForm = () => {
             err.response?.data?.message || "Failed to load appointment data."
           );
           setLoading(false);
+          setInitialDataLoaded(true); // Mark load complete even on error
         });
     }
   }, [id, isEditing, axiosInstance]);
@@ -175,15 +213,15 @@ const AppointmentForm = () => {
   // --- Fetch Available Slots ---
   const fetchAvailableSlots = useCallback(
     async (docId, date) => {
-      if (!docId || !date) {
+      // Only fetch if allowed to change time AND doctor/date are present
+      if (!docId || !date || !allowTimeChange) {
         setAvailableSlots([]);
         return;
       }
       setSlotsLoading(true);
-      setErrorMessage(""); // Clear previous errors
-      setFormData((prev) => ({ ...prev, startTime: "" })); // Reset selected time
+      setErrorMessage("");
       try {
-        const formattedDate = formatDateForInput(date); // EnsureStarBinBuf-MM-DD
+        const formattedDate = formatDateForInput(date);
         const res = await axiosInstance.get(
           `/doctors/${docId}/available-slots?date=${formattedDate}`
         );
@@ -193,38 +231,32 @@ const AppointmentForm = () => {
         setErrorMessage(
           err.response?.data?.message || "Could not fetch available time slots."
         );
-        setAvailableSlots([]); // Clear slots on error
+        setAvailableSlots([]);
       } finally {
         setSlotsLoading(false);
       }
     },
-    [axiosInstance]
-  ); // Add axiosInstance
+    [axiosInstance, allowTimeChange] // Dependency includes allowTimeChange
+  );
 
-  // Trigger fetchAvailableSlots when doctorId or appointmentDate changes (only for patient creating/editing)
+  // Trigger fetchAvailableSlots when doctorId or appointmentDate changes if allowed
   useEffect(() => {
-    // Fetch slots if:
-    // 1. Patient is creating/editing (!isDoctorView)
-    // 2. We have a selected doctor (formData.doctorId)
-    // 3. We have a selected date (formData.appointmentDate)
-    // 4. We are NOT editing OR if editing, status is 'scheduled' (allow rescheduling)
-    if (
-      !isDoctorView &&
-      formData.doctorId &&
-      formData.appointmentDate &&
-      (!isEditing || formData.status === "scheduled")
-    ) {
-      fetchAvailableSlots(formData.doctorId, formData.appointmentDate);
-    } else {
-      // Clear slots if conditions aren't met (e.g., doctor not selected, or viewing completed/cancelled appt)
-      setAvailableSlots([]);
+    // Only fetch slots if initial data is loaded (for editing) or if creating new
+    if (initialDataLoaded) {
+      const shouldFetchSlots =
+        formData.doctorId && formData.appointmentDate && allowTimeChange;
+
+      if (shouldFetchSlots) {
+        fetchAvailableSlots(formData.doctorId, formData.appointmentDate);
+      } else {
+        setAvailableSlots([]); // Clear slots if conditions aren't met
+      }
     }
   }, [
     formData.doctorId,
     formData.appointmentDate,
-    isDoctorView,
-    isEditing,
-    formData.status,
+    allowTimeChange,
+    initialDataLoaded, // Ensure initial data is loaded before fetching slots based on it
     fetchAvailableSlots,
   ]);
 
@@ -233,22 +265,42 @@ const AppointmentForm = () => {
     const { name, value } = e.target;
     setFormData((prev) => {
       let newState = { ...prev, [name]: value };
-      // If patient changes doctor during creation/rebooking, reset date/time and fetch duration
-      if (!isDoctorView && name === "doctorId") {
+
+      if (name === "doctorId" && !isDoctorView) {
         const selectedDoctor = doctors.find((doc) => doc._id === value);
-        newState.duration = selectedDoctor
-          ? selectedDoctor.appointmentDuration
-          : "";
-        // Reset date/time/slots when doctor changes
-        newState.appointmentDate = formatDateForInput(new Date()); // Reset date to today
-        newState.startTime = ""; // Clear selected time
-        setAvailableSlots([]); // Clear slots list
-      }
-      // If date changes, reset time
-      if (name === "appointmentDate") {
+        newState.duration = selectedDoctor?.appointmentDuration || "";
+        newState.appointmentDate = formatDateForInput(new Date());
         newState.startTime = "";
-        setAvailableSlots([]); // Clear slots list
+        setAvailableSlots([]);
+        setOriginalStartTime(null);
       }
+
+      if (name === "appointmentDate") {
+        // Reset time selection when date changes
+        newState.startTime = "";
+        // Available slots will be cleared and re-fetched by the useEffect hook
+      }
+
+      // If doctor changes status TO scheduled, ensure time is still valid or cleared
+      if (
+        name === "status" &&
+        value === "scheduled" &&
+        isDoctorView &&
+        isEditing
+      ) {
+        // If the current time is not in the fetched slots for the current date, clear it
+        // Note: This assumes availableSlots are already fetched for the current date
+        if (
+          newState.startTime &&
+          !availableSlots.includes(newState.startTime)
+        ) {
+          console.log(
+            `Current time ${newState.startTime} not available for status change, clearing.`
+          );
+          // newState.startTime = ''; // Optionally clear, or rely on validation
+        }
+      }
+
       return newState;
     });
     setErrorMessage("");
@@ -261,11 +313,44 @@ const AppointmentForm = () => {
     setErrorMessage("");
     setSubmitMessage("");
 
-    // Validation for booking/rescheduling
-    if (!isDoctorView && !formData.startTime) {
+    // Validation
+    // Require time selection if user is allowed to change time
+    if (allowTimeChange && !formData.startTime) {
       setErrorMessage("Please select an available time slot.");
       return;
     }
+    // Ensure selected time is actually in the available slots if changing time
+    if (
+      allowTimeChange &&
+      formData.startTime &&
+      !availableSlots.includes(formData.startTime) &&
+      formData.startTime !== originalStartTime
+    ) {
+      // This case should ideally not happen if dropdown is built correctly, but as a safeguard:
+      setErrorMessage(
+        `Selected time ${formatTime12Hour(
+          formData.startTime
+        )} is not valid for this date. Please select from the list.`
+      );
+      return;
+    }
+    // If the selected time IS the original time, but it's no longer in availableSlots (e.g. doctor changed availability), block update.
+    if (
+      allowTimeChange &&
+      formData.startTime &&
+      formData.startTime === originalStartTime &&
+      !availableSlots.includes(originalStartTime)
+    ) {
+      setErrorMessage(
+        `The original time (${formatTime12Hour(
+          originalStartTime
+        )}) is no longer available for this date. Please select a different time.`
+      );
+      // Clear the invalid selection?
+      // setFormData(prev => ({...prev, startTime: ''}));
+      return;
+    }
+
     if (!isDoctorView && !formData.doctorId) {
       setErrorMessage("Please select a doctor.");
       return;
@@ -288,33 +373,49 @@ const AppointmentForm = () => {
     let requestUrl = isEditing ? `/appointments/${id}` : "/appointments";
 
     if (isEditing) {
-      // Prepare data for PATCH request
+      // Determine which fields have actually changed compared to the initial state if needed,
+      // but for simplicity, send relevant fields based on permissions.
       dataToSend = {
-        appointmentDate: formData.appointmentDate,
-        startTime: formData.startTime,
-        reason: formData.reason,
+        ...(allowTimeChange && { appointmentDate: formData.appointmentDate }),
+        ...(allowTimeChange && { startTime: formData.startTime }),
+        reason: formData.reason, // Assuming reason can always be updated if form allows
         ...(isDoctorView && { status: formData.status }),
         ...(isDoctorView && { remarks: formData.remarks }),
-        // No need to send doctorId or patient info for PATCH
       };
-      // Only send startTime if it's actually set (patient might only update reason)
-      if (!dataToSend.startTime && !isDoctorView) {
-        delete dataToSend.startTime;
-        delete dataToSend.appointmentDate; // Don't send date if time isn't sent
-      } else if (!dataToSend.startTime && isDoctorView) {
-        // If doctor updates only status/remarks, don't send empty time/date
-        delete dataToSend.startTime;
-        delete dataToSend.appointmentDate;
-      }
+      // Remove fields that weren't allowed to change or don't have values
+      Object.keys(dataToSend).forEach((key) => {
+        if (dataToSend[key] === undefined || dataToSend[key] === null) {
+          delete dataToSend[key];
+        }
+      });
+      // Prevent sending empty update if nothing relevant changed (optional)
+      // const hasChanges = Object.keys(dataToSend).some(key => /* comparison logic needed */);
+      // if (!hasChanges) { setLoading(false); setErrorMessage("No changes detected."); return; }
     } else {
-      // Prepare data for POST request
       dataToSend = {
         doctorId: formData.doctorId,
         appointmentDate: formData.appointmentDate,
-        startTime: formData.startTime, // The selected slot
+        startTime: formData.startTime,
         reason: formData.reason,
         patientPhone: formData.patientPhone,
       };
+    }
+
+    // Final check for required fields before sending
+    if (
+      requestMethod === "post" &&
+      (!dataToSend.doctorId ||
+        !dataToSend.appointmentDate ||
+        !dataToSend.startTime) /*|| !dataToSend.reason - reason might be optional */
+    ) {
+      setErrorMessage("Missing required fields for scheduling.");
+      setLoading(false);
+      return;
+    }
+    if (requestMethod === "patch" && Object.keys(dataToSend).length === 0) {
+      setErrorMessage("No valid updates provided.");
+      setLoading(false);
+      return;
     }
 
     try {
@@ -328,7 +429,6 @@ const AppointmentForm = () => {
       }
       setSubmitMessage(responseMessage);
       const targetPath = isDoctorView ? "/doctor/dashboard" : "/appointments";
-      // Use timeout for user to see the message before redirecting
       setTimeout(() => navigate(targetPath, { replace: true }), 1500);
     } catch (err) {
       console.error(
@@ -344,22 +444,32 @@ const AppointmentForm = () => {
     // Keep loading true on success until redirect timeout
   };
 
-  // --- Loading State ---
-  if (loading && !submitMessage && !errorMessage) {
-    return <div className="loading">Loading...</div>;
-  }
-
+  // --- Derived State for UI ---
+  // Check if remarks are needed for completion status
   const isCompletedDisabled =
     isEditing &&
     isDoctorView &&
+    formData.status === "completed" &&
     (!formData.remarks || formData.remarks.trim() === "");
-  const allowTimeChange =
-    !isDoctorView && (!isEditing || formData.status === "scheduled");
+
+  // Determine if reason field should be editable
   const allowReasonChange =
-    !isDoctorView ||
+    !isEditing ||
+    (formData.status !== "completed" && formData.status !== "cancelled");
+
+  // ** MODIFICATION: Simplified Submit Button Disabled Logic **
+  const isSubmitDisabled =
+    loading ||
     (isEditing &&
-      formData.status !== "completed" &&
-      formData.status !== "cancelled"); // Allow doctor to edit reason unless completed/cancelled
+      isDoctorView &&
+      formData.status === "completed" &&
+      isCompletedDisabled);
+
+  // --- Loading State ---
+  // Show loading indicator only if loading is true AND there's no submit/error message yet
+  if (loading && !submitMessage && !errorMessage) {
+    return <div className="loading">Loading...</div>;
+  }
 
   return (
     <div className="appointment-form-container">
@@ -375,7 +485,7 @@ const AppointmentForm = () => {
       {errorMessage && <div className="message error">{errorMessage}</div>}
 
       <form onSubmit={handleSubmit} className="appointment-form">
-        {/* Patient Details Section (Read-only for this form now) */}
+        {/* Patient Details Section */}
         {isEditing && (
           <>
             <div className="form-group">
@@ -396,7 +506,7 @@ const AppointmentForm = () => {
             </div>
           </>
         )}
-        {!isDoctorView && !isEditing && (
+        {!isEditing && !isDoctorView && (
           <>
             <div className="form-group">
               <label htmlFor="patientName">Your Name</label>
@@ -431,33 +541,35 @@ const AppointmentForm = () => {
           </>
         )}
 
-        {/* Doctor Section */}
-        <div className="form-group">
-          <label htmlFor="doctorId">Doctor</label>
-          {!isEditing && !isDoctorView ? (
-            <select
-              id="doctorId"
-              name="doctorId"
-              value={formData.doctorId}
-              onChange={handleChange}
-              required
-              disabled={loading}
-            >
-              <option value="">Select a doctor...</option>
-              {doctors.map((doc) => (
-                <option key={doc._id} value={doc._id}>
-                  {doc.name} ({doc.specialization})
-                </option>
-              ))}
-            </select>
-          ) : (
-            <input
-              type="text"
-              value={`${formData._doctorName} (${formData._doctorSpecialization})`}
-              disabled
-            />
-          )}
-        </div>
+        {/* Doctor Section (Conditionally Rendered) */}
+        {!(isEditing && isDoctorView) && (
+          <div className="form-group">
+            <label htmlFor="doctorId">Doctor</label>
+            {!isEditing && !isDoctorView ? (
+              <select
+                id="doctorId"
+                name="doctorId"
+                value={formData.doctorId}
+                onChange={handleChange}
+                required
+                disabled={loading}
+              >
+                <option value="">Select a doctor...</option>
+                {doctors.map((doc) => (
+                  <option key={doc._id} value={doc._id}>
+                    {doc.name} ({doc.specialization})
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input
+                type="text"
+                value={`${formData._doctorName} (${formData._doctorSpecialization})`}
+                disabled
+              />
+            )}
+          </div>
+        )}
 
         {/* Date Selection */}
         <div className="form-group">
@@ -469,43 +581,52 @@ const AppointmentForm = () => {
             value={formData.appointmentDate}
             onChange={handleChange}
             required
-            disabled={!allowTimeChange} // Disable if not patient or not rescheduling
+            disabled={!allowTimeChange || loading}
           />
         </div>
 
-        {/* Time Slot Selection (Replaces Time Input) */}
+        {/* Time Slot Selection */}
         <div className="form-group">
-          <label htmlFor="startTime">Available Time Slots</label>
+          <label htmlFor="startTime">
+            {allowTimeChange ? "Available Time Slots" : "Appointment Time"}
+          </label>
           <select
             id="startTime"
             name="startTime"
-            value={formData.startTime}
+            value={formData.startTime} // Controlled component
             onChange={handleChange}
-            required
-            disabled={
-              !allowTimeChange ||
-              slotsLoading ||
-              availableSlots.length === 0 ||
-              !formData.appointmentDate ||
-              !formData.doctorId
-            }
+            required={allowTimeChange} // Only require if changeable
+            disabled={!allowTimeChange || slotsLoading || loading}
           >
+            {/* Default/Placeholder Option */}
             <option value="">
-              {slotsLoading
+              {!allowTimeChange
+                ? formatTime12Hour(formData.startTime) // Show saved time if not changeable
+                : slotsLoading
                 ? "Loading slots..."
-                : availableSlots.length > 0
-                ? "Select a time slot..."
-                : "No slots available for this date"}
+                : availableSlots.length === 0
+                ? "No slots available / Select date" // Simplified placeholder
+                : "Select a time slot..."}
             </option>
-            {availableSlots.map((slot) => (
-              <option key={slot} value={slot}>
-                {formatTime12Hour(slot)}
-              </option>
-            ))}
+
+            {/* ** MODIFICATION: Map through available slots and mark original ** */}
+            {allowTimeChange &&
+              availableSlots.map((slot) => {
+                const isOriginal = isEditing && slot === originalStartTime;
+                const displayTime = formatTime12Hour(slot);
+                return (
+                  <option key={slot} value={slot}>
+                    {displayTime}
+                    {isOriginal ? " (Original)" : ""}
+                  </option>
+                );
+              })}
+            {/* Removed the separate blocks that added non-available original times */}
           </select>
-          {formData.duration && !slotsLoading && availableSlots.length > 0 && (
-            <small> (Appt. Duration: {formData.duration} minutes)</small>
-          )}
+          {formData.duration &&
+            (!slotsLoading || !allowTimeChange) && ( // Show duration if loaded or not changing time
+              <small> (Appt. Duration: {formData.duration} minutes)</small>
+            )}
         </div>
 
         {/* Reason */}
@@ -516,74 +637,81 @@ const AppointmentForm = () => {
             name="reason"
             value={formData.reason}
             onChange={handleChange}
-            required
-            disabled={!allowReasonChange}
+            required={!isEditing}
+            rows="3"
+            disabled={!allowReasonChange || loading}
           ></textarea>
         </div>
 
-        {/* Remarks (Doctor Edit View / Patient Read View) */}
-        {isEditing && isDoctorView && (
+        {/* Remarks */}
+        {isEditing && (isDoctorView || formData.remarks) && (
           <div className="form-group">
-            <label htmlFor="remarks">Doctor's Remarks</label>
+            <label htmlFor="remarks">
+              {isDoctorView ? "Doctor's Remarks" : "Doctor's Remarks"}
+            </label>
             <textarea
               id="remarks"
               name="remarks"
               value={formData.remarks}
               onChange={handleChange}
               rows="4"
-              placeholder="Add remarks here (required for completion)..."
-              disabled={formData.status === "cancelled"}
+              placeholder={
+                isDoctorView
+                  ? "Add remarks here (required for completion)..."
+                  : ""
+              }
+              disabled={
+                !isDoctorView || formData.status === "cancelled" || loading
+              }
             ></textarea>
           </div>
         )}
-        {isEditing && !isDoctorView && formData.remarks && (
-          <div className="form-group">
-            <label>Doctor's Remarks</label>
-            <textarea value={formData.remarks} rows="4" disabled></textarea>
-          </div>
-        )}
 
-        {/* Status (Doctor Edit View / Patient Read View) */}
-        {isEditing && isDoctorView && (
+        {/* Status */}
+        {isEditing && (
           <div className="form-group">
             <label htmlFor="status">Status</label>
-            <select
-              id="status"
-              name="status"
-              value={formData.status}
-              onChange={handleChange}
-              required
-              disabled={formData.status === "cancelled"}
-            >
-              <option value="scheduled">Scheduled</option>
-              <option
-                value="completed"
-                disabled={isCompletedDisabled}
-                title={isCompletedDisabled ? "Add remarks to complete" : ""}
+            {isDoctorView ? (
+              <select
+                id="status"
+                name="status"
+                value={formData.status}
+                onChange={handleChange}
+                required
+                disabled={formData.status === "cancelled" || loading}
               >
-                Completed {isCompletedDisabled ? "(Remarks Required)" : ""}
-              </option>
-              <option value="noshow">No Show</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-          </div>
-        )}
-        {isEditing && !isDoctorView && (
-          <div className="form-group">
-            <label>Status</label>
-            <input
-              type="text"
-              value={
-                formData.status.charAt(0).toUpperCase() +
-                formData.status.slice(1)
-              }
-              disabled
-            />
+                <option value="scheduled">Scheduled</option>
+                <option
+                  value="completed"
+                  disabled={
+                    isCompletedDisabled && formData.status !== "completed"
+                  } // Disable only if trying to set completed without remarks
+                  title={isCompletedDisabled ? "Add remarks to complete" : ""}
+                >
+                  Completed {isCompletedDisabled ? "(Remarks Required)" : ""}
+                </option>
+                <option value="noshow">No Show</option>
+                <option
+                  value="cancelled"
+                  disabled={formData.status !== "cancelled"}
+                >
+                  Cancelled
+                </option>
+              </select>
+            ) : (
+              <input
+                type="text"
+                value={
+                  formData.status.charAt(0).toUpperCase() +
+                  formData.status.slice(1)
+                }
+                disabled
+              />
+            )}
           </div>
         )}
 
         {/* Submit Button */}
-        {/* Show button unless viewing a completed/cancelled appointment as a patient */}
         {!(
           isEditing &&
           !isDoctorView &&
@@ -592,13 +720,7 @@ const AppointmentForm = () => {
           <button
             type="submit"
             className="submit-btn"
-            disabled={
-              loading ||
-              (isDoctorView &&
-                isEditing &&
-                formData.status === "completed" &&
-                isCompletedDisabled)
-            }
+            disabled={isSubmitDisabled} // ** MODIFICATION: Use simplified disabled logic **
           >
             {loading
               ? "Submitting..."
@@ -607,6 +729,16 @@ const AppointmentForm = () => {
               : "Schedule Appointment"}
           </button>
         )}
+
+        {/* Cancel/Back button */}
+        <button
+          type="button"
+          className="cancel-btn"
+          onClick={() => navigate(-1)}
+          disabled={loading}
+        >
+          Cancel / Back {/* Changed text back based on previous request */}
+        </button>
       </form>
     </div>
   );
