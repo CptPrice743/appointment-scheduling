@@ -1,11 +1,11 @@
-import React, { useState, useContext } from "react"; // Import useState
-import { Link, NavLink, useNavigate } from "react-router-dom"; // Import useNavigate
+import React, { useState, useContext, useEffect } from "react"; // Added useEffect
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import AuthContext from "../../context/AuthContext.jsx";
 import "./Navbar.css";
 
 const Navbar = () => {
   const { isAuthenticated, user, logout } = useContext(AuthContext);
-  const navigate = useNavigate(); // Hook for navigation
+  const navigate = useNavigate();
 
   // State to manage mobile menu visibility
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -28,6 +28,21 @@ const Navbar = () => {
     navigate("/login"); // Navigate to login after logout
   };
 
+  // Add effect to manage body scroll when menu is open
+  useEffect(() => {
+    // Prevent background scrolling when mobile menu is open
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+
+    // Cleanup function to ensure body scroll is restored
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isMobileMenuOpen]);
+
   // Determine the home/dashboard link based on authentication
   const homeLink = isAuthenticated
     ? user?.role === "admin"
@@ -36,6 +51,13 @@ const Navbar = () => {
       ? "/doctor/dashboard"
       : "/appointments"
     : "/";
+
+  // Helper function to add style prop with item index for animation
+  const getItemProps = (index) => {
+    return {
+      style: { "--item-index": index },
+    };
+  };
 
   return (
     <nav className="navbar">
@@ -61,7 +83,7 @@ const Navbar = () => {
           {!isAuthenticated ? (
             <>
               {/* Public Links */}
-              <li className="nav-item">
+              <li className="nav-item" {...getItemProps(0)}>
                 <NavLink
                   to="/login"
                   className={({ isActive }) =>
@@ -74,7 +96,7 @@ const Navbar = () => {
                   Login
                 </NavLink>
               </li>
-              <li className="nav-item">
+              <li className="nav-item" {...getItemProps(1)}>
                 <NavLink
                   to="/register"
                   className={({ isActive }) =>
@@ -92,7 +114,7 @@ const Navbar = () => {
             <>
               {/* Authenticated Links */}
               {/* Display Welcome Message (as a non-clickable item) */}
-              <li className="nav-item">
+              <li className="nav-item" {...getItemProps(0)}>
                 <span className="nav-links welcome-text">
                   Welcome, {user?.name}!
                 </span>
@@ -101,7 +123,7 @@ const Navbar = () => {
               {/* Links based on Role */}
               {user?.role === "patient" && (
                 <>
-                  <li className="nav-item">
+                  <li className="nav-item" {...getItemProps(1)}>
                     <NavLink
                       to="/appointments"
                       className={({ isActive }) =>
@@ -112,7 +134,7 @@ const Navbar = () => {
                       My Appointments
                     </NavLink>
                   </li>
-                  <li className="nav-item">
+                  <li className="nav-item" {...getItemProps(2)}>
                     <NavLink
                       to="/add" // Assuming '/add' is the book appointment route
                       className={({ isActive }) =>
@@ -130,7 +152,7 @@ const Navbar = () => {
 
               {user?.role === "doctor" && (
                 <>
-                  <li className="nav-item">
+                  <li className="nav-item" {...getItemProps(1)}>
                     <NavLink
                       to="/doctor/dashboard"
                       className={({ isActive }) =>
@@ -147,7 +169,7 @@ const Navbar = () => {
 
               {user?.role === "admin" && (
                 <>
-                  <li className="nav-item">
+                  <li className="nav-item" {...getItemProps(1)}>
                     <NavLink
                       to="/admin/dashboard"
                       className={({ isActive }) =>
@@ -158,7 +180,7 @@ const Navbar = () => {
                       Dashboard
                     </NavLink>
                   </li>
-                  <li className="nav-item">
+                  <li className="nav-item" {...getItemProps(2)}>
                     <NavLink
                       to="/admin/users"
                       className={({ isActive }) =>
@@ -169,7 +191,7 @@ const Navbar = () => {
                       User Management
                     </NavLink>
                   </li>
-                  <li className="nav-item">
+                  <li className="nav-item" {...getItemProps(3)}>
                     <NavLink
                       to="/admin/doctors"
                       className={({ isActive }) =>
@@ -180,7 +202,7 @@ const Navbar = () => {
                       Doctor Management
                     </NavLink>
                   </li>
-                  <li className="nav-item">
+                  <li className="nav-item" {...getItemProps(4)}>
                     <NavLink
                       to="/admin/appointments"
                       className={({ isActive }) =>
@@ -195,7 +217,12 @@ const Navbar = () => {
               )}
 
               {/* Common Authenticated Links */}
-              <li className="nav-item">
+              <li
+                className="nav-item"
+                {...getItemProps(
+                  user?.role === "admin" ? 5 : user?.role === "patient" ? 3 : 2
+                )}
+              >
                 <NavLink
                   to="/profile/edit" // Assuming '/profile/edit' is the route
                   className={({ isActive }) =>
@@ -207,7 +234,12 @@ const Navbar = () => {
                 </NavLink>
               </li>
 
-              <li className="nav-item">
+              <li
+                className="nav-item"
+                {...getItemProps(
+                  user?.role === "admin" ? 6 : user?.role === "patient" ? 4 : 3
+                )}
+              >
                 {/* Use an <a> tag or a <button> styled as a link */}
                 <a
                   href="#!" // Prevent default link behavior

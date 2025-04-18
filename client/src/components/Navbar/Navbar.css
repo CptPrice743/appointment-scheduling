@@ -145,7 +145,8 @@
 
   /* Style the menu for mobile view */
   .nav-menu {
-    display: none; /* <<< Hide by default (no animation) */
+    /* MODIFIED: Changed from display:none to keep it in the DOM but hidden */
+    display: flex;
     flex-direction: column;
     width: 100%;
     position: absolute;
@@ -161,15 +162,21 @@
     max-height: calc(100vh - 70px); /* Limit height */
     overflow-y: auto; /* Allow scroll */
 
-    /* --- REMOVED Animation Properties --- */
-    /* opacity, transform, visibility, transition removed */
+    /* ADDED: Animation Properties */
+    visibility: hidden;
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease;
+    pointer-events: none; /* Prevent interaction when hidden */
   }
 
   /* Show the menu when the 'open' class is added */
   .nav-menu.open {
-    display: flex; /* <<< Show menu instantly */
-    /* --- REMOVED Animation Properties --- */
-    /* opacity, transform, visibility, transition removed */
+    /* MODIFIED: Keep display: flex but make visible with animation */
+    visibility: visible;
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto; /* Re-enable interaction */
   }
 
   /* Adjust menu items for vertical layout */
@@ -177,13 +184,24 @@
     margin: 0;
     width: 100%;
     border-bottom: 1px solid #f0f0f0;
+    /* ADDED: Individual item animation */
+    opacity: 0;
+    transform: translateX(-10px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    transition-delay: calc(0.05s * var(--item-index, 0));
   }
+
+  /* ADDED: Animation for individual items when menu is open */
+  .nav-menu.open .nav-item {
+    opacity: 1;
+    transform: translateX(0);
+  }
+
   .nav-item:last-child {
     border-bottom: none;
   }
 
   /* Style links within the mobile menu */
-  /* Targeting .nav-menu instead of .nav-menu.open as it's always flex now when shown */
   .nav-menu .nav-links,
   .nav-menu .welcome-text,
   .nav-menu .nav-links.logout-btn {
