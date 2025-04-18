@@ -93,3 +93,68 @@
   color: #607d8b;
   font-size: 0.95rem;
 }
+
+/* ========================================= */
+/* Responsive Styles                */
+/* ========================================= */
+
+/* Tablet Styles (Screens up to 768px wide) */
+@media (max-width: 768px) {
+  .home-container {
+    padding: 1.5rem;
+  }
+
+  .hero-section h1 {
+    font-size: 2em; /* Adjust hero title size */
+  }
+
+  .hero-section p {
+    font-size: 1em; /* Adjust hero text size */
+  }
+
+  .features-section {
+    flex-direction: column; /* Stack features vertically */
+    align-items: center; /* Center stacked cards */
+    gap: 1.5rem; /* Increase gap for vertical stacking */
+  }
+
+  .feature-card {
+    flex-basis: 80%; /* Allow cards to take more width */
+    max-width: 400px; /* Max width for stacked cards */
+    padding: 1.2rem;
+  }
+}
+
+/* Mobile Styles (Screens up to 480px wide) */
+@media (max-width: 480px) {
+  .home-container {
+    padding: 1rem;
+  }
+
+  .hero-section h1 {
+    font-size: 1.8em; /* Further adjust hero title */
+  }
+
+  .hero-section p {
+    font-size: 0.95em; /* Further adjust hero text */
+  }
+
+  .features-section {
+    gap: 1rem; /* Adjust gap */
+  }
+
+  .feature-card {
+    flex-basis: 95%; /* Make cards almost full width */
+    max-width: none; /* Remove max width */
+    padding: 1rem;
+    min-width: 0; /* Remove min-width */
+  }
+
+  .feature-card h3 {
+    font-size: 1.2em; /* Adjust card titles */
+  }
+
+  .feature-card p {
+    font-size: 0.9em; /* Adjust card text */
+  }
+}

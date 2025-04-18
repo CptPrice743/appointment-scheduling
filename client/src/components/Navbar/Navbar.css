@@ -1,7 +1,9 @@
+/* --- Ensure this rule exists and has position: relative --- */
 .navbar {
   background-color: #fff;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   padding: 15px 0;
+  position: relative; /* <<< Ensure this is present */
 }
 
 .navbar-container {
@@ -36,7 +38,7 @@
   color: #2c3e50;
   text-decoration: none;
   font-weight: 500;
-  transition: color 0.3s ease;
+  transition: color 0.3s ease, background-color 0.2s ease;
 }
 
 .nav-links:hover {
@@ -48,10 +50,12 @@
   color: white;
   padding: 8px 20px;
   border-radius: 30px;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 .nav-links.book-btn:hover {
   background-color: #3367d6;
+  color: white; /* Ensure text remains white on hover */
 }
 
 /* Add styles for .login-btn, .register-btn, .logout-btn if they are specific */
@@ -65,4 +69,187 @@
 .welcome-text {
   margin-right: 15px;
   color: #5a6a7a;
+  white-space: nowrap; /* Prevent welcome text itself from wrapping */
+}
+
+/* ========================================= */
+/* Responsive Styles (Add this at the END) */
+/* ========================================= */
+
+/* --- Hamburger Menu Toggle Button --- */
+.navbar-toggle {
+  display: none; /* Hide on desktop */
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  margin-left: 15px;
+  z-index: 1050;
+}
+
+.navbar-toggle .hamburger-icon {
+  display: block;
+  width: 28px;
+  height: 3px;
+  background-color: #2c3e50;
+  position: relative;
+  border-radius: 2px;
+  transition: all 0.3s ease; /* Keep transition for icon morph */
+}
+
+.navbar-toggle .hamburger-icon::before,
+.navbar-toggle .hamburger-icon::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background-color: #2c3e50;
+  border-radius: 2px;
+  transition: all 0.3s ease; /* Keep transition for icon morph */
+}
+
+.navbar-toggle .hamburger-icon::before {
+  top: -8px;
+}
+.navbar-toggle .hamburger-icon::after {
+  bottom: -8px;
+}
+
+/* --- Animation for Hamburger Icon (when 'open') --- */
+.navbar-toggle.open .hamburger-icon {
+  background-color: transparent;
+}
+.navbar-toggle.open .hamburger-icon::before {
+  transform: translateY(8px) rotate(45deg);
+}
+.navbar-toggle.open .hamburger-icon::after {
+  transform: translateY(-8px) rotate(-45deg);
+}
+
+/* --- Media Query for Tablet/Mobile --- */
+/* <<< MODIFIED Breakpoint >>> */
+@media (max-width: 1024px) {
+  /* Changed from 992px */
+
+  .navbar-container {
+    flex-wrap: wrap;
+    padding: 0 15px;
+  }
+
+  /* Show the toggle button */
+  .navbar-toggle {
+    display: block;
+    order: 3;
+  }
+
+  /* Style the menu for mobile view */
+  .nav-menu {
+    display: none; /* <<< Hide by default (no animation) */
+    flex-direction: column;
+    width: 100%;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background-color: #fff;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    padding: 5px 0; /* Add some padding top/bottom */
+    margin: 0;
+    z-index: 1000;
+    border-top: 1px solid #eee;
+    order: 4;
+    max-height: calc(100vh - 70px); /* Limit height */
+    overflow-y: auto; /* Allow scroll */
+
+    /* --- REMOVED Animation Properties --- */
+    /* opacity, transform, visibility, transition removed */
+  }
+
+  /* Show the menu when the 'open' class is added */
+  .nav-menu.open {
+    display: flex; /* <<< Show menu instantly */
+    /* --- REMOVED Animation Properties --- */
+    /* opacity, transform, visibility, transition removed */
+  }
+
+  /* Adjust menu items for vertical layout */
+  .nav-item {
+    margin: 0;
+    width: 100%;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  .nav-item:last-child {
+    border-bottom: none;
+  }
+
+  /* Style links within the mobile menu */
+  /* Targeting .nav-menu instead of .nav-menu.open as it's always flex now when shown */
+  .nav-menu .nav-links,
+  .nav-menu .welcome-text,
+  .nav-menu .nav-links.logout-btn {
+    display: block;
+    padding: 12px 20px;
+    width: 100%;
+    text-align: left;
+    color: #2c3e50;
+    font-weight: 500;
+    border-radius: 0;
+    background-color: transparent;
+    margin: 0;
+    border: none;
+    transition: background-color 0.2s ease, color 0.2s ease; /* Keep hover transition */
+  }
+
+  /* Specific overrides for button-styled links inside mobile menu */
+  .nav-menu .nav-links.book-btn,
+  .nav-menu .nav-links.login-btn,
+  .nav-menu .nav-links.register-btn {
+    background-color: transparent !important;
+    color: #2c3e50 !important;
+    padding: 12px 20px;
+    border-radius: 0;
+    text-align: left;
+  }
+
+  /* Hover state for links inside mobile menu */
+  .nav-menu .nav-links:hover,
+  .nav-menu .nav-links.logout-btn:hover {
+    background-color: #f4f6f8;
+    color: #3b4bb3;
+  }
+
+  /* Ensure welcome text is styled appropriately */
+  .nav-menu .welcome-text {
+    color: #5a6a7a;
+    font-weight: normal;
+    cursor: default;
+    background-color: transparent !important;
+  }
+  .nav-menu .welcome-text:hover {
+    background-color: transparent;
+    color: #5a6a7a;
+  }
+
+  /* Active link styling for mobile */
+  .nav-menu .nav-links.active {
+    background-color: #eef2ff;
+    color: #3b4bb3;
+    font-weight: 600;
+  }
+}
+
+/* Optional: Further adjustments for very small screens if needed */
+@media (max-width: 480px) {
+  .navbar-logo {
+    font-size: 1.3rem;
+  }
+  .navbar-container {
+    padding: 0 10px;
+  }
+  .nav-menu .nav-links,
+  .nav-menu .welcome-text,
+  .nav-menu .nav-links.logout-btn {
+    padding: 10px 15px;
+    font-size: 0.95rem;
+  }
 }

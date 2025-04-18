@@ -1,5 +1,4 @@
-/* client/src/pages/admin/AppointmentOversight.css */
-
+/* Base styles from user */
 .appointment-oversight-container {
   max-width: 1200px;
   margin: 2rem auto;
@@ -99,7 +98,7 @@
   cursor: pointer;
   font-size: 0.95em;
   transition: background-color 0.2s ease, box-shadow 0.2s ease,
-    border-color 0.2s ease, color 0.2s ease;
+    border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease;
   color: #fff;
   text-align: center;
   vertical-align: middle;
@@ -154,8 +153,8 @@
 .action-buttons {
   display: flex;
   gap: 6px; /* Slightly reduced gap */
-  flex-wrap: nowrap;
-  align-items: center;
+  flex-wrap: nowrap; /* Prevent wrapping in desktop */
+  align-items: center; /* This centers buttons relative to each other */
 }
 .action-buttons .btn {
   /* Row buttons are smaller */
@@ -233,15 +232,13 @@
 .btn-delete {
   background-color: #dc3545;
 }
-.btn-warning,
-.action-buttons .btn-cancel {
+.btn-warning {
   background-color: #ffc107;
   color: #333;
-} /* Ensure action button cancel gets this if not overridden*/
-.btn-info,
-.action-buttons .btn-edit {
+}
+.btn-info {
   background-color: #0dcaf0;
-} /* Ensure action button edit gets this if not overridden */
+}
 .btn-light {
   background-color: #f8f9fa;
   color: #333;
@@ -255,8 +252,8 @@
 
 /* Table Styling */
 .appointments-table-container {
-  position: relative;
-  overflow-x: auto; /* Keep horizontal scroll */
+  position: relative; /* For loading overlay */
+  overflow-x: auto; /* Keep horizontal scroll for wider screens if needed */
   margin-top: 1.5rem;
   border: 1px solid #e0e0e0; /* Add a light border around the table */
   border-radius: 6px; /* Optional: Rounded corners for the container */
@@ -279,7 +276,6 @@
 .appointments-table {
   width: 100%;
   border-collapse: collapse; /* Remove gaps between cells */
-  white-space: nowrap;
 }
 
 /* Table Header Styling */
@@ -290,18 +286,27 @@
   text-align: left;
   font-weight: 600; /* Slightly bolder header text */
   border-bottom: 2px solid #dee2e6; /* Stronger bottom border for header */
-  white-space: normal;
+  white-space: nowrap; /* Keep headers from wrapping */
+  vertical-align: bottom; /* Align header text to bottom */
 }
 
-/* Table Cell Styling */
+/* Table Cell Styling (Desktop) */
 .appointments-table td {
   padding: 12px 15px; /* Consistent padding */
   text-align: left;
-  border-bottom: 1px solid #e9ecef; /* Lighter border between rows */
-  vertical-align: middle;
   font-size: 0.95em;
   color: #495057; /* Standard text color */
-  white-space: normal;
+  white-space: normal; /* Allow wrapping */
+  vertical-align: middle; /* <<< ALIGN ALL CELLS MIDDLE (Desktop View) */
+}
+
+/* Style for secondary info in cells */
+.appointments-table td .patient-email,
+.appointments-table td .doctor-specialty {
+  display: block; /* Make email/specialty appear on new line */
+  font-size: 0.85em;
+  color: #6c757d; /* Grey color for secondary info */
+  margin-top: 2px;
 }
 
 /* Zebra Striping for Rows */
@@ -309,29 +314,28 @@
   background-color: #fbfcfd; /* Very light blue/grey for even rows */
 }
 
+/* Apply border to the table rows instead for consistency */
+.appointments-table tbody tr {
+  border-bottom: 1px solid #e9ecef; /* <<< BORDER ON TR */
+}
+
+/* Optional: Remove border from the very last row if desired */
+.appointments-table tbody tr:last-child {
+  border-bottom: none;
+}
+
 .appointments-table tbody tr:hover {
   background-color: #eef1f5; /* Slightly darker hover */
 }
 
-/* Reason Column Specific Styling */
+/* Reason Column Specific Styling (Desktop - Ellipsis) */
 .appointments-table td:nth-child(5) {
   /* Assuming Reason is the 5th column */
-  max-width: 200px;
+  max-width: 200px; /* Adjust as needed */
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: nowrap; /* Force nowrap for ellipsis */
 }
-.appointments-table td:nth-child(5):hover {
-  /* Show full reason on hover */
-  white-space: normal;
-  overflow: visible;
-  max-width: none;
-}
-
-/* Remove status badge and row background styles */
-/* .status-badge { display: none; } */
-/* Remove all .status-badge.status-* rules */
-/* Remove all tr.status-* rules */
 
 /* Modal Styling */
 .modal-overlay {
@@ -388,81 +392,117 @@
   min-height: 60px;
 }
 
-/* Responsive table adjustments */
-@media (max-width: 992px) {
-  .appointments-table {
-    font-size: 0.9em;
-  }
-  .appointments-table th,
-  .appointments-table td {
-    padding: 8px 10px;
-  }
-}
+/* =================================================================== */
+/* Responsive Styles - Card Layout (Mobile)                           */
+/* REMINDER: Requires data-label="..." attributes on <td> in JSX      */
+/* =================================================================== */
 @media (max-width: 768px) {
   .filter-grid {
     grid-template-columns: 1fr; /* Stack filters */
   }
+
+  .appointments-table-container {
+    overflow-x: hidden; /* Hide scrollbar for card view */
+    border: none; /* Remove container border */
+    box-shadow: none; /* Remove container shadow */
+    background-color: transparent; /* Make container transparent */
+    margin-top: 1rem; /* Reduce top margin */
+  }
+
   .appointments-table {
-    display: block; /* Switch to block layout */
-    width: 100%;
+    border: none; /* Remove table border */
+    box-shadow: none;
   }
+
   .appointments-table thead {
-    display: none;
-  } /* Hide table header */
-  .appointments-table tbody,
-  .appointments-table tr,
-  .appointments-table td {
-    display: block; /* Make rows and cells block elements */
-    width: 100% !important;
-    box-sizing: border-box;
+    display: none; /* Hide table header */
   }
+
+  /* Reset TR border for card view */
+  .appointments-table tbody tr {
+    border-bottom: none !important;
+  }
+
   .appointments-table tr {
+    display: block; /* Each row becomes a block (card) */
     border: 1px solid #ddd;
-    margin-bottom: 1rem;
+    border-radius: 6px;
     padding: 1rem;
-    background-color: #fff;
-    border-radius: 4px;
-  }
-  /* Reset zebra striping for stacked view */
-  .appointments-table tbody tr:nth-of-type(even) {
-    background-color: #fff;
+    margin-bottom: 1rem;
+    background-color: #fff; /* Card background */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   }
 
   .appointments-table td {
-    border: none;
-    border-bottom: 1px dashed #eee; /* Separator line */
-    padding-left: 50%; /* Indent content */
-    position: relative;
-    text-align: right; /* Align content to the right */
-    white-space: normal;
+    display: flex; /* Use flex for label/value layout */
+    justify-content: space-between; /* Label on left, value on right */
+    align-items: center; /* Center items vertically */
+    padding: 8px 0; /* Adjust padding */
+    border-bottom: 1px dashed #eee; /* Separator inside card */
+    text-align: right; /* Align value text to the right */
+    width: 100% !important; /* Ensure full width */
+    vertical-align: middle; /* Keep middle alignment */
+    white-space: normal; /* Allow text wrapping */
   }
+
   .appointments-table td:last-child {
-    border-bottom: none; /* Remove border from last cell (actions) */
+    border-bottom: none; /* No separator for the last item (actions) */
   }
-  .appointments-table td:before {
-    /* Use data-* attribute for label */
-    content: attr(
-      data-label
-    ); /* Make sure you add data-label="Header Text" to your <td> elements in JSX for this to work */
-    position: absolute;
-    left: 10px;
-    width: 45%; /* Width of the label */
-    padding-right: 10px;
+
+  /* Use the data-label for the pseudo-element */
+  .appointments-table td::before {
+    content: attr(data-label); /* Display the label */
     font-weight: bold;
-    text-align: left; /* Align label to the left */
-    white-space: nowrap;
+    text-align: left;
+    padding-right: 10px; /* Space between label and value */
+    white-space: nowrap; /* Prevent label wrapping */
+    color: #333;
+    flex-basis: 40%; /* Give label a fixed basis */
+    flex-shrink: 0; /* Prevent label from shrinking */
   }
-  .appointments-table td.action-buttons {
-    padding-left: 10px; /* Reset padding for actions */
-    text-align: center; /* Center buttons */
+
+  /* Allow value part to wrap */
+  .appointments-table td > *:not(span.patient-email):not(span.doctor-specialty), /* Target direct children that aren't the specific spans */
+  .appointments-table td > span:not(.patient-email):not(.doctor-specialty) + span, /* Target sibling spans if needed */
+  .appointments-table td:not(:has(span)) /* Target cells without specific spans */ {
+    flex-grow: 1;
+    word-break: break-word; /* Allow long words to break */
+    white-space: normal; /* Ensure wrapping is allowed */
+    text-overflow: clip; /* Remove ellipsis */
+    overflow: visible; /* Ensure content isn't hidden */
+    max-width: none; /* Remove max-width limit */
+  }
+
+  /* <<< ADDED: Specific override for Reason column in mobile */
+  .appointments-table td[data-label="Reason"] {
+    white-space: normal !important; /* Ensure wrapping */
+    text-overflow: clip !important;
+    overflow: visible !important;
+    max-width: none !important;
+  }
+  /* Target the value part within the Reason cell */
+  .appointments-table td[data-label="Reason"]::before {
+    white-space: nowrap; /* Keep label nowrap */
+  }
+
+  /* Style the actions cell specifically */
+  .appointments-table td.action-buttons-cell {
+    /* Use the class added in JSX */
     padding-top: 15px; /* Add space above buttons */
-    border-bottom: none; /* Ensure no border */
+    /* Reset flex alignment if needed, center content */
+    display: block;
+    text-align: center;
   }
-  .appointments-table td.action-buttons:before {
-    display: none;
-  } /* No label for actions */
+
+  .appointments-table td.action-buttons-cell::before {
+    display: none; /* Hide the "Actions:" label */
+  }
 
   .action-buttons {
-    justify-content: center; /* Center buttons within the TD */
+    width: 100%; /* Make button container full width */
+    justify-content: center; /* Center buttons */
+    /* Ensure buttons wrap if needed on very small screens */
+    flex-wrap: wrap;
+    gap: 8px; /* Add gap for wrapped buttons */
   }
 }

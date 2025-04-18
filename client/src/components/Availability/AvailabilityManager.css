@@ -144,3 +144,79 @@
   margin-top: 10px;
   margin-bottom: 10px;
 }
+
+/* Tablet Styles (Screens up to 768px wide) */
+@media (max-width: 768px) {
+  .availability-manager-container,
+  .specific-calendar-container {
+    padding: 15px;
+  }
+
+  /* Adjust calendar/date picker sizes if they have fixed widths */
+  .react-calendar {
+    /* Example class for react-calendar */
+    max-width: 100%; /* Allow calendar to shrink */
+    font-size: 0.9em; /* Slightly smaller font */
+  }
+
+  .time-slot-selection {
+    /* Example class */
+    /* Adjust layout if needed, e.g., make columns wrap */
+  }
+
+  .time-slot-button {
+    /* Example class */
+    padding: 6px 10px;
+    font-size: 0.85em;
+  }
+
+  .availability-form .form-group {
+    /* If using form groups */
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .availability-form label {
+    margin-bottom: 4px;
+  }
+  .availability-form input,
+  .availability-form select {
+    width: 100%;
+  }
+}
+
+/* Mobile Styles (Screens up to 480px wide) */
+@media (max-width: 480px) {
+  .availability-manager-container,
+  .specific-calendar-container {
+    padding: 10px;
+  }
+
+  .component-title {
+    /* Example class */
+    font-size: 1.4em;
+  }
+
+  .react-calendar {
+    font-size: 0.8em; /* Further reduce font size */
+  }
+  .react-calendar .react-calendar__tile {
+    padding: 0.5em 0.3em; /* Reduce padding within calendar tiles */
+  }
+
+  .time-slot-selection {
+    /* Force items into a single column or simpler layout */
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .time-slot-button {
+    padding: 8px 12px; /* Slightly larger tap target */
+    font-size: 0.9em;
+    width: 100%; /* Make buttons full width */
+  }
+
+  .availability-form button[type="submit"] {
+    width: 100%; /* Full width save button */
+  }
+}

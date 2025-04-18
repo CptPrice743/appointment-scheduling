@@ -110,9 +110,8 @@ const DoctorManagement = () => {
           "Content-Type": "application/json",
         },
       };
-      // Use correct template literal for URL
       const response = await axios.post(
-        `${API_URL}/admin/doctors`, // Correct path
+        `${API_URL}/admin/doctors`,
         formData,
         config
       );
@@ -137,7 +136,6 @@ const DoctorManagement = () => {
     setEditingDoctor(doctor);
     setFormData({
       // IMPORTANT: Do NOT put userId in formData for edit, it cannot be changed
-      // userId: doctor.userId._id, // DO NOT INCLUDE THIS
       name: doctor.name,
       specialization: doctor.specialization,
       appointmentDuration: doctor.appointmentDuration,
@@ -166,13 +164,11 @@ const DoctorManagement = () => {
         appointmentDuration: formData.appointmentDuration,
       };
 
-      // *** CORRECTED URL CONSTRUCTION ***
       const response = await axios.put(
-        `${API_URL}/admin/doctors/${editingDoctor._id}`, // Correct template literal
+        `${API_URL}/admin/doctors/${editingDoctor._id}`,
         updateData,
         config
       );
-      // *** END CORRECTION ***
 
       // Update the list locally with the returned doctor data
       setDoctors((prev) =>
@@ -215,14 +211,7 @@ const DoctorManagement = () => {
     ) {
       try {
         const config = { headers: { Authorization: `Bearer ${token}` } };
-
-        // *** CORRECTED URL CONSTRUCTION ***
-        await axios.delete(
-          `${API_URL}/admin/doctors/${doctorId}`, // Correct template literal
-          config
-        );
-        // *** END CORRECTION ***
-
+        await axios.delete(`${API_URL}/admin/doctors/${doctorId}`, config);
         // Refresh data fully after deleting
         fetchData();
         alert(`Doctor "${doctorName}" deleted successfully.`);
@@ -235,17 +224,14 @@ const DoctorManagement = () => {
 
   // --- Render Logic ---
 
-  // Show loading state
-  if (isLoading) return <div className="loading">Loading doctors...</div>;
-  // Show error state
-  if (error) return <div className="error-message">{error}</div>;
+  if (isLoading)
+    return <div className="loading status-message">Loading doctors...</div>; // Use consistent class
+  if (error) return <div className="error-message status-message">{error}</div>; // Use consistent class
 
-  // Main component render
   return (
     <div className="doctor-management-container">
       <h2>Doctor Management</h2>
 
-      {/* Button to show Add form */}
       {!isAdding && !editingDoctor && (
         <button
           onClick={() => {
@@ -255,7 +241,7 @@ const DoctorManagement = () => {
               name: "",
               specialization: "",
               appointmentDuration: 30,
-            }); // Reset form when opening
+            });
           }}
           className="btn btn-add-new"
         >
@@ -263,12 +249,10 @@ const DoctorManagement = () => {
         </button>
       )}
 
-      {/* Add or Edit Form */}
       {(isAdding || editingDoctor) && (
         <div className="form-section">
           <h3>{editingDoctor ? "Edit Doctor" : "Add New Doctor"}</h3>
           <form onSubmit={editingDoctor ? handleUpdateDoctor : handleAddDoctor}>
-            {/* User Selection - Only show when ADDING */}
             {isAdding && (
               <div className="form-group">
                 <label htmlFor="userId">Link to User:</label>
@@ -282,25 +266,20 @@ const DoctorManagement = () => {
                   <option value="">-- Select User --</option>
                   {usersWithoutProfile.map((user) => (
                     <option key={user._id} value={user._id}>
-                      {" "}
-                      {user.name} ({user.email}){" "}
+                      {user.name} ({user.email})
                     </option>
                   ))}
                 </select>
-                {usersWithoutProfile.length === 0 &&
-                  !isLoading && ( // Added !isLoading check
-                    <p className="info-text">
-                      {" "}
-                      No available users found to link. Create a new user first.{" "}
-                    </p>
-                  )}
+                {usersWithoutProfile.length === 0 && !isLoading && (
+                  <p className="info-text">
+                    No available users found to link. Create a new user first.
+                  </p>
+                )}
               </div>
             )}
-            {/* Linked User Display - Only show when EDITING */}
             {editingDoctor && (
               <div className="form-group">
                 <label>Linked User:</label>
-                {/* Safely access potentially nested data */}
                 <p>
                   {editingDoctor.userId?.name || "N/A"} (
                   {editingDoctor.userId?.email || "N/A"})
@@ -308,7 +287,6 @@ const DoctorManagement = () => {
               </div>
             )}
 
-            {/* Doctor Name Input */}
             <div className="form-group">
               <label htmlFor="name">Doctor Name:</label>
               <input
@@ -320,7 +298,6 @@ const DoctorManagement = () => {
                 required
               />
             </div>
-            {/* Specialization Input */}
             <div className="form-group">
               <label htmlFor="specialization">Specialization:</label>
               <input
@@ -332,11 +309,9 @@ const DoctorManagement = () => {
                 required
               />
             </div>
-            {/* Appointment Duration Input */}
             <div className="form-group">
               <label htmlFor="appointmentDuration">
-                {" "}
-                Appt. Duration (mins):{" "}
+                Appt. Duration (mins):
               </label>
               <input
                 type="number"
@@ -349,76 +324,84 @@ const DoctorManagement = () => {
               />
             </div>
 
-            {/* Form Action Buttons */}
             <div className="form-actions">
               <button type="submit" className="btn btn-save">
-                {" "}
-                {editingDoctor ? "Update Doctor" : "Add Doctor"}{" "}
+                {editingDoctor ? "Update Doctor" : "Add Doctor"}
               </button>
               <button
                 type="button"
                 onClick={handleCancel}
-                className="btn btn-cancel"
+                className="btn btn-cancel" // Use consistent grey cancel
               >
-                {" "}
-                Cancel{" "}
+                Cancel
               </button>
             </div>
           </form>
         </div>
       )}
 
-      {/* Doctors List Section */}
       <h3>Existing Doctors</h3>
-      {doctors.length === 0 ? (
+      {!Array.isArray(doctors) || doctors.length === 0 ? ( // Added check for array type
         <p>No doctors found.</p>
       ) : (
-        <table className="doctors-table">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Specialization</th>
-              <th>Linked User</th>
-              <th>Appt Duration</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {/* Ensure doctors is an array before mapping */}
-            {Array.isArray(doctors) &&
-              doctors.map((doctor) => (
+        <div className="doctors-table-container">
+          {" "}
+          {/* Added container */}
+          <table className="doctors-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Specialization</th>
+                <th>Linked User</th>
+                <th>Appt Duration</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {doctors.map((doctor) => (
                 <tr key={doctor._id}>
-                  <td>{doctor.name}</td>
-                  <td>{doctor.specialization}</td>
-                  {/* Safely access populated user details */}
-                  <td>
+                  {/* Name */}
+                  <td data-label="Name">{doctor.name}</td>
+                  {/* Specialization */}
+                  <td data-label="Specialization">{doctor.specialization}</td>
+                  {/* Linked User */}
+                  <td data-label="Linked User">
                     {doctor.userId
                       ? `${doctor.userId.name} (${doctor.userId.email})`
                       : "N/A"}
                   </td>
-                  <td>{doctor.appointmentDuration} mins</td>
-                  <td className="action-buttons">
-                    <button
-                      onClick={() => handleEditClick(doctor)}
-                      className="btn btn-edit"
-                    >
+                  {/* Appt Duration */}
+                  <td data-label="Appt Duration">
+                    {doctor.appointmentDuration} mins
+                  </td>
+                  {/* Actions */}
+                  <td data-label="Actions" className="action-buttons-cell">
+                    {" "}
+                    {/* Added class */}
+                    <div className="action-buttons">
                       {" "}
-                      Edit{" "}
-                    </button>
-                    <button
-                      onClick={() =>
-                        handleDeleteDoctor(doctor._id, doctor.name)
-                      }
-                      className="btn btn-delete"
-                    >
-                      {" "}
-                      Delete{" "}
-                    </button>
+                      {/* Ensure buttons are wrapped */}
+                      <button
+                        onClick={() => handleEditClick(doctor)}
+                        className="btn btn-edit"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() =>
+                          handleDeleteDoctor(doctor._id, doctor.name)
+                        }
+                        className="btn btn-delete"
+                      >
+                        Delete
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
-          </tbody>
-        </table>
+            </tbody>
+          </table>
+        </div>
       )}
     </div>
   );

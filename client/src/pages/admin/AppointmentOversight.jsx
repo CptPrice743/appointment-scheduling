@@ -75,8 +75,8 @@ const AppointmentOversight = () => {
       }
 
       // Fetch doctors and patients list for filters, only if they haven't been fetched yet
-      if (doctors.length === 0 || patients.length === 0) {
-        // Fetch doctors
+      // Optimization: Check if doctors or patients arrays are empty before fetching
+      if (doctors.length === 0) {
         const doctorsRes = await axios.get(`${API_URL}/admin/doctors`, config);
         if (Array.isArray(doctorsRes.data)) {
           setDoctors(doctorsRes.data);
@@ -86,8 +86,8 @@ const AppointmentOversight = () => {
             doctorsRes.data
           );
         }
-
-        // Fetch users to populate patient filter
+      }
+      if (patients.length === 0) {
         const usersRes = await axios.get(`${API_URL}/admin/users`, config);
         if (Array.isArray(usersRes.data)) {
           setPatients(usersRes.data.filter((user) => user.role === "patient"));
@@ -118,7 +118,7 @@ const AppointmentOversight = () => {
       setIsLoading(false); // Set loading false after fetch attempt completes
     }
     // Dependencies for useCallback: ensures function is re-created if these change
-  }, [token, API_URL, filters, doctors.length, patients.length]);
+  }, [token, API_URL, filters, doctors.length, patients.length]); // Added lengths to dependencies
 
   // Effect to run initial data fetch when component mounts and token is available
   useEffect(() => {
@@ -129,7 +129,17 @@ const AppointmentOversight = () => {
       setIsLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, fetchData]); // Run only when token changes (effectively once on login)
+  }, [token]); // Run only when token changes (effectively once on login)
+
+  // Trigger refetch when filters change
+  useEffect(() => {
+    // Optional: Add debounce here if needed to avoid rapid firing on date changes
+    if (token) {
+      // Ensure token exists before fetching on filter change
+      fetchData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters, token]); // Refetch when filters change
 
   // Handler for changes in filter inputs
   const handleFilterChange = (e) => {
@@ -137,24 +147,22 @@ const AppointmentOversight = () => {
     setFilters((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Handler for applying filters button
+  // Handler for applying filters button (Now just confirms current filters, fetch happens via useEffect)
   const applyFilters = () => {
-    fetchData(); // Trigger data fetch with the current filters
+    // Optional: Could add visual feedback here, but fetch is automatic
+    console.log("Applying filters:", filters);
   };
 
   // Handler for clearing filters button
   const clearFilters = () => {
-    const clearedFilters = {
+    setFilters({
+      // Reset state, which triggers useEffect -> fetchData
       patientId: "",
       doctorId: "",
       dateStart: "",
       dateEnd: "",
       status: "",
-    };
-    setFilters(clearedFilters);
-    // Calling setFilters will trigger the useEffect that depends on `filters` via fetchData
-    // Or call fetchData() explicitly here if preferred/needed
-    // fetchData();
+    });
   };
 
   // --- Edit Modal Logic ---
@@ -285,19 +293,16 @@ const AppointmentOversight = () => {
   };
 
   // --- Conditional Rendering Logic ---
-  // Function to determine what content to display (Loading, Error, No Data, Table)
   const renderContent = () => {
-    // Show loading indicator only during initial load or subsequent fetches
-    if (isLoading) {
+    if (isLoading && appointments.length === 0) {
+      // Show loading only if no data is currently displayed
       return (
         <div className="loading status-message">Loading appointments...</div>
       );
     }
-    // Show error message if an error occurred during fetch
     if (error) {
       return <div className="error-message status-message">{error}</div>;
     }
-    // Validate if appointments is an array before proceeding
     if (!Array.isArray(appointments)) {
       return (
         <div className="error-message status-message">
@@ -305,33 +310,27 @@ const AppointmentOversight = () => {
         </div>
       );
     }
-    // Show message if no appointments are found after loading/filtering
     if (appointments.length === 0) {
-      // Check if filters are active to show the correct 'no data' message
       const filtersApplied =
         filters.patientId ||
         filters.doctorId ||
         filters.dateStart ||
         filters.dateEnd ||
         filters.status;
-      if (filtersApplied) {
-        return (
-          <div className="info-message status-message">
-            No appointments found matching the current filter criteria.
-          </div>
-        );
-      } else {
-        // No filters applied, and no appointments exist
-        return (
-          <div className="info-message status-message">
-            There are currently no appointments in the system.
-          </div>
-        );
-      }
+      return (
+        <div className="info-message status-message">
+          {filtersApplied
+            ? "No appointments found matching the current filter criteria."
+            : "There are currently no appointments in the system."}
+        </div>
+      );
     }
-    // If loading is done, no error, and appointments exist, render the table
+
+    // Render table if data exists
     return (
       <div className="appointments-table-container">
+        {isLoading && <div className="loading-overlay">Updating...</div>}{" "}
+        {/* Show overlay during refetch */}
         <table className="appointments-table">
           <thead>
             <tr>
@@ -345,36 +344,53 @@ const AppointmentOversight = () => {
             </tr>
           </thead>
           <tbody>
-            {/* Ensure Array.isArray check is present */}
-            {Array.isArray(appointments) &&
-              appointments.map((appt) => (
-                <tr key={appt._id}>
-                  {/* Ensure no extra spaces/newlines before or after TDs */}
-                  <td>{formatDateForInput(appt.appointmentDate)}</td>
-                  <td>
-                    {appt.startTime} - {appt.endTime}
-                  </td>
-                  <td>
-                    {appt.patientUserId?.name || "N/A"} (
-                    {appt.patientUserId?.email || "N/A"})
-                  </td>
-                  <td>
-                    {appt.doctorId?.name || "N/A"} (
-                    {appt.doctorId?.specialization || "N/A"})
-                  </td>
-                  <td title={appt.reason}>
-                    {appt.reason?.substring(0, 30)}
-                    {appt.reason?.length > 30 ? "..." : ""}
-                  </td>
-                  <td>
-                    {/* Display status text directly */}
-                    {appt.status.charAt(0).toUpperCase() + appt.status.slice(1)}
-                  </td>
-                  <td className="action-buttons">
+            {appointments.map((appt) => (
+              <tr key={appt._id}>
+                {/* Date */}
+                <td data-label="Date">
+                  {formatDateForInput(appt.appointmentDate)}
+                </td>
+                {/* Time */}
+                <td data-label="Time">
+                  {appt.startTime} - {appt.endTime}
+                </td>
+                {/* Patient */}
+                <td data-label="Patient">
+                  {appt.patientUserId?.name || "N/A"} <br />{" "}
+                  {/* Use <br> for line break */}
+                  <span className="patient-email">
+                    ({appt.patientUserId?.email || "N/A"})
+                  </span>
+                </td>
+                {/* Doctor */}
+                <td data-label="Doctor">
+                  {appt.doctorId?.name || "N/A"} <br />{" "}
+                  {/* Use <br> for line break */}
+                  <span className="doctor-specialty">
+                    ({appt.doctorId?.specialization || "N/A"})
+                  </span>
+                </td>
+                {/* Reason */}
+                {/* <<< MODIFIED: Display full reason, remove substring */}
+                <td data-label="Reason" title={appt.reason}>
+                  {appt.reason || ""}
+                </td>
+                {/* Status */}
+                <td data-label="Status">
+                  {appt.status.charAt(0).toUpperCase() + appt.status.slice(1)}
+                </td>
+                {/* Actions */}
+                <td data-label="Actions" className="action-buttons-cell">
+                  {" "}
+                  {/* Added class */}
+                  <div className="action-buttons">
+                    {" "}
+                    {/* Wrapped buttons */}
                     <button
                       onClick={() => handleEditClick(appt)}
                       className="btn btn-edit"
                       title="Edit Appointment"
+                      disabled={isLoading} // Disable buttons during load
                     >
                       Edit
                     </button>
@@ -383,6 +399,7 @@ const AppointmentOversight = () => {
                         onClick={() => handleCancelAppointment(appt._id)}
                         className="btn btn-cancel"
                         title="Cancel Appointment"
+                        disabled={isLoading} // Disable buttons during load
                       >
                         Cancel
                       </button>
@@ -391,12 +408,14 @@ const AppointmentOversight = () => {
                       onClick={() => handleDeleteAppointment(appt._id)}
                       className="btn btn-delete"
                       title="Delete Appointment"
+                      disabled={isLoading} // Disable buttons during load
                     >
                       Delete
                     </button>
-                  </td>
-                </tr> // Ensure no whitespace after closing </tr> if map adds any
-              ))}
+                  </div>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
@@ -420,6 +439,7 @@ const AppointmentOversight = () => {
               name="patientId"
               value={filters.patientId}
               onChange={handleFilterChange}
+              disabled={isLoading} // Disable during load
             >
               <option value="">All Patients</option>
               {patients.map((p) => (
@@ -437,11 +457,13 @@ const AppointmentOversight = () => {
               name="doctorId"
               value={filters.doctorId}
               onChange={handleFilterChange}
+              disabled={isLoading} // Disable during load
             >
               <option value="">All Doctors</option>
               {doctors.map((d) => (
                 <option key={d._id} value={d._id}>
-                  {d.name} ({d.userId?.email || "N/A"})
+                  {d.name} ({d.specialization || "N/A"}){" "}
+                  {/* Show specialization */}
                 </option>
               ))}
             </select>
@@ -455,6 +477,7 @@ const AppointmentOversight = () => {
               name="dateStart"
               value={filters.dateStart}
               onChange={handleFilterChange}
+              disabled={isLoading} // Disable during load
             />
           </div>
           {/* Date End Filter */}
@@ -466,6 +489,7 @@ const AppointmentOversight = () => {
               name="dateEnd"
               value={filters.dateEnd}
               onChange={handleFilterChange}
+              disabled={isLoading} // Disable during load
             />
           </div>
           {/* Status Filter */}
@@ -476,6 +500,7 @@ const AppointmentOversight = () => {
               name="status"
               value={filters.status}
               onChange={handleFilterChange}
+              disabled={isLoading} // Disable during load
             >
               <option value="">All Statuses</option>
               <option value="scheduled">Scheduled</option>
@@ -487,21 +512,14 @@ const AppointmentOversight = () => {
         </div>
         {/* Filter Action Buttons */}
         <div className="filter-actions">
-          <button
-            onClick={applyFilters}
-            className="btn btn-primary"
-            disabled={isLoading}
-          >
-            {" "}
-            Apply Filters{" "}
-          </button>
+          {/* Apply Filters button might be redundant if useEffect handles it */}
+          {/* <button onClick={applyFilters} className="btn btn-primary" disabled={isLoading}> Apply Filters </button> */}
           <button
             onClick={clearFilters}
             className="btn btn-secondary"
-            disabled={isLoading}
+            disabled={isLoading} // Disable during load
           >
-            {" "}
-            Clear Filters{" "}
+            Clear Filters
           </button>
         </div>
       </div>
@@ -592,16 +610,14 @@ const AppointmentOversight = () => {
               {/* Modal Action Buttons */}
               <div className="modal-actions">
                 <button type="submit" className="btn btn-save">
-                  {" "}
-                  Save Changes{" "}
+                  Save Changes
                 </button>
                 <button
                   type="button"
                   onClick={handleCancelEdit}
-                  className="btn btn-cancel"
+                  className="btn btn-cancel" // Use consistent grey cancel
                 >
-                  {" "}
-                  Cancel{" "}
+                  Cancel
                 </button>
               </div>
             </form>

@@ -175,3 +175,73 @@
 .action-button.cancel:hover {
   background-color: #d32f2f;
 }
+
+/* ========================================= */
+/* Responsive Styles                */
+/* ========================================= */
+
+/* Tablet Styles (Screens up to 768px wide) */
+@media (max-width: 768px) {
+  .schedule-view-container {
+    padding: 15px;
+  }
+
+  .schedule-controls {
+    flex-direction: column; /* Stack controls vertically */
+    align-items: stretch; /* Make controls take full width */
+  }
+
+  .schedule-controls > * {
+    /* Target direct children */
+    width: 100%; /* Make inputs/buttons full width */
+    margin-bottom: 5px; /* Add space between stacked controls */
+  }
+  .schedule-controls label {
+    margin-bottom: 2px; /* Space between label and input */
+    font-size: 0.9em;
+  }
+
+  .schedule-grid {
+    /* Adjust grid columns for tablet, maybe fewer columns */
+    /* grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); */
+    font-size: 0.9em; /* Slightly smaller text in grid */
+  }
+
+  .schedule-item {
+    padding: 8px;
+  }
+}
+
+/* Mobile Styles (Screens up to 480px wide) */
+@media (max-width: 480px) {
+  .schedule-view-container {
+    padding: 10px;
+  }
+
+  .schedule-controls {
+    gap: 8px; /* Adjust gap for stacked controls */
+  }
+
+  .schedule-grid {
+    /* Force grid into a single column layout */
+    grid-template-columns: 1fr;
+    gap: 8px; /* Adjust gap for single column */
+    font-size: 0.85em; /* Further reduce font size */
+  }
+
+  .schedule-item {
+    padding: 10px; /* Slightly more padding for readability */
+    text-align: left; /* Ensure text aligns left */
+    display: flex; /* Use flex for better internal layout */
+    flex-direction: column; /* Stack content within item */
+    gap: 5px;
+  }
+
+  /* Style specific parts of the schedule item if needed */
+  .schedule-item-time {
+    font-weight: bold;
+  }
+  .schedule-item-patient {
+    color: #555;
+  }
+}

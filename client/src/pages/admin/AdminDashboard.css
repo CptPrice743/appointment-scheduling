@@ -1,3 +1,5 @@
+/* client/src/pages/admin/AdminDashboard.css */
+
 /* Consistent Container Styling (similar to UserManagement.css) */
 .admin-dashboard-container {
   padding: 2rem;
@@ -36,13 +38,11 @@
   display: block;
 } /* Stack time and location */
 
-/* Grid for Stat Cards */
+/* Grid for Stat Cards - Renamed from stats-overview for clarity */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(
-    auto-fit,
-    minmax(250px, 1fr)
-  ); /* Responsive grid */
+  /* Responsive grid: creates as many columns as fit, each at least 250px wide */
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1.5rem; /* Spacing between items */
   margin-bottom: 2rem;
 }
@@ -55,6 +55,7 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
   text-align: center;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid #e9ecef; /* Match other card borders */
 }
 
 .stat-card:hover {
@@ -95,6 +96,7 @@
   flex-direction: column; /* Stack title and chart canvas */
   /* Ensure charts don't shrink too much if content is small */
   min-height: 300px;
+  border: 1px solid #e9ecef; /* Match other card borders */
 }
 
 .chart-container h3 {
@@ -116,6 +118,7 @@
 }
 
 .message.error {
+  /* Ensure class matches JSX if different */
   text-align: center;
   padding: 1rem;
   background-color: #f8d7da;
@@ -125,11 +128,59 @@
   margin: 1.5rem 0; /* Add vertical margin */
 }
 
-/* Responsive Adjustments */
+/* Placeholder styles for other potential sections */
+/* These might need specific responsive adjustments if added */
+.quick-links,
+.recent-activity {
+  background-color: #ffffff;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e9ecef;
+  margin-top: 2rem; /* Add space if they follow charts */
+}
+
+.quick-links h3,
+.recent-activity h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #495057;
+}
+
+/* Example: Style links if using a list */
+.quick-links ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex; /* Arrange links in a row */
+  flex-wrap: wrap; /* Allow wrapping */
+  gap: 1rem; /* Space between links */
+}
+
+.quick-links li a {
+  display: inline-block;
+  padding: 0.6rem 1rem;
+  background-color: #e9ecef;
+  color: #495057;
+  text-decoration: none;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.quick-links li a:hover {
+  background-color: #dee2e6;
+  color: #343a40;
+}
+
+/* ========================================= */
+/* Responsive Styles                       */
+/* ========================================= */
+
+/* Tablet Styles */
 @media (max-width: 768px) {
   .admin-dashboard-container {
-    padding: 1rem;
-    margin: 1rem;
+    padding: 1rem; /* Reduce overall padding */
+    margin: 1rem; /* Reduce margin */
   }
 
   .dashboard-header {
@@ -144,41 +195,105 @@
     text-align: left; /* Align context text left on small screens */
   }
 
+  .admin-dashboard-container h2 {
+    font-size: 1.5rem; /* Adjust heading size */
+  }
+
   .stats-grid {
-    grid-template-columns: 1fr; /* Stack cards on smaller screens */
-    gap: 1rem;
+    /* Adjust minmax if 250px feels too wide */
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem; /* Reduce gap */
   }
 
   .charts-grid {
+    /* Adjust minmax if 350px feels too wide, or force single column */
     grid-template-columns: 1fr; /* Stack charts */
     gap: 1rem;
   }
 
-  .admin-dashboard-container h2 {
-    font-size: 1.5rem;
+  .stat-card {
+    padding: 1rem; /* Reduce card padding */
+  }
+
+  .stat-card h3 {
+    font-size: 1em;
   }
 
   .stat-card p {
-    font-size: 1.8rem;
+    font-size: 1.8em; /* Reduce stat number size */
   }
 
   .chart-container {
     padding: 1rem;
+    min-height: 250px; /* Adjust min height */
+  }
+  .chart-container h3 {
+    font-size: 1.1rem;
+    margin-bottom: 1rem;
+  }
+
+  /* Responsive Quick Links Example */
+  .quick-links ul {
+    flex-direction: column; /* Stack links vertically */
+    align-items: stretch; /* Make links full width */
+    gap: 0.5rem;
+  }
+  .quick-links li a {
+    text-align: center; /* Center text in stacked links */
+  }
+
+  .quick-links,
+  .recent-activity {
+    padding: 1rem; /* Reduce section padding */
+    margin-top: 1.5rem;
   }
 }
 
-/* Specific adjustments for small screens if needed */
+/* Mobile Styles */
 @media (max-width: 480px) {
-  .stat-card {
-    padding: 1rem;
+  .admin-dashboard-container {
+    padding: 0.8rem; /* Further reduce padding */
+    margin: 0.8rem;
+    gap: 1.5rem; /* Adjust gap between sections */
   }
-  .stat-card p {
-    font-size: 1.6rem;
-  }
+
   .admin-dashboard-container h2 {
-    font-size: 1.3rem;
+    font-size: 1.3rem; /* Further reduce heading size */
   }
-  .dashboard-context {
-    font-size: 0.8rem;
+
+  .stats-grid {
+    /* Ensure cards stack nicely */
+    grid-template-columns: 1fr; /* Force single column */
+    gap: 0.8rem; /* Further reduce gap */
+  }
+
+  .stat-card {
+    padding: 0.8rem; /* Further reduce card padding */
+  }
+
+  .stat-card h3 {
+    font-size: 0.9em;
+  }
+
+  .stat-card p {
+    font-size: 1.6em; /* Further reduce stat number size */
+  }
+
+  .charts-grid {
+    gap: 0.8rem;
+  }
+  .chart-container {
+    padding: 0.8rem;
+    min-height: 200px;
+  }
+  .chart-container h3 {
+    font-size: 1rem;
+    margin-bottom: 0.8rem;
+  }
+
+  .quick-links,
+  .recent-activity {
+    padding: 0.8rem; /* Further reduce section padding */
+    margin-top: 1rem;
   }
 }

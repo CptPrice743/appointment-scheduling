@@ -1,101 +1,64 @@
-/* client/src/pages/admin/DoctorManagement.css */
-
+/* Base styles for DoctorManagement.css */
 .doctor-management-container {
   max-width: 1100px;
   margin: 2rem auto;
   padding: 1.5rem;
-  background-color: #f9f9f9;
+  background-color: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
-.doctor-management-container h2,
-.doctor-management-container h3 {
+.doctor-management-container h2 {
   text-align: center;
   margin-bottom: 1.5rem;
   color: #333;
 }
-.doctor-management-container h3 {
-  text-align: left;
-  margin-top: 2rem;
-  margin-bottom: 1rem;
-  border-bottom: 1px solid #eee;
-  padding-bottom: 0.5rem;
-}
 
-.loading,
-.error-message {
-  text-align: center;
-  padding: 1rem;
-  font-size: 1.1em;
-}
-
-.error-message {
-  color: #d9534f;
-  background-color: #f2dede;
-  border: 1px solid #ebccd1;
-  border-radius: 4px;
-}
-
-.btn-add-new {
-  background-color: #5cb85c; /* Green */
-  color: white;
-  padding: 10px 15px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 1em;
-  margin-bottom: 1rem;
-  transition: background-color 0.2s ease;
-}
-.btn-add-new:hover {
-  background-color: #4cae4c;
-}
-
-/* Form Styling */
+/* Add form styling */
 .form-section {
-  background-color: #fff;
+  background-color: #f8f9fa;
   padding: 1.5rem;
-  border-radius: 5px;
+  border-radius: 6px;
   margin-bottom: 2rem;
   border: 1px solid #e0e0e0;
 }
-
 .form-section h3 {
-  text-align: center;
   margin-top: 0;
   margin-bottom: 1.5rem;
-  border-bottom: none;
+  text-align: center;
+  font-size: 1.3em;
+  color: #444;
 }
-
 .form-group {
   margin-bottom: 1rem;
 }
-
 .form-group label {
   display: block;
-  margin-bottom: 5px;
+  margin-bottom: 0.4rem;
   font-weight: 600;
   color: #555;
 }
-
 .form-group input[type="text"],
 .form-group input[type="number"],
 .form-group select {
   width: 100%;
-  padding: 10px;
+  padding: 10px 12px;
   border: 1px solid #ccc;
   border-radius: 4px;
-  box-sizing: border-box; /* Include padding and border in element's total width/height */
+  box-sizing: border-box;
+  font-size: 1em;
 }
 .form-group p {
-  /* For displaying read-only info like linked user */
-  padding: 10px;
-  background-color: #eee;
-  border: 1px solid #ccc;
-  border-radius: 4px;
+  /* Style for displaying linked user info */
   margin: 0;
-  color: #555;
+  padding: 10px 0;
+  font-size: 1em;
+  color: #333;
+}
+.info-text {
+  font-size: 0.9em;
+  color: #6c757d;
+  margin-top: 0.5rem;
 }
 
 .form-actions {
@@ -105,98 +68,184 @@
   gap: 10px;
 }
 
-.info-text {
-  font-size: 0.9em;
-  color: #777;
-  margin-top: 5px;
+/* Ensure button styles (.btn, .btn-add-new, .btn-save, .btn-cancel etc.) are defined */
+/* Assuming general .btn styles are available globally or defined here */
+.btn {
+  padding: 8px 15px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.95em;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+  color: #fff;
+  text-align: center;
+  vertical-align: middle; /* Align button text middle */
+  white-space: nowrap;
+}
+.btn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+/* Specific button colors */
+.btn-add-new {
+  background-color: #0d6efd;
+  margin-bottom: 1rem;
+  display: inline-block;
+} /* Blue */
+.btn-edit {
+  background-color: #5bc0de;
+} /* Info Blue */
+.btn-delete {
+  background-color: #f17c86;
+} /* Light Red */
+.btn-save {
+  background-color: #5cb85c;
+} /* Green */
+.btn-cancel {
+  background-color: #6c757d;
+} /* Grey */
+.btn-approve {
+  background-color: #5cb85c;
+} /* Example approve */
+
+/* Table styling */
+.doctors-table-container {
+  overflow-x: auto; /* Scroll on medium screens if needed */
+  margin-top: 1.5rem;
 }
 
-/* Table Styling */
 .doctors-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border-spacing: 0;
 }
 
 .doctors-table th,
 .doctors-table td {
   padding: 12px 15px;
   text-align: left;
-  border-bottom: 1px solid #ddd;
-  vertical-align: middle;
+  /* Removed border-bottom from TD */
+  vertical-align: middle; /* <<< ALIGN ALL CELLS MIDDLE (Desktop View) */
+  white-space: normal; /* Allow text wrapping */
 }
 
-.doctors-table th {
-  background-color: #eef1f5;
+.doctors-table thead th {
+  background-color: #f8f9fa;
   font-weight: 600;
-  color: #555;
+  color: #495057;
+  border-bottom: 2px solid #dee2e6; /* Thicker header border */
+  vertical-align: middle; /* Also middle align header text */
+}
+
+/* Apply border to TR */
+.doctors-table tbody tr {
+  border-bottom: 1px solid #e9ecef;
+}
+.doctors-table tbody tr:last-child {
+  border-bottom: none;
 }
 
 .doctors-table tbody tr:hover {
-  background-color: #f1f1f1;
+  background-color: #f1f3f5;
 }
 
+/* Action buttons styling */
 .action-buttons {
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center; /* Keep buttons aligned with each other */
+  justify-content: flex-start; /* Align buttons left within cell */
 }
-
+/* Ensure buttons within actions have consistent size */
 .action-buttons .btn {
-  padding: 6px 12px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9em;
-  transition: background-color 0.2s ease;
-  color: #fff;
+  padding: 5px 10px;
+  font-size: 0.85em;
 }
 
-/* Consistent Button Colors */
-.btn-edit {
-  background-color: #337ab7;
-} /* Blue */
-.btn-delete {
-  background-color: #d9534f;
-} /* Red */
-.btn-save {
-  background-color: #5cb85c;
-} /* Green */
-.btn-cancel {
-  background-color: #777;
-} /* Grey */
-.btn-manage-availability {
-  background-color: #5bc0de;
-} /* Info Blue */
-
-.action-buttons .btn:hover {
-  opacity: 0.9;
-}
-
-/* Responsive adjustments */
+/* =================================================================== */
+/* Responsive Styles - Card Layout (Mobile)                           */
+/* REMINDER: Requires data-label="..." attributes on <td> in JSX      */
+/* =================================================================== */
 @media (max-width: 768px) {
-  .doctors-table th,
-  .doctors-table td {
-    padding: 8px 10px;
-    font-size: 0.9em;
-  }
-  .action-buttons {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-  .action-buttons .btn {
-    width: 100%;
-    margin-bottom: 5px;
-  }
-  .action-buttons .btn:last-child {
-    margin-bottom: 0;
+  .doctors-table-container {
+    overflow-x: hidden; /* Hide scrollbar for card view */
+    border: none; /* Remove container border */
+    box-shadow: none; /* Remove container shadow */
+    background-color: transparent; /* Make container transparent */
   }
 
-  .form-actions {
-    flex-direction: column;
+  .doctors-table {
+    border: none; /* Remove table border */
+    box-shadow: none;
   }
-  .form-actions .btn {
-    width: 100%;
+
+  .doctors-table thead {
+    display: none; /* Hide table header */
+  }
+
+  /* Reset TR border for card view */
+  .doctors-table tbody tr {
+    border-bottom: none !important;
+  }
+
+  .doctors-table tr {
+    display: block; /* Each row becomes a block (card) */
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background-color: #fff; /* Card background */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+
+  .doctors-table td {
+    display: flex; /* Use flex for label/value layout */
+    justify-content: space-between; /* Label on left, value on right */
+    align-items: center; /* Center items vertically */
+    padding: 8px 0; /* Adjust padding */
+    border-bottom: 1px dashed #eee; /* Separator inside card */
+    text-align: right; /* Align value text to the right */
+    width: 100% !important; /* Ensure full width */
+    vertical-align: middle; /* Keep middle alignment */
+    white-space: normal; /* Allow text wrapping */
+  }
+
+  .doctors-table td:last-child {
+    border-bottom: none; /* No separator for the last item (actions) */
+  }
+
+  /* Use the data-label for the pseudo-element */
+  .doctors-table td::before {
+    content: attr(data-label); /* Display the label */
+    font-weight: bold;
+    text-align: left;
+    padding-right: 10px; /* Space between label and value */
+    white-space: nowrap; /* Prevent label wrapping */
+    color: #333;
+  }
+
+  /* Style the actions cell specifically */
+  .doctors-table td:has(.action-buttons) {
+    /* Target cell containing action buttons */
+    /* If actions cell contains only buttons, flex settings might not be needed */
+    /* justify-content: center; /* Center buttons if needed */
+    padding-top: 15px; /* Add space above buttons */
+    /* Reset flex for action cell if buttons are direct children */
+    /* display: block; */
+    text-align: center; /* Center content if display: block */
+  }
+
+  .doctors-table td:has(.action-buttons)::before {
+    display: none; /* Hide the "Actions:" label */
+  }
+
+  .action-buttons {
+    width: 100%; /* Make button container full width */
+    justify-content: center; /* Center buttons */
+    /* Ensure buttons wrap if needed on very small screens */
+    flex-wrap: wrap;
   }
 }

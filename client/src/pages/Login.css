@@ -76,3 +76,100 @@
   margin-top: 20px;
   text-align: center;
 }
+
+/* Tablet Styles (Screens up to 768px wide) */
+@media (max-width: 768px) {
+  /* Assuming a common container class like '.form-container' or specific ones */
+  .login-container,
+  .register-container,
+  .appointment-form-container,
+  .profile-edit-container {
+    padding: 20px; /* Reduce padding */
+    max-width: 90%; /* Allow container to be wider */
+    margin: 20px auto; /* Adjust margin */
+  }
+
+  .form-group {
+    margin-bottom: 15px; /* Adjust spacing between form groups */
+  }
+
+  label {
+    font-size: 0.95em; /* Slightly smaller labels */
+  }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="date"],
+  input[type="time"],
+  select,
+  textarea {
+    padding: 10px; /* Adjust input padding */
+    font-size: 0.95em;
+  }
+
+  button[type="submit"] {
+    padding: 12px 20px; /* Adjust button padding */
+  }
+}
+
+/* Mobile Styles (Screens up to 480px wide) */
+@media (max-width: 480px) {
+  .login-container,
+  .register-container,
+  .appointment-form-container,
+  .profile-edit-container {
+    padding: 15px; /* Further reduce padding */
+    max-width: 95%; /* Almost full width */
+    margin: 15px auto; /* Adjust margin */
+    box-shadow: none; /* Optional: remove shadow on mobile */
+    border: 1px solid #eee; /* Optional: add a light border instead */
+  }
+
+  .form-title {
+    /* Assuming a class for the form title */
+    font-size: 1.5em; /* Smaller title */
+    margin-bottom: 15px;
+  }
+
+  .form-group {
+    margin-bottom: 12px; /* Adjust spacing */
+    /* Stack label and input if they are side-by-side */
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  label {
+    margin-bottom: 5px; /* Add space below label when stacked */
+    font-size: 0.9em;
+  }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="date"],
+  input[type="time"],
+  select,
+  textarea {
+    width: 100%; /* Make inputs full width */
+    padding: 12px; /* Slightly larger padding for easier tapping */
+    font-size: 1em; /* Ensure readability */
+  }
+
+  button[type="submit"] {
+    width: 100%; /* Make submit button full width */
+    padding: 12px;
+    font-size: 1em;
+    margin-top: 10px;
+  }
+
+  /* Adjust specific elements like links inside forms */
+  .form-link {
+    /* Example class for 'forgot password' or 'register' links */
+    font-size: 0.9em;
+    text-align: center;
+    display: block;
+    margin-top: 15px;
+  }
+}

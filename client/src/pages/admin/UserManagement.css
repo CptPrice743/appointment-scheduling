@@ -1,8 +1,9 @@
+/* Base styles for UserManagement.css */
 .user-management-container {
   max-width: 1100px;
   margin: 2rem auto;
   padding: 1.5rem;
-  background-color: #f9f9f9; /* Light background */
+  background-color: #fff;
   border-radius: 8px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
@@ -10,134 +11,198 @@
 .user-management-container h2 {
   text-align: center;
   margin-bottom: 1.5rem;
-  color: #333; /* Dark heading */
+  color: #333;
 }
 
-.loading,
-.error-message {
-  text-align: center;
-  padding: 1rem;
-  font-size: 1.1em;
-}
-
-.error-message {
-  color: #d9534f; /* Bootstrap danger color */
-  background-color: #f2dede;
-  border: 1px solid #ebccd1;
+/* Add other base styles for filters, buttons etc. if needed */
+/* Ensure button styles (.btn, .btn-edit, .btn-delete etc.) are defined */
+/* Assuming general .btn styles are available globally or defined here */
+.btn {
+  padding: 8px 15px;
+  border: none;
   border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.95em;
+  transition: background-color 0.2s ease, opacity 0.2s ease;
+  color: #fff;
+  text-align: center;
+  vertical-align: middle; /* Align button text middle */
+  white-space: nowrap;
+}
+.btn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+/* Specific button colors */
+.btn-edit {
+  background-color: #5bc0de;
+}
+.btn-delete {
+  background-color: #f17c86;
+}
+.btn-save {
+  background-color: #5cb85c;
+}
+.btn-cancel {
+  background-color: #ffda6a;
+  color: #594b1e;
+}
+.btn-status {
+  /* Base for activate/deactivate */
+}
+.btn-activate {
+  background-color: #5cb85c;
+} /* Green for activate */
+.btn-deactivate {
+  background-color: #f0ad4e;
+} /* Orange for deactivate */
+
+.users-table-container {
+  overflow-x: auto; /* Scroll on medium screens if needed */
+  margin-top: 1.5rem;
 }
 
 .users-table {
   width: 100%;
   border-collapse: collapse;
-  margin-top: 1rem;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border-spacing: 0; /* Needed if changing border-collapse */
 }
 
 .users-table th,
 .users-table td {
   padding: 12px 15px;
   text-align: left;
-  border-bottom: 1px solid #ddd; /* Light border */
-  vertical-align: middle;
+  /* Removed border-bottom from TD */
+  vertical-align: middle; /* <<< ALIGN ALL CELLS MIDDLE (Desktop View) */
+  white-space: normal; /* Allow text wrapping */
 }
 
-.users-table th {
-  background-color: #eef1f5; /* Slightly darker header */
+.users-table thead th {
+  background-color: #f8f9fa;
   font-weight: 600;
-  color: #555;
+  color: #495057;
+  border-bottom: 2px solid #dee2e6; /* Thicker header border */
+  vertical-align: middle; /* Also middle align header text */
+}
+
+/* Apply border to TR */
+.users-table tbody tr {
+  border-bottom: 1px solid #e9ecef;
+}
+.users-table tbody tr:last-child {
+  border-bottom: none;
 }
 
 .users-table tbody tr:hover {
-  background-color: #f1f1f1; /* Hover effect */
+  background-color: #f1f3f5;
 }
 
-.users-table tbody tr.inactive-user {
-  background-color: #fff3f3; /* Light red background for inactive */
-  opacity: 0.7;
-}
-
-.status-badge {
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 0.85em;
-  color: #fff;
-  text-transform: capitalize;
-}
-
-.status-badge.status-active {
-  background-color: #5cb85c; /* Green for active */
-}
-
-.status-badge.status-inactive {
-  background-color: #f0ad4e; /* Orange for inactive */
-}
-
+/* Action buttons styling */
 .action-buttons {
   display: flex;
-  gap: 8px; /* Space between buttons */
-  flex-wrap: wrap; /* Allow buttons to wrap on smaller screens */
+  gap: 6px;
+  align-items: center; /* Keep buttons aligned with each other */
+  justify-content: flex-start; /* Align buttons left within cell */
 }
-
+/* Ensure buttons within actions have consistent size */
 .action-buttons .btn {
-  padding: 6px 12px;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9em;
-  transition: background-color 0.2s ease;
-  color: #fff;
+  padding: 5px 10px;
+  font-size: 0.85em;
 }
 
-.btn-status {
-  min-width: 90px;
-} /* Ensure activate/deactivate have enough width */
-.btn-activate {
-  background-color: #5cb85c;
-} /* Green */
-.btn-deactivate {
-  background-color: #f0ad4e;
-} /* Orange */
-.btn-edit {
-  background-color: #337ab7;
-} /* Blue */
-.btn-save {
-  background-color: #5cb85c;
-} /* Green */
-.btn-cancel {
-  background-color: #777;
-} /* Grey */
-.btn-delete {
-  background-color: #d9534f;
-} /* Red */
-
-.action-buttons .btn:hover {
-  opacity: 0.9;
+/* Style for inactive user row */
+.inactive-user {
+  opacity: 0.7;
+  background-color: #f9f9f9; /* Optional subtle background */
+}
+.inactive-user:hover {
+  opacity: 1; /* Restore opacity on hover */
 }
 
-.users-table td select {
-  padding: 5px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  min-width: 100px;
-}
-
-/* Responsive adjustments if needed */
+/* =================================================================== */
+/* Responsive Styles - Card Layout (Mobile)                           */
+/* REMINDER: Requires data-label="..." attributes on <td> in JSX      */
+/* =================================================================== */
 @media (max-width: 768px) {
-  .users-table th,
+  .users-table-container {
+    overflow-x: hidden; /* Hide scrollbar for card view */
+    border: none; /* Remove container border */
+    box-shadow: none; /* Remove container shadow */
+    background-color: transparent; /* Make container transparent */
+  }
+
+  .users-table {
+    border: none; /* Remove table border */
+    box-shadow: none;
+  }
+
+  .users-table thead {
+    display: none; /* Hide table header */
+  }
+
+  /* Reset TR border for card view */
+  .users-table tbody tr {
+    border-bottom: none !important;
+  }
+
+  .users-table tr {
+    display: block; /* Each row becomes a block (card) */
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    background-color: #fff; /* Card background */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+
   .users-table td {
-    padding: 8px 10px;
-    font-size: 0.9em;
+    display: flex; /* Use flex for label/value layout */
+    justify-content: space-between; /* Label on left, value on right */
+    align-items: center; /* Center items vertically */
+    padding: 8px 0; /* Adjust padding */
+    border-bottom: 1px dashed #eee; /* Separator inside card */
+    text-align: right; /* Align value text to the right */
+    width: 100% !important; /* Ensure full width */
+    vertical-align: middle; /* Keep middle alignment */
+    white-space: normal; /* Allow text wrapping */
   }
+
+  .users-table td:last-child {
+    border-bottom: none; /* No separator for the last item (actions) */
+  }
+
+  /* Use the data-label for the pseudo-element */
+  .users-table td::before {
+    content: attr(data-label); /* Display the label */
+    font-weight: bold;
+    text-align: left;
+    padding-right: 10px; /* Space between label and value */
+    white-space: nowrap; /* Prevent label wrapping */
+    color: #333;
+  }
+
+  /* Style the actions cell specifically */
+  .users-table td:has(.action-buttons) {
+    /* Target cell containing action buttons */
+    /* If actions cell contains only buttons, flex settings might not be needed */
+    /* justify-content: center; /* Center buttons if needed */
+    padding-top: 15px; /* Add space above buttons */
+    /* Reset flex for action cell if buttons are direct children */
+    /* display: block; */
+    text-align: center; /* Center content if display: block */
+  }
+
+  .users-table td:has(.action-buttons)::before {
+    display: none; /* Hide the "Actions:" label */
+  }
+
   .action-buttons {
-    flex-direction: column; /* Stack buttons vertically */
-    align-items: flex-start;
-  }
-  .action-buttons .btn {
-    width: 100%; /* Make buttons full width in the column */
-    margin-bottom: 5px;
-  }
-  .action-buttons .btn:last-child {
-    margin-bottom: 0;
+    width: 100%; /* Make button container full width */
+    justify-content: center; /* Center buttons */
+    /* Ensure buttons wrap if needed on very small screens */
+    flex-wrap: wrap;
   }
 }
