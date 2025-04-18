@@ -23,6 +23,7 @@ import DoctorDashboard from "./pages/DoctorDashboard.jsx"; // Doctor's Dashboard
 import UserProfileEdit from "./pages/UserProfileEdit.jsx";
 
 // Admin Pages
+import AdminDashboard from "./pages/admin/AdminDashboard.jsx";
 import UserManagement from "./pages/admin/UserManagement.jsx";
 import DoctorManagement from "./pages/admin/DoctorManagement.jsx";
 import AppointmentOversight from "./pages/admin/AppointmentOversight.jsx";
@@ -36,6 +37,10 @@ const RoleBasedRedirect = () => {
 
   if (isLoading) {
     return <div className="loading">Loading...</div>; // Or null, or spinner
+  }
+
+  if (user?.role === "admin") {
+    return <Navigate to="/admin/dashboard" replace />; // Redirect admin here
   }
 
   if (user?.role === "doctor") {
@@ -141,6 +146,7 @@ function App() {
               />
               {/* *** Admin Specific Routes *** */}
               <Route element={<AdminRoute />}>
+                <Route path="/admin/dashboard" element={<AdminDashboard />} />
                 <Route path="/admin/users" element={<UserManagement />} />
                 <Route path="/admin/doctors" element={<DoctorManagement />} />
                 <Route

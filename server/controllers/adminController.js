@@ -571,3 +571,93 @@ exports.deleteAppointmentAdmin = async (req, res) => {
     res.status(500).json({ message: "Server Error" });
   }
 };
+
+// @desc    Get dashboard statistics
+// @route   GET /api/admin/stats/dashboard
+// @access  Private/Admin
+exports.getDashboardStats = async (req, res) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Calculate the date 7 days ago for new user registrations
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(today.getDate() - 7);
+
+    // --- Perform ALL database queries FIRST ---
+
+    // 1. Total Appointments
+    const totalAppointments = await Appointment.countDocuments();
+
+    // 2. Appointments per Doctor (using Aggregation)
+    const appointmentsPerDoctorData = await Appointment.aggregate([
+      { $group: { _id: "$doctorId", count: { $sum: 1 } } },
+      {
+        $lookup: {
+          from: Doctor.collection.name,
+          localField: "_id",
+          foreignField: "_id",
+          as: "doctorDetails",
+        },
+      },
+      { $unwind: { path: "$doctorDetails", preserveNullAndEmptyArrays: true } },
+      {
+        $project: {
+          _id: 1,
+          doctorName: { $ifNull: ["$doctorDetails.name", "Unknown Doctor"] },
+          count: 1,
+        },
+      },
+      { $sort: { count: -1 } },
+    ]);
+
+    // 2.5. Appointments by Status (Aggregation)
+    const appointmentsByStatus = await Appointment.aggregate([
+      // Declaration is HERE
+      { $group: { _id: "$status", count: { $sum: 1 } } },
+      {
+        $project: {
+          _id: 0,
+          status: "$_id",
+          count: 1,
+        },
+      },
+    ]);
+
+    // 3. Upcoming Appointments Count
+    const upcomingAppointments = await Appointment.countDocuments({
+      status: "scheduled",
+      appointmentDate: { $gte: today },
+    });
+
+    // 4. New User Registrations (e.g., in the last 7 days)
+    const newUserRegistrations = await User.countDocuments({
+      createdAt: { $gte: sevenDaysAgo },
+    });
+
+    // --- Log the results AFTER all queries are done ---
+    console.log(
+      "Backend - Appointments by Status:",
+      JSON.stringify(appointmentsByStatus, null, 2)
+    );
+    // You can add logs for other stats here too if needed
+
+    // --- Send the response AFTER all queries and logs ---
+    res.json({
+      totalAppointments,
+      appointmentsPerDoctor: appointmentsPerDoctorData,
+      appointmentsByStatus, // Use the variable HERE, after it's declared and populated
+      upcomingAppointments,
+      newUserRegistrations,
+    });
+  } catch (err) {
+    // Log the specific error received in the catch block
+    console.error("Error fetching admin dashboard stats:", err); // Log the actual error object
+    // Ensure the error message clearly indicates the context
+    res
+      .status(500)
+      .json({
+        message: `Server Error fetching dashboard stats: ${err.message}`,
+      });
+  }
+};

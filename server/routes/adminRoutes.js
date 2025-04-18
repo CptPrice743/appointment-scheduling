@@ -15,6 +15,7 @@ const {
   getAllAppointmentsAdmin,
   updateAppointmentAdmin,
   deleteAppointmentAdmin,
+  getDashboardStats,
 } = require("../controllers/adminController"); // Import controller functions
 
 const router = express.Router();
@@ -39,5 +40,8 @@ router.delete("/doctors/:doctorId", deleteDoctor); // DELETE /api/admin/doctors/
 router.get("/appointments/all", getAllAppointmentsAdmin); // GET /api/admin/appointments/all
 router.put("/appointments/:appointmentId", updateAppointmentAdmin); // PUT /api/admin/appointments/:appointmentId
 router.delete("/appointments/:appointmentId", deleteAppointmentAdmin); // DELETE /api/admin/appointments/:appointmentId
+
+// Dashboard Stats Route
+router.get("/stats/dashboard", getDashboardStats); // GET /api/admin/stats/dashboard
 
 module.exports = router;
