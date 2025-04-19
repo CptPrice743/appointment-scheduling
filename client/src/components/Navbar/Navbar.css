@@ -14,6 +14,7 @@
   max-width: 90%;
   margin: 0 auto;
   padding: 0 20px;
+  position: relative;
 }
 
 .navbar-logo {
@@ -215,14 +216,19 @@
 /* --- Media Query for Tablet/Mobile --- */
 @media (max-width: 1024px) {
   .navbar-container {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     padding: 0 15px;
+    max-width: 95%;
   }
 
   /* Show the toggle button */
   .navbar-toggle {
     display: block;
     order: 3;
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
   }
 
   /* Style the menu for mobile view */
@@ -355,11 +361,12 @@
 /* Optional: Further adjustments for very small screens */
 @media (max-width: 480px) {
   .navbar-logo {
-    font-size: 1.4rem;
+    font-size: 1.3rem;
   }
 
   .navbar-container {
     padding: 0 10px;
+    max-width: 98%;
   }
 
   .nav-menu .nav-links,
