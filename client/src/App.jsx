@@ -54,75 +54,74 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        <div className="App">
-          <Navbar />
-          <div className="container">
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/" element={<Home />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />{" "}
-              {/* === PATIENT Routes === */}
-              <Route
-                path="/appointments" // Patient's appointment list
-                element={
-                  <PrivateRoute>
-                    {" "}
-                    {/* We might add a check here or in the component to ensure role is patient */}
-                    <AppointmentList />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                path="/add" // Patient books an appointment
-                element={
-                  <PrivateRoute>
-                    {" "}
-                    {/* [cite: 24] */}
-                    {/* AppointmentForm can handle patient context */}
-                    <AppointmentForm /> {/* [cite: 20] */}
-                  </PrivateRoute>
-                }
-              />
-              {/* Patient might edit/view their own appointment details */}
-              {/* The GET /:id and PATCH /:id routes handle authorization */}
-              <Route
-                path="/edit/:id"
-                element={
-                  <PrivateRoute>
-                    {" "}
-                    {/* [cite: 24] */}
-                    <AppointmentForm /> {/* [cite: 20] */}
-                  </PrivateRoute>
-                }
-              />
-              {/* === USER PROFILE Route === */}
-              <Route
-                path="/profile/edit"
-                element={
-                  <PrivateRoute>
-                    {" "}
-                    {/* [cite: 24] */}
-                    {/* Ensures logged in */}
-                    <UserProfileEdit /> {/* [cite: 6] */}
-                  </PrivateRoute>
-                }
-              />
-              {/* === DOCTOR Routes === */}
-              <Route
-                path="/doctor/dashboard"
-                element={
-                  <DoctorRoute>
-                    {" "}
-                    {/* [cite: 23] */}
-                    {/* Ensures logged in AND role is doctor */}
-                    <DoctorDashboard /> {/* [cite: 8] */}
-                  </DoctorRoute>
-                }
-              />
-              {/* Add routes for doctor-specific actions if needed */}
-              {/* Example: Route for managing availability */}
-              {/*
+        <Navbar />
+        <div className="container">
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />{" "}
+            {/* === PATIENT Routes === */}
+            <Route
+              path="/appointments" // Patient's appointment list
+              element={
+                <PrivateRoute>
+                  {" "}
+                  {/* We might add a check here or in the component to ensure role is patient */}
+                  <AppointmentList />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/add" // Patient books an appointment
+              element={
+                <PrivateRoute>
+                  {" "}
+                  {/* [cite: 24] */}
+                  {/* AppointmentForm can handle patient context */}
+                  <AppointmentForm /> {/* [cite: 20] */}
+                </PrivateRoute>
+              }
+            />
+            {/* Patient might edit/view their own appointment details */}
+            {/* The GET /:id and PATCH /:id routes handle authorization */}
+            <Route
+              path="/edit/:id"
+              element={
+                <PrivateRoute>
+                  {" "}
+                  {/* [cite: 24] */}
+                  <AppointmentForm /> {/* [cite: 20] */}
+                </PrivateRoute>
+              }
+            />
+            {/* === USER PROFILE Route === */}
+            <Route
+              path="/profile/edit"
+              element={
+                <PrivateRoute>
+                  {" "}
+                  {/* [cite: 24] */}
+                  {/* Ensures logged in */}
+                  <UserProfileEdit /> {/* [cite: 6] */}
+                </PrivateRoute>
+              }
+            />
+            {/* === DOCTOR Routes === */}
+            <Route
+              path="/doctor/dashboard"
+              element={
+                <DoctorRoute>
+                  {" "}
+                  {/* [cite: 23] */}
+                  {/* Ensures logged in AND role is doctor */}
+                  <DoctorDashboard /> {/* [cite: 8] */}
+                </DoctorRoute>
+              }
+            />
+            {/* Add routes for doctor-specific actions if needed */}
+            {/* Example: Route for managing availability */}
+            {/*
               <Route
                 path="/doctor/availability"
                 element={
@@ -132,47 +131,46 @@ function App() {
                 }
               />
               */}
-              {/* === Post-Login Redirect === */}
-              {/* Route to redirect users after login based on their role */}
+            {/* === Post-Login Redirect === */}
+            {/* Route to redirect users after login based on their role */}
+            <Route
+              path="/dashboard"
+              element={
+                <PrivateRoute>
+                  {" "}
+                  {/* [cite: 24] */}
+                  <RoleBasedRedirect />
+                </PrivateRoute>
+              }
+            />
+            {/* *** Admin Specific Routes *** */}
+            <Route element={<AdminRoute />}>
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin/users" element={<UserManagement />} />
+              <Route path="/admin/doctors" element={<DoctorManagement />} />
               <Route
-                path="/dashboard"
-                element={
-                  <PrivateRoute>
-                    {" "}
-                    {/* [cite: 24] */}
-                    <RoleBasedRedirect />
-                  </PrivateRoute>
-                }
+                path="/admin/appointments"
+                element={<AppointmentOversight />}
               />
-              {/* *** Admin Specific Routes *** */}
-              <Route element={<AdminRoute />}>
-                <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                <Route path="/admin/users" element={<UserManagement />} />
-                <Route path="/admin/doctors" element={<DoctorManagement />} />
-                <Route
-                  path="/admin/appointments"
-                  element={<AppointmentOversight />}
-                />
-              </Route>
-              {/* Catch-all Route - Redirects unauthenticated to home, authenticated to their dashboard */}
-              <Route
-                path="*"
-                element={
-                  <AuthContext.Consumer>
-                    {" "}
-                    {/* [cite: 31] */}
-                    {({ isAuthenticated }) =>
-                      isAuthenticated ? (
-                        <Navigate to="/dashboard" replace />
-                      ) : (
-                        <Navigate to="/" replace />
-                      )
-                    }
-                  </AuthContext.Consumer>
-                }
-              />
-            </Routes>
-          </div>
+            </Route>
+            {/* Catch-all Route - Redirects unauthenticated to home, authenticated to their dashboard */}
+            <Route
+              path="*"
+              element={
+                <AuthContext.Consumer>
+                  {" "}
+                  {/* [cite: 31] */}
+                  {({ isAuthenticated }) =>
+                    isAuthenticated ? (
+                      <Navigate to="/dashboard" replace />
+                    ) : (
+                      <Navigate to="/" replace />
+                    )
+                  }
+                </AuthContext.Consumer>
+              }
+            />
+          </Routes>
         </div>
       </Router>
     </AuthProvider> /* [cite: 31] */

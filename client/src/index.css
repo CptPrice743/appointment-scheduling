@@ -18,6 +18,10 @@ body {
   padding: 10px;
 }
 
+.home-container {
+  max-width: 100% !important;
+}
+
 /* --- Message Styles --- */
 .message {
   padding: 10px 15px;

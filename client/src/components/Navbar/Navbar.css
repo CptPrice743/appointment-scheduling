@@ -1,27 +1,38 @@
-/* --- Ensure this rule exists and has position: relative --- */
+/* --- Navbar Base Styles --- */
 .navbar {
-  background-color: #fff;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-  padding: 15px 0;
-  position: relative; /* <<< Ensure this is present */
+  background-color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  padding: 18px 0;
+  position: relative;
+  font-family: "Inter", sans-serif;
 }
 
 .navbar-container {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  max-width: 90%; /* Use container variable? */
+  max-width: 90%;
   margin: 0 auto;
   padding: 0 20px;
 }
 
 .navbar-logo {
-  color: #3b4bb3;
+  color: #2563eb; /* Blue from Home page */
   text-decoration: none;
-  font-size: 1.5rem;
+  font-size: 1.6rem;
   font-weight: 700;
+  background: linear-gradient(to right, #1e40af, #3b82f6);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  transition: transform 0.3s ease;
 }
 
+.navbar-logo:hover {
+  transform: translateY(-1px);
+}
+
+/* --- Navigation Menu --- */
 .nav-menu {
   display: flex;
   list-style: none;
@@ -31,54 +42,128 @@
 }
 
 .nav-item {
-  margin-left: 20px;
+  margin-left: 24px;
 }
 
 .nav-links {
-  color: #2c3e50;
+  color: #334155;
   text-decoration: none;
   font-weight: 500;
-  transition: color 0.3s ease, background-color 0.2s ease;
+  padding: 8px 0;
+  position: relative;
+  transition: color 0.3s ease;
+}
+
+/* Underline effect for nav links (excluding buttons) */
+.nav-links:not(.book-btn):not(.login-btn):not(.register-btn):after {
+  content: "";
+  position: absolute;
+  width: 0;
+  height: 2px;
+  bottom: 0;
+  left: 0;
+  background-color: #3b82f6;
+  transition: width 0.3s ease;
+}
+
+.nav-links:not(.book-btn):not(.login-btn):not(.register-btn):hover:after {
+  width: 100%;
 }
 
 .nav-links:hover {
-  color: #4285f4;
+  color: #2563eb;
 }
 
+/* Active link styling */
+.nav-links.active:not(.book-btn) {
+  color: #2563eb;
+  font-weight: 600;
+  position: relative;
+}
+
+.nav-links.active:not(.book-btn):not(.login-btn):not(.register-btn):after {
+  content: "";
+  position: absolute;
+  width: 100%;
+  height: 2px;
+  bottom: 0;
+  left: 0;
+  background-color: #2563eb;
+}
+
+/* Removed active underline effect */
+/*
+.nav-links.active:not(.book-btn):after {
+  width: 100%;
+}
+*/
+
+/* --- Button Styles --- */
 .nav-links.book-btn {
-  background-color: #3b4bb3;
+  background-color: #2563eb;
   color: white;
-  padding: 8px 20px;
-  border-radius: 30px;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  padding: 10px 22px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px rgba(37, 99, 235, 0.15);
 }
 
 .nav-links.book-btn:hover {
-  background-color: #3367d6;
-  color: white; /* Ensure text remains white on hover */
+  background-color: #1d4ed8;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(37, 99, 235, 0.2);
+  color: white;
 }
 
-/* Add styles for .login-btn, .register-btn, .logout-btn if they are specific */
 .nav-links.login-btn,
-.nav-links.register-btn,
+.nav-links.register-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.nav-links.register-btn {
+  background-color: #2563eb;
+  color: white !important; /* Added !important to ensure text color is always white */
+  box-shadow: 0 4px 6px rgba(37, 99, 235, 0.15);
+}
+
+.nav-links.register-btn:hover {
+  background-color: #1d4ed8;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px rgba(37, 99, 235, 0.2);
+  color: white !important; /* Added !important to ensure text color remains white on hover */
+}
+
+.nav-links.login-btn {
+  border: 1px solid #2563eb;
+  color: #2563eb;
+}
+
+.nav-links.login-btn:hover {
+  background-color: rgba(37, 99, 235, 0.05);
+  transform: translateY(-2px);
+}
+
 .nav-links.logout-btn {
-  /* Example: Add padding or specific styling */
-  padding: 5px 10px;
+  color: #ef4444;
+  transition: all 0.3s ease;
+}
+
+.nav-links.logout-btn:hover {
+  color: #dc2626;
 }
 
 .welcome-text {
   margin-right: 15px;
-  color: #5a6a7a;
-  white-space: nowrap; /* Prevent welcome text itself from wrapping */
+  color: #64748b;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
-/* ========================================= */
-/* Responsive Styles (Add this at the END) */
-/* ========================================= */
-
-/* --- Hamburger Menu Toggle Button --- */
+/* --- Hamburger Menu --- */
 .navbar-toggle {
-  display: none; /* Hide on desktop */
+  display: none;
   background: none;
   border: none;
   cursor: pointer;
@@ -89,12 +174,12 @@
 
 .navbar-toggle .hamburger-icon {
   display: block;
-  width: 28px;
-  height: 3px;
-  background-color: #2c3e50;
+  width: 24px;
+  height: 2px;
+  background-color: #334155;
   position: relative;
   border-radius: 2px;
-  transition: all 0.3s ease; /* Keep transition for icon morph */
+  transition: all 0.3s ease;
 }
 
 .navbar-toggle .hamburger-icon::before,
@@ -103,10 +188,10 @@
   position: absolute;
   left: 0;
   width: 100%;
-  height: 3px;
-  background-color: #2c3e50;
+  height: 2px;
+  background-color: #334155;
   border-radius: 2px;
-  transition: all 0.3s ease; /* Keep transition for icon morph */
+  transition: all 0.3s ease;
 }
 
 .navbar-toggle .hamburger-icon::before {
@@ -116,7 +201,7 @@
   bottom: -8px;
 }
 
-/* --- Animation for Hamburger Icon (when 'open') --- */
+/* Animation for Hamburger Icon when open */
 .navbar-toggle.open .hamburger-icon {
   background-color: transparent;
 }
@@ -128,10 +213,7 @@
 }
 
 /* --- Media Query for Tablet/Mobile --- */
-/* <<< MODIFIED Breakpoint >>> */
 @media (max-width: 1024px) {
-  /* Changed from 992px */
-
   .navbar-container {
     flex-wrap: wrap;
     padding: 0 15px;
@@ -145,53 +227,50 @@
 
   /* Style the menu for mobile view */
   .nav-menu {
-    /* MODIFIED: Changed from display:none to keep it in the DOM but hidden */
     display: flex;
     flex-direction: column;
     width: 100%;
     position: absolute;
     top: 100%;
     left: 0;
-    background-color: #fff;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    padding: 5px 0; /* Add some padding top/bottom */
+    background-color: white;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+    padding: 8px 0;
     margin: 0;
     z-index: 1000;
-    border-top: 1px solid #eee;
+    border-top: 1px solid #e2e8f0;
     order: 4;
-    max-height: calc(100vh - 70px); /* Limit height */
-    overflow-y: auto; /* Allow scroll */
+    max-height: calc(100vh - 70px);
+    overflow-y: auto;
 
-    /* ADDED: Animation Properties */
+    /* Animation Properties */
     visibility: hidden;
     opacity: 0;
-    transform: translateY(-20px);
+    transform: translateY(-10px);
     transition: opacity 0.3s ease, transform 0.3s ease, visibility 0.3s ease;
-    pointer-events: none; /* Prevent interaction when hidden */
+    pointer-events: none;
   }
 
   /* Show the menu when the 'open' class is added */
   .nav-menu.open {
-    /* MODIFIED: Keep display: flex but make visible with animation */
     visibility: visible;
     opacity: 1;
     transform: translateY(0);
-    pointer-events: auto; /* Re-enable interaction */
+    pointer-events: auto;
   }
 
   /* Adjust menu items for vertical layout */
   .nav-item {
     margin: 0;
     width: 100%;
-    border-bottom: 1px solid #f0f0f0;
-    /* ADDED: Individual item animation */
+    border-bottom: 1px solid #f1f5f9;
     opacity: 0;
     transform: translateX(-10px);
-    transition: opacity 0.2s ease, transform 0.2s ease;
+    transition: opacity 0.25s ease, transform 0.25s ease;
     transition-delay: calc(0.05s * var(--item-index, 0));
   }
 
-  /* ADDED: Animation for individual items when menu is open */
+  /* Animation for individual items when menu is open */
   .nav-menu.open .nav-item {
     opacity: 1;
     transform: translateX(0);
@@ -206,68 +285,87 @@
   .nav-menu .welcome-text,
   .nav-menu .nav-links.logout-btn {
     display: block;
-    padding: 12px 20px;
+    padding: 14px 20px;
     width: 100%;
     text-align: left;
-    color: #2c3e50;
+    color: #334155;
     font-weight: 500;
     border-radius: 0;
     background-color: transparent;
     margin: 0;
     border: none;
-    transition: background-color 0.2s ease, color 0.2s ease; /* Keep hover transition */
+    box-shadow: none;
+    transition: background-color 0.2s ease;
+  }
+
+  /* Remove underline effect in mobile view */
+  .nav-links:not(.book-btn):after {
+    display: none;
   }
 
   /* Specific overrides for button-styled links inside mobile menu */
   .nav-menu .nav-links.book-btn,
   .nav-menu .nav-links.login-btn,
   .nav-menu .nav-links.register-btn {
-    background-color: transparent !important;
-    color: #2c3e50 !important;
-    padding: 12px 20px;
+    background-color: transparent;
+    color: #334155;
+    padding: 14px 20px;
     border-radius: 0;
     text-align: left;
+    box-shadow: none;
+    transform: none;
+  }
+
+  /* Keep the register button text visible in mobile menu */
+  .nav-menu .nav-links.register-btn {
+    color: #334155 !important;
   }
 
   /* Hover state for links inside mobile menu */
   .nav-menu .nav-links:hover,
   .nav-menu .nav-links.logout-btn:hover {
-    background-color: #f4f6f8;
-    color: #3b4bb3;
+    background-color: #f8fafc;
+    color: #2563eb;
+    transform: none;
   }
 
-  /* Ensure welcome text is styled appropriately */
-  .nav-menu .welcome-text {
-    color: #5a6a7a;
-    font-weight: normal;
-    cursor: default;
-    background-color: transparent !important;
-  }
-  .nav-menu .welcome-text:hover {
-    background-color: transparent;
-    color: #5a6a7a;
+  /* Special mobile hover for logout */
+  .nav-menu .nav-links.logout-btn:hover {
+    color: #ef4444;
   }
 
   /* Active link styling for mobile */
   .nav-menu .nav-links.active {
-    background-color: #eef2ff;
-    color: #3b4bb3;
+    background-color: #f0f7ff;
+    color: #2563eb;
     font-weight: 600;
+    border-left: 3px solid #2563eb;
+  }
+
+  /* Ensure welcome text is styled appropriately */
+  .nav-menu .welcome-text {
+    color: #64748b;
+    font-weight: 500;
+    cursor: default;
+    background-color: #f8fafc;
+    border-left: 3px solid transparent;
   }
 }
 
-/* Optional: Further adjustments for very small screens if needed */
+/* Optional: Further adjustments for very small screens */
 @media (max-width: 480px) {
   .navbar-logo {
-    font-size: 1.3rem;
+    font-size: 1.4rem;
   }
+
   .navbar-container {
     padding: 0 10px;
   }
+
   .nav-menu .nav-links,
   .nav-menu .welcome-text,
   .nav-menu .nav-links.logout-btn {
-    padding: 10px 15px;
+    padding: 12px 15px;
     font-size: 0.95rem;
   }
 }

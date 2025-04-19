@@ -44,22 +44,6 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Highlight Stats */}
-      <div className="stats-section">
-        <div className="stat-item">
-          <span className="stat-number">98%</span>
-          <span className="stat-label">Customer Satisfaction</span>
-        </div>
-        <div className="stat-item">
-          <span className="stat-number">50k+</span>
-          <span className="stat-label">Appointments Booked</span>
-        </div>
-        <div className="stat-item">
-          <span className="stat-number">5k+</span>
-          <span className="stat-label">Healthcare Providers</span>
-        </div>
-      </div>
-
       {/* Features Section */}
       <section className="section-heading">
         <h2>Everything you need to manage your healthcare</h2>
