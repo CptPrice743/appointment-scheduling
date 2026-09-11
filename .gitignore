@@ -128,3 +128,22 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# Environment files
+.env
+*.env
+client/.env
+server/.env
+
+# Local development and Playwright CLI artifacts
+.playwright-cli/
+
+# Project documentation and handover files
+ARCHITECTURE.md
+ARCHIECTURE.md
+DECISIONS.md
+DESIGN.md
+CONTEXT-HANDOFF.md
+AGENTS.md
+docs/
+

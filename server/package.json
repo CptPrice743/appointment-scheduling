@@ -22,5 +22,8 @@
   "devDependencies": {
     "jest": "^29.7.0",
     "supertest": "^7.1.0"
+  },
+  "allowScripts": {
+    "fsevents@2.3.3": true
   }
 }
