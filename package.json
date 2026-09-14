@@ -4,21 +4,35 @@
   "description": "MERN stack appointment scheduling app",
   "main": "index.js",
   "scripts": {
+    "dev": "wrangler dev --port 8787",
+    "dev:full": "concurrently \"wrangler dev --port 8787\" \"cd client && npm run dev\"",
+    "build:client": "cd client && npm run build",
+    "build": "cd client && npm run build",
+    "db:migrate": "wrangler d1 migrations apply appointment_scheduling_db --local",
+    "db:migrate:remote": "wrangler d1 migrations apply appointment_scheduling_db --remote",
+    "db:generate": "drizzle-kit generate",
+    "deploy": "npm run build:client && wrangler deploy",
     "start": "node server/server.js",
     "server": "nodemon server/server.js",
     "client": "cd client && npm run dev",
-    "dev": "concurrently \"npm run server\" \"npm run client\"",
     "seed": "node server/seed.js"
   },
   "dependencies": {
+    "bcrypt-ts": "^9.0.2",
     "cors": "^2.8.5",
+    "drizzle-orm": "^0.45.2",
     "express": "^4.18.2",
+    "hono": "^4.13.7",
     "mongoose": "^7.5.0"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260914.1",
     "concurrently": "^8.2.1",
     "dotenv": "^16.3.1",
-    "nodemon": "^3.0.1"
+    "drizzle-kit": "^0.31.10",
+    "nodemon": "^3.0.1",
+    "typescript": "^7.0.2",
+    "wrangler": "^4.131.2"
   },
   "allowScripts": {
     "fsevents@2.3.3": true

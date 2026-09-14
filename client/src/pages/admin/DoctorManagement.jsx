@@ -31,7 +31,7 @@ const DoctorManagement = () => {
   });
 
   const { token } = useContext(AuthContext);
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+  const API_URL = import.meta.env.VITE_API_URL || "/api";
 
   // Fetch doctors and potential users to link
   const fetchData = async () => {

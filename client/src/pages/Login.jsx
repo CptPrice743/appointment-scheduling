@@ -1,7 +1,7 @@
 import React, { useState, useContext, useEffect } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import AuthContext from "../context/AuthContext.jsx";
-import { LockKey, EnvelopeSimple, ArrowUpRight, SpinnerGap } from "@phosphor-icons/react";
+import { LockKey, EnvelopeSimple, ArrowUpRight, SpinnerGap, Sparkle, User, Stethoscope, ShieldCheck } from "@phosphor-icons/react";
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -33,6 +33,12 @@ const Login = () => {
     await login(email, password);
   };
 
+  const handleDemoLogin = async (demoEmail, demoPassword) => {
+    setFormData({ email: demoEmail, password: demoPassword });
+    clearError();
+    await login(demoEmail, demoPassword);
+  };
+
   return (
     <div className="min-h-[calc(100dvh-7rem)] flex items-center justify-center px-4 py-12 relative">
       {/* Ambient Glow */}
@@ -43,7 +49,7 @@ const Login = () => {
           <div className="specular-hairline" />
 
           {/* Brand & Clinic Title */}
-          <div className="text-center mb-8">
+          <div className="text-center mb-6">
             <div className="inline-flex w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-500 to-sky-700 items-center justify-center text-white mb-4 shadow-sm shadow-sky-500/20">
               <svg
                 width="22"
@@ -66,6 +72,49 @@ const Login = () => {
             <p className="font-body text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1">
               Access your clinical scheduling and consultation records
             </p>
+          </div>
+
+          {/* 1-Click Demo Evaluation Buttons */}
+          <div className="mb-6 p-3.5 rounded-2xl bg-sky-500/[0.05] dark:bg-sky-500/[0.04] border border-sky-500/20">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-sky-600 dark:text-sky-400 font-mono flex items-center gap-1.5">
+                <Sparkle size={13} weight="fill" />
+                1-Click Quick Demo
+              </span>
+              <span className="text-[10px] text-zinc-400">Instant Access</span>
+            </div>
+            <div className="grid grid-cols-3 gap-1.5">
+              <button
+                type="button"
+                id="demo-patient-btn"
+                onClick={() => handleDemoLogin("patient.john@example.com", "patientpassword123")}
+                disabled={isLoading}
+                className="flex items-center justify-center gap-1 py-2 px-2 rounded-xl bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-white/10 text-xs font-medium transition-all shadow-xs hover:border-sky-500/40 cursor-pointer disabled:opacity-50"
+              >
+                <User size={13} className="text-sky-500" />
+                <span>Patient</span>
+              </button>
+              <button
+                type="button"
+                id="demo-doctor-btn"
+                onClick={() => handleDemoLogin("doctor.sarah@example.com", "doctorpassword123")}
+                disabled={isLoading}
+                className="flex items-center justify-center gap-1 py-2 px-2 rounded-xl bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-white/10 text-xs font-medium transition-all shadow-xs hover:border-sky-500/40 cursor-pointer disabled:opacity-50"
+              >
+                <Stethoscope size={13} className="text-emerald-500" />
+                <span>Doctor</span>
+              </button>
+              <button
+                type="button"
+                id="demo-admin-btn"
+                onClick={() => handleDemoLogin("admin@example.com", "adminpassword123")}
+                disabled={isLoading}
+                className="flex items-center justify-center gap-1 py-2 px-2 rounded-xl bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-white/10 text-xs font-medium transition-all shadow-xs hover:border-sky-500/40 cursor-pointer disabled:opacity-50"
+              >
+                <ShieldCheck size={13} className="text-amber-500" />
+                <span>Admin</span>
+              </button>
+            </div>
           </div>
 
           {/* Error Notice */}

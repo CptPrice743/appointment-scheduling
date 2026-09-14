@@ -22,7 +22,7 @@ const UserManagement = () => {
 
   const { token } = useContext(AuthContext); // Get token for API requests
 
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api"; // Use environment variable
+  const API_URL = import.meta.env.VITE_API_URL || "/api"; // Use environment variable
 
   // --- Fetch users ---
   const fetchUsers = async () => {

@@ -8,6 +8,7 @@ import {
 
 // Core Components & Context
 import Navbar from "./components/Navbar/Navbar.jsx";
+import DemoBanner from "./components/DemoBanner.jsx";
 import { AuthProvider, AuthContext } from "./context/AuthContext.jsx";
 import { ThemeProvider } from "./context/ThemeContext.jsx";
 import PrivateRoute from "./components/Auth/PrivateRoute.jsx";
@@ -67,6 +68,7 @@ function App() {
       <AuthProvider>
         <Router>
           <div className="min-h-[100dvh] flex flex-col bg-[#F8F9FA] text-[#090A0C] dark:bg-[#07080A] dark:text-[#F4F5F7] transition-colors duration-300 antialiased selection:bg-sky-500/20 selection:text-sky-600 dark:selection:text-sky-300">
+            <DemoBanner />
             <Navbar />
             <main className="flex-1 w-full relative">
           <Routes>

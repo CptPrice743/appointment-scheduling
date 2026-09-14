@@ -1,0 +1,23 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "doctor-appointment-scheduler",
+  "main": "server/src/index.ts",
+  "compatibility_date": "2024-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./client/dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "appointment_scheduling_db",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "server/d1/migrations"
+    }
+  ],
+  "vars": {
+    "JWT_SECRET": "appointment_secret_key_1234567890_edge_secure"
+  }
+}

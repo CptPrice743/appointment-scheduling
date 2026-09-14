@@ -85,7 +85,7 @@ const AdminDashboard = () => {
   const [error, setError] = useState("");
   const [currentTime, setCurrentTime] = useState(new Date());
   const { axiosInstance } = useContext(AuthContext);
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+  const API_URL = import.meta.env.VITE_API_URL || "/api";
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -93,7 +93,7 @@ const AdminDashboard = () => {
       setError("");
       try {
         const response = await axiosInstance.get(
-          `${API_URL}/admin/stats/dashboard`
+          "/admin/stats/dashboard"
         );
         setStats({
           totalAppointments: response.data.totalAppointments || 0,

@@ -137,6 +137,7 @@ server/.env
 
 # Local development and Playwright CLI artifacts
 .playwright-cli/
+.wrangler/
 
 # Project documentation and handover files
 ARCHITECTURE.md

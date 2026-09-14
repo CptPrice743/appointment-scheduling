@@ -1,163 +1,140 @@
-# Appointment Scheduling App
+# Doctor Appointment Scheduling Application ("DeadLines")
 
-A full-stack web application built with the MERN stack (MongoDB, Express.js, React, Node.js) that allows users to register, log in, and schedule appointments.
+A high-performance, serverless edge web application designed for healthcare appointment scheduling. Built on the **Cloudflare Edge Stack** (Cloudflare Workers + Hono + Cloudflare D1 + Drizzle ORM + React 18 SPA) with **100% free hosting, zero cold boot delays, and zero server spin-down**.
 
-## ✨ Features
+---
 
-* **User Authentication:**
-    * Secure user registration and login system.
-    * Password hashing using `bcryptjs`.
-    * JWT (JSON Web Tokens) for session management and protected routes.
-* **Appointment Management:**
-    * Authenticated users can book new appointments with details like date, time, and description.
-    * Users can view a list of their scheduled appointments.
-* **Frontend:**
-    * Built with React and Vite for a fast development experience.
-    * Client-side routing using `react-router-dom`.
-    * Global state management for authentication using React Context API.
-    * Component-based architecture.
-    * Styled using CSS (potentially Tailwind CSS, based on standard practices).
-* **Backend:**
-    * RESTful API built with Node.js and Express.js.
-    * MongoDB database integration using Mongoose ODM.
-    * Middleware for request processing and authentication checks.
-* **Protected Routes:** Ensures only authenticated users can access appointment booking and listing features.
+## ✨ Key Features
 
-## 🛠️ Tech Stack
+- **⚡ Cloudflare Edge Architecture**: Runs globally on Cloudflare Workers V8 isolates with instant responses (<50ms) and zero sleep timeouts.
+- **🚀 1-Click Demo Logins**: Test any persona instantly without typing credentials or filling registration forms.
+- **🔄 In-App Role Switcher & Live Reset**: Sticky top demo bar allows switching between Patient, Doctor, and Admin with a single click, as well as an instant **"Reset Demo Data"** action.
+- **🗓️ Intelligent Clash & Conflict Detection**: Strict validation preventing overlapping appointments (`slotStart < existEnd && slotEnd > existStart`), taking into account doctor duration, recurring weekday hours, and date overrides.
+- **🛡️ Role-Based Access Control (RBAC)**: Distinct permissions and views for **Patients**, **Doctors**, and **Administrators**.
+- **📊 Master Admin Oversight**: System-wide analytics, doctor workload charts, user moderation, and master appointment control.
 
-* **Frontend:**
-    * React
-    * Vite
-    * React Router DOM
-    * Axios (for API requests)
-    * CSS / Tailwind CSS (likely)
-* **Backend:**
-    * Node.js
-    * Express.js
-    * MongoDB (Database)
-    * Mongoose (ODM)
-    * JSON Web Token (JWT)
-    * bcryptjs (Password Hashing)
-    * CORS
-* **Development:**
-    * Nodemon (for server auto-reload)
-    * ESLint (for code linting)
+---
+
+## 🛠️ Modern Edge Tech Stack
+
+| Layer | Technology | Description |
+| :--- | :--- | :--- |
+| **Frontend** | React 18, Vite 6, React Router v6 | Fast, modern client SPA with Chart.js, Lucide icons, and React Calendar |
+| **Edge Compute** | Cloudflare Workers & Static Assets | Single-domain execution serving both the static SPA and `/api/*` endpoints |
+| **API Framework** | Hono 4 | Ultra-fast, lightweight web standard API framework built for edge runtimes |
+| **Edge Database** | Cloudflare D1 (Serverless SQLite) | Relational database at the edge with zero maintenance and zero sleep |
+| **ORM & Migrations**| Drizzle ORM & `drizzle-kit` | Type-safe SQL schema definition and local/remote database migrations |
+| **Security & Auth** | Web Crypto API (`hono/jwt`), `bcrypt-ts` | Edge-compliant JWT issuance and bcrypt hashing without native Node binary locks |
+
+---
+
+## 👥 Demo Personas & Credentials
+
+You can log in directly using the **1-Click Demo Buttons** on `/login` or the `/` landing page, or enter credentials manually:
+
+| Persona | Email | Password | Responsibilities |
+| :--- | :--- | :--- | :--- |
+| **Patient** | `patient.john@example.com` | `patientpassword123` | Browse doctors, book slots, view/cancel appointments |
+| **Doctor** | `doctor.sarah@example.com` | `doctorpassword123` | View appointment calendar, manage weekly hours and date overrides |
+| **Admin** | `admin@example.com` | `adminpassword123` | View platform KPIs, analytics, user roster, doctor catalog, all bookings |
+
+---
+
+## 🚀 Quickstart (Local Development)
+
+### 1. Prerequisites
+- **Node.js**: v18 or later
+- **npm**: v9 or later
+
+### 2. Installation
+Clone the repository and install all root and client dependencies:
+```bash
+git clone https://github.com/CptPrice743/appointment-scheduling.git
+cd appointment-scheduling
+npm install
+cd client && npm install && cd ..
+```
+
+### 3. Database Migration & Local Seed
+Run the local D1 migration to create the relational SQLite tables:
+```bash
+# Apply migrations to local Cloudflare D1
+npm run db:migrate
+```
+
+To initialize or reset the seed database, start the local worker (Step 4) and click **[Reset Demo Data]** in the app banner, or run:
+```bash
+curl -X POST http://localhost:8787/api/demo/reset
+```
+
+### 4. Build Static Assets & Start Worker
+Build the React SPA bundle:
+```bash
+npm run build:client
+```
+
+Start the local Cloudflare Worker (running API and serving client assets):
+```bash
+npm run dev
+# Or: npx wrangler dev --port 8787
+```
+
+Open your browser at **`http://localhost:8787`** to interact with the application!
+
+*(Optional) If you want live Vite Hot Module Reloading (HMR) during frontend UI editing, run in a separate terminal:*
+```bash
+npm run client
+# Starts Vite on http://localhost:3000 (proxies /api requests to port 8787)
+```
+
+---
 
 ## 📂 Project Structure
-``` pgsql
-📁 client
-├── components
-│   ├── Navbar.jsx
-│   ├── Home.jsx
-│   ├── Login.jsx
-│   ├── Register.jsx
-│   ├── AppointmentForm.jsx
-│   ├── AppointmentList.jsx
-│   └── PrivateRoute.jsx
-├── context
-│   └── AuthContext.jsx
-├── App.jsx
-├── main.jsx
-└── index.css
 
-📁 server
-├── models
-│   ├── User.js
-│   └── Appointment.js
-├── routes
-│   ├── authRoutes.js
-│   └── appointmentRoutes.js
-├── middleware
-│   └── authMiddleware.js
-└── server.js
 ```
-## 📋 Prerequisites
+appointment-scheduling/
+├── client/                     # Frontend React SPA
+│   ├── src/
+│   │   ├── components/         # Reusable UI (Navbar, DemoBanner, etc.)
+│   │   ├── context/            # AuthContext & global state
+│   │   ├── pages/              # Patient, Doctor, Admin pages
+│   │   ├── App.jsx             # Root router & route guards
+│   │   └── main.jsx
+│   ├── dist/                   # Built production bundle
+│   └── vite.config.js          # Vite config (proxied to port 8787)
+├── server/
+│   ├── d1/
+│   │   └── migrations/         # D1 SQL migration scripts
+│   └── src/
+│       ├── db/
+│       │   ├── schema.ts       # Drizzle relational schema (users, doctors, appointments)
+│       │   └── seed.ts         # Edge-compatible database seeder
+│       ├── middleware/
+│       │   └── auth.ts         # Web Crypto JWT authentication & RBAC guards
+│       ├── routes/
+│       │   ├── auth.ts         # /api/auth
+│       │   ├── appointments.ts # /api/appointments (with clash detection)
+│       │   ├── doctors.ts      # /api/doctors (availability & slots)
+│       │   ├── users.ts        # /api/users
+│       │   ├── admin.ts        # /api/admin
+│       │   └── demo.ts         # /api/demo/reset
+│       ├── utils/
+│       │   ├── serializers.ts  # Mongoose-compatible _id serializer
+│       │   └── timeUtils.ts    # Slot generation & clash helper functions
+│       └── index.ts            # Hono application entrypoint
+├── drizzle.config.ts           # Drizzle Kit configuration
+├── wrangler.jsonc              # Cloudflare Worker & D1 binding configuration
+├── ARCHITECTURE.md             # Detailed system architecture
+├── DECISIONS.md                # Architecture Decision Records (ADRs)
+└── AGENTS.md                   # Conventions & operating guidelines for AI agents
+```
 
-* Node.js (v14 or later recommended)
-* npm (usually comes with Node.js)
-* MongoDB (running instance, either local or cloud-based like MongoDB Atlas)
+---
 
-## 🚀 Getting Started
+## 🧪 Testing & Verification
 
-Follow these steps to get the application running locally:
-
-1.  **Clone the Repository:**
-    ```bash
-    git clone https://github.com/CptPrice743/appointment-scheduling.git
-    cd appointment-scheduling-main
-    ```
-
-2.  **Setup Backend:**
-    * Navigate to the server directory:
-        ```bash
-        cd server
-        ```
-    * Install dependencies:
-        ```bash
-        npm install
-        ```
-    * Create a `.env` file in the `server` directory and add the following environment variables:
-        ```env
-        PORT=5000 # Or any port you prefer for the server
-        MONGO_URI=<your_mongodb_connection_string>
-        JWT_SECRET=<your_strong_jwt_secret_key>
-        ```
-        *Replace `<your_mongodb_connection_string>` with your actual MongoDB connection string.*
-        *Replace `<your_strong_jwt_secret_key>` with a strong, random secret key.*
-    * Start the server:
-        ```bash
-        npm run dev # If you have a dev script using nodemon
-        # OR
-        node server.js
-        ```
-        The backend server should now be running (usually on `http://localhost:5000`).
-
-3.  **Setup Frontend:**
-    * Open a *new* terminal window/tab.
-    * Navigate to the client directory from the root project folder:
-        ```bash
-        cd ../client # Or cd client if you are in the root directory
-        ```
-    * Install dependencies:
-        ```bash
-        npm install
-        ```
-    * Start the client development server:
-        ```bash
-        npm run dev
-        ```
-        The React application should now be running (usually on `http://localhost:5173` or another port specified by Vite).
-
-4.  **Access the Application:**
-    Open your web browser and navigate to the URL provided by the Vite development server (e.g., `http://localhost:5173`).
-
-## 🔑 Environment Variables
-
-The following environment variables are required for the backend server (`server/.env`):
-
-* `PORT`: The port on which the Express server will run.
-* `MONGO_URI`: Your MongoDB connection string.
-* `JWT_SECRET`: A secret key used for signing JSON Web Tokens. Make this long, random, and keep it secret.
-
-## 📄 API Endpoints (Example)
-
-The backend exposes the following main API routes:
-
-* **Authentication:**
-    * `POST /api/auth/register`: Register a new user.
-    * `POST /api/auth/login`: Log in an existing user.
-* **Appointments:**
-    * `POST /api/appointments`: Create a new appointment (protected).
-    * `GET /api/appointments`: Get all appointments for the logged-in user (protected).
-
-*(Note: These routes are based on typical naming conventions found in `authRoutes.js` and `appointmentRoutes.js`. Verify the exact paths in the code if needed.)*
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1.  Fork the Project
-2.  Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3.  Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4.  Push to the Branch (`git push origin feature/AmazingFeature`)
-5.  Open a Pull Request
+Automated end-to-end tests are performed with Playwright:
+- Persona authentication verification for Patient, Doctor, and Admin.
+- Dynamic slot clash conflict exclusion testing.
+- Cross-persona scheduling synchronization.
+- Console error validation (0 errors).

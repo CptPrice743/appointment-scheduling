@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import AuthContext from "../context/AuthContext";
 import {
   CalendarCheck,
@@ -112,6 +112,18 @@ const Home = () => {
   const heroSimulatorRef = useRef(null);
 
   // Specialist & Slot Selection States
+  const { login } = useContext(AuthContext);
+  const navigate = useNavigate();
+
+  const handleQuickDemo = async (email, password, route) => {
+    try {
+      await login(email, password);
+      navigate(route);
+    } catch (err) {
+      console.error("Demo login failed:", err);
+    }
+  };
+
   const [selectedSpecialty, setSelectedSpecialty] = useState("All");
   const [selectedDoctorId, setSelectedDoctorId] = useState("sarah");
   const [selectedDateObj, setSelectedDateObj] = useState(DATES[0]);
@@ -248,6 +260,43 @@ const Home = () => {
                 >
                   Provider Sign In
                 </Link>
+              </div>
+
+              {/* 1-Click Quick Demo Evaluation Strip */}
+              <div className="w-full p-3 sm:p-3.5 rounded-2xl bg-sky-500/[0.05] dark:bg-sky-500/[0.04] border border-sky-500/20">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-sky-600 dark:text-sky-400 font-mono-code flex items-center gap-1.5">
+                    <Sparkle size={13} weight="fill" />
+                    Instant Recruiter & Reviewer Demo
+                  </span>
+                  <span className="text-[10px] text-zinc-500 font-mono-code">1-Click Auto Login</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleQuickDemo("patient.john@example.com", "patientpassword123", "/appointments")}
+                    className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-white/10 text-xs font-semibold transition-all shadow-xs hover:border-sky-500/40 cursor-pointer"
+                  >
+                    <User size={13} className="text-sky-500" />
+                    <span>Patient</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickDemo("doctor.sarah@example.com", "doctorpassword123", "/doctor/dashboard")}
+                    className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-white/10 text-xs font-semibold transition-all shadow-xs hover:border-sky-500/40 cursor-pointer"
+                  >
+                    <Stethoscope size={13} className="text-emerald-500" />
+                    <span>Doctor</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleQuickDemo("admin@example.com", "adminpassword123", "/admin/dashboard")}
+                    className="flex items-center justify-center gap-1.5 py-1.5 px-2 rounded-xl bg-white dark:bg-zinc-800 hover:bg-zinc-100 dark:hover:bg-zinc-700 text-zinc-900 dark:text-zinc-100 border border-zinc-200 dark:border-white/10 text-xs font-semibold transition-all shadow-xs hover:border-sky-500/40 cursor-pointer"
+                  >
+                    <ShieldCheck size={13} className="text-amber-500" />
+                    <span>Admin</span>
+                  </button>
+                </div>
               </div>
 
               {/* Micro Metrics Triple-Strip */}

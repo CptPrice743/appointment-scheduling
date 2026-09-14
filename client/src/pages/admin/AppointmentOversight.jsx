@@ -50,7 +50,7 @@ const AppointmentOversight = () => {
 
   const { token } = useContext(AuthContext); // Get auth token
   // Define the base API URL, using environment variable or fallback
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+  const API_URL = import.meta.env.VITE_API_URL || "/api";
 
   // Fetch data based on current filters
   const fetchData = useCallback(async () => {
