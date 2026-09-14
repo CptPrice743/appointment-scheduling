@@ -1,49 +1,55 @@
-import React, { useState, useContext, useEffect } from "react"; // Added useEffect
+import React, { useState, useContext, useEffect } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import AuthContext from "../../context/AuthContext.jsx";
-import "./Navbar.css";
+import { useTheme } from "../../context/ThemeContext.jsx";
+import {
+  Sun,
+  Moon,
+  SignOut,
+  User,
+  CalendarPlus,
+  CalendarCheck,
+  House,
+  UsersThree,
+  FirstAid,
+  ChartBar,
+  ArrowUpRight,
+  List,
+  X,
+} from "@phosphor-icons/react";
 
 const Navbar = () => {
   const { isAuthenticated, user, logout } = useContext(AuthContext);
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
-
-  // State to manage mobile menu visibility
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Function to toggle the mobile menu
   const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
+    setIsMobileMenuOpen((prev) => !prev);
   };
 
-  // Function to close the mobile menu (when a link is clicked)
   const handleLinkClick = () => {
     setIsMobileMenuOpen(false);
   };
 
-  // Updated logout handler to also close the menu and navigate
   const handleLogout = (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     logout();
-    handleLinkClick(); // Close menu
-    navigate("/login"); // Navigate to login after logout
+    handleLinkClick();
+    navigate("/login");
   };
 
-  // Add effect to manage body scroll when menu is open
   useEffect(() => {
-    // Prevent background scrolling when mobile menu is open
     if (isMobileMenuOpen) {
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
     }
-
-    // Cleanup function to ensure body scroll is restored
     return () => {
       document.body.style.overflow = "";
     };
   }, [isMobileMenuOpen]);
 
-  // Determine the home/dashboard link based on authentication
   const homeLink = isAuthenticated
     ? user?.role === "admin"
       ? "/admin/dashboard"
@@ -52,208 +58,362 @@ const Navbar = () => {
       : "/appointments"
     : "/";
 
-  // Helper function to add style prop with item index for animation
-  const getItemProps = (index) => {
-    return {
-      style: { "--item-index": index },
-    };
+  const getRoleBadgeStyle = (role) => {
+    switch (role) {
+      case "admin":
+        return "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/25";
+      case "doctor":
+        return "bg-sky-500/10 text-sky-600 dark:text-sky-400 border-sky-500/25";
+      case "patient":
+      default:
+        return "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/25";
+    }
   };
 
+  const navLinkClass = ({ isActive }) =>
+    `h-9 px-3.5 inline-flex items-center justify-center gap-1.5 rounded-lg text-xs font-semibold tracking-tight transition-all duration-200 active:scale-[0.97] ${
+      isActive
+        ? "text-sky-600 dark:text-sky-400 bg-white dark:bg-[#131720] shadow-xs border border-zinc-200/80 dark:border-white/[0.08]"
+        : "text-zinc-600 hover:text-zinc-950 dark:text-zinc-400 dark:hover:text-white hover:bg-zinc-200/50 dark:hover:bg-white/[0.04]"
+    }`;
+
   return (
-    <nav className="navbar">
-      <div className="navbar-container">
-        {/* Logo links to appropriate dashboard or home */}
-        <Link to={homeLink} className="navbar-logo" onClick={handleLinkClick}>
-          DeadLines {/* Or your app name */}
-        </Link>
+    <header className="sticky top-0 z-50 w-full backdrop-blur-2xl bg-white/85 dark:bg-[#080A0F]/85 border-b border-zinc-200/80 dark:border-white/[0.07] transition-colors duration-300">
+      <div className="relative w-full max-w-[1700px] mx-auto px-4 sm:px-8 lg:px-12 h-16 sm:h-[70px] flex items-center justify-between gap-4">
+        
+        {/* Left: Brand Mark & Telemetry */}
+        <div className="flex items-center gap-4 z-10">
+          <Link
+            to={homeLink}
+            className="flex items-center gap-2.5 group active:scale-[0.98] transition-transform"
+            onClick={handleLinkClick}
+          >
+            <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-sky-500 to-sky-600 flex items-center justify-center text-white shadow-sm shadow-sky-500/25 transition-transform duration-200 group-hover:scale-105">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 32 32"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M16 6V26M6 16H26"
+                  stroke="#FFFFFF"
+                  strokeWidth="3.2"
+                  strokeLinecap="round"
+                />
+              </svg>
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-white dark:ring-[#080A0F]" />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-display font-bold text-lg tracking-tight text-zinc-950 dark:text-white leading-none">
+                Dead<span className="text-sky-600 dark:text-sky-400">Lines</span>
+              </span>
+              <span className="font-mono-code text-[9px] uppercase tracking-widest text-zinc-400 dark:text-zinc-500 font-semibold mt-0.5">
+                Clinical Precision
+              </span>
+            </div>
+          </Link>
 
-        {/* Hamburger Toggle Button */}
-        <button
-          className={`navbar-toggle ${isMobileMenuOpen ? "open" : ""}`}
-          onClick={toggleMobileMenu}
-          aria-label="Toggle navigation"
-          aria-expanded={isMobileMenuOpen}
-        >
-          <span className="hamburger-icon"></span>
-        </button>
+          {/* Real-time System Status Beacon */}
+          <div className="hidden lg:inline-flex items-center gap-1.5 h-6 px-2.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-mono-code text-[10px] font-semibold tracking-wider select-none">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span>SYSTEM ONLINE</span>
+          </div>
+        </div>
 
-        {/* Navigation Menu */}
-        {/* Add 'open' class conditionally */}
-        <ul className={`nav-menu ${isMobileMenuOpen ? "open" : ""}`}>
+        {/* Center: Segmented Route Switcher (Dead-Center Aligned) */}
+        <nav className="hidden md:flex absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 items-center gap-1 p-1 rounded-xl bg-zinc-100/80 dark:bg-white/[0.03] border border-zinc-200/60 dark:border-white/[0.05] z-10">
           {!isAuthenticated ? (
             <>
-              {/* Public Links */}
-              <li className="nav-item" {...getItemProps(0)}>
-                <NavLink
-                  to="/login"
-                  className={({ isActive }) =>
-                    isActive
-                      ? "nav-links login-btn active"
-                      : "nav-links login-btn"
-                  }
-                  onClick={handleLinkClick} // Close menu on click
-                >
-                  Login
-                </NavLink>
-              </li>
-              <li className="nav-item" {...getItemProps(1)}>
-                <NavLink
-                  to="/register"
-                  className={({ isActive }) =>
-                    isActive
-                      ? "nav-links register-btn active"
-                      : "nav-links register-btn"
-                  }
-                  onClick={handleLinkClick} // Close menu on click
-                >
-                  Register
-                </NavLink>
-              </li>
+              <NavLink to="/login" className={navLinkClass}>
+                Sign In
+              </NavLink>
+              <NavLink to="/register" className={navLinkClass}>
+                Create Account
+              </NavLink>
             </>
           ) : (
             <>
-              {/* Authenticated Links */}
-              {/* Display Welcome Message (as a non-clickable item) */}
-              <li className="nav-item" {...getItemProps(0)}>
-                <span className="nav-links welcome-text">
-                  Welcome, {user?.name}!
-                </span>
-              </li>
-
-              {/* Links based on Role */}
               {user?.role === "patient" && (
                 <>
-                  <li className="nav-item" {...getItemProps(1)}>
-                    <NavLink
-                      to="/appointments"
-                      className={({ isActive }) =>
-                        isActive ? "nav-links active" : "nav-links"
-                      }
-                      onClick={handleLinkClick} // Close menu on click
-                    >
-                      My Appointments
-                    </NavLink>
-                  </li>
-                  <li className="nav-item" {...getItemProps(2)}>
-                    <NavLink
-                      to="/add" // Assuming '/add' is the book appointment route
-                      className={({ isActive }) =>
-                        isActive
-                          ? "nav-links book-btn active"
-                          : "nav-links book-btn"
-                      }
-                      onClick={handleLinkClick} // Close menu on click
-                    >
-                      Book Appointment
-                    </NavLink>
-                  </li>
+                  <NavLink to="/appointments" className={navLinkClass}>
+                    <CalendarCheck size={15} weight="regular" />
+                    <span>Consultations</span>
+                  </NavLink>
+                  <NavLink to="/add" className={navLinkClass}>
+                    <CalendarPlus size={15} weight="regular" />
+                    <span>Book Visit</span>
+                  </NavLink>
                 </>
               )}
 
               {user?.role === "doctor" && (
-                <>
-                  <li className="nav-item" {...getItemProps(1)}>
-                    <NavLink
-                      to="/doctor/dashboard"
-                      className={({ isActive }) =>
-                        isActive ? "nav-links active" : "nav-links"
-                      }
-                      onClick={handleLinkClick} // Close menu on click
-                    >
-                      Dashboard
-                    </NavLink>
-                  </li>
-                  {/* Add other doctor-specific links here if needed */}
-                </>
+                <NavLink to="/doctor/dashboard" className={navLinkClass}>
+                  <House size={15} weight="regular" />
+                  <span>Schedule Matrix</span>
+                </NavLink>
               )}
 
               {user?.role === "admin" && (
                 <>
-                  <li className="nav-item" {...getItemProps(1)}>
-                    <NavLink
-                      to="/admin/dashboard"
-                      className={({ isActive }) =>
-                        isActive ? "nav-links active" : "nav-links"
-                      }
-                      onClick={handleLinkClick} // Close menu on click
-                    >
-                      Dashboard
-                    </NavLink>
-                  </li>
-                  <li className="nav-item" {...getItemProps(2)}>
-                    <NavLink
-                      to="/admin/users"
-                      className={({ isActive }) =>
-                        isActive ? "nav-links active" : "nav-links"
-                      }
-                      onClick={handleLinkClick} // Close menu on click
-                    >
-                      User Management
-                    </NavLink>
-                  </li>
-                  <li className="nav-item" {...getItemProps(3)}>
-                    <NavLink
-                      to="/admin/doctors"
-                      className={({ isActive }) =>
-                        isActive ? "nav-links active" : "nav-links"
-                      }
-                      onClick={handleLinkClick} // Close menu on click
-                    >
-                      Doctor Management
-                    </NavLink>
-                  </li>
-                  <li className="nav-item" {...getItemProps(4)}>
-                    <NavLink
-                      to="/admin/appointments"
-                      className={({ isActive }) =>
-                        isActive ? "nav-links active" : "nav-links"
-                      }
-                      onClick={handleLinkClick} // Close menu on click
-                    >
-                      All Appointments
-                    </NavLink>
-                  </li>
+                  <NavLink to="/admin/dashboard" className={navLinkClass}>
+                    <ChartBar size={15} weight="regular" />
+                    <span>Overview</span>
+                  </NavLink>
+                  <NavLink to="/admin/users" className={navLinkClass}>
+                    <UsersThree size={15} weight="regular" />
+                    <span>Users</span>
+                  </NavLink>
+                  <NavLink to="/admin/doctors" className={navLinkClass}>
+                    <FirstAid size={15} weight="regular" />
+                    <span>Doctors</span>
+                  </NavLink>
+                  <NavLink to="/admin/appointments" className={navLinkClass}>
+                    <CalendarCheck size={15} weight="regular" />
+                    <span>Oversight</span>
+                  </NavLink>
                 </>
               )}
-
-              {/* Common Authenticated Links */}
-              <li
-                className="nav-item"
-                {...getItemProps(
-                  user?.role === "admin" ? 5 : user?.role === "patient" ? 3 : 2
-                )}
-              >
-                <NavLink
-                  to="/profile/edit" // Assuming '/profile/edit' is the route
-                  className={({ isActive }) =>
-                    isActive ? "nav-links active" : "nav-links"
-                  }
-                  onClick={handleLinkClick} // Close menu on click
-                >
-                  My Profile
-                </NavLink>
-              </li>
-
-              <li
-                className="nav-item"
-                {...getItemProps(
-                  user?.role === "admin" ? 6 : user?.role === "patient" ? 4 : 3
-                )}
-              >
-                {/* Use an <a> tag or a <button> styled as a link */}
-                <a
-                  href="#!" // Prevent default link behavior
-                  onClick={handleLogout} // Use updated handler
-                  className="nav-links logout-btn"
-                >
-                  Logout
-                </a>
-              </li>
             </>
           )}
-        </ul>
+        </nav>
+
+        {/* Right: Perfectly Centered & Uniform-Height Utilities */}
+        <div className="hidden md:flex items-center gap-2.5 z-10">
+          {/* Theme Switcher Button */}
+          <button
+            onClick={toggleTheme}
+            className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-zinc-200/80 dark:border-white/[0.08] bg-zinc-50 dark:bg-white/[0.03] text-zinc-600 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/[0.06] btn-press cursor-pointer"
+            aria-label="Toggle theme"
+            title={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+          >
+            <div className="t-icon-swap" data-state={theme === "dark" ? "b" : "a"}>
+              <span className="t-icon" data-icon="a">
+                <Moon size={17} weight="bold" className="text-zinc-600 dark:text-zinc-300" />
+              </span>
+              <span className="t-icon" data-icon="b">
+                <Sun size={17} weight="bold" className="text-amber-400" />
+              </span>
+            </div>
+          </button>
+
+          {isAuthenticated && (
+            <div className="flex items-center gap-2">
+              {/* Role Pill */}
+              <div
+                className={`h-9 px-3 inline-flex items-center justify-center rounded-xl border font-mono-code text-[10px] font-bold uppercase tracking-wider select-none ${getRoleBadgeStyle(
+                  user?.role
+                )}`}
+              >
+                {user?.role || "User"}
+              </div>
+
+              {/* Profile Pill */}
+              <NavLink
+                to="/profile/edit"
+                className="h-9 px-3 inline-flex items-center justify-center gap-2 rounded-xl border border-zinc-200/80 dark:border-white/[0.08] bg-zinc-50 dark:bg-white/[0.03] hover:bg-zinc-100 dark:hover:bg-white/[0.06] text-zinc-800 dark:text-zinc-200 text-xs font-semibold tracking-tight btn-press cursor-pointer"
+                title="Account Settings"
+              >
+                <div className="w-5.5 h-5.5 rounded-lg bg-sky-500/15 text-sky-600 dark:text-sky-400 flex items-center justify-center text-[10px] font-bold">
+                  {user?.name ? user.name.charAt(0).toUpperCase() : <User size={12} />}
+                </div>
+                <span className="max-w-[120px] truncate">{user?.name}</span>
+              </NavLink>
+
+              {/* Sign Out Action */}
+              <button
+                onClick={handleLogout}
+                className="h-9 px-3.5 inline-flex items-center justify-center gap-1.5 rounded-xl border border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/15 text-rose-600 dark:text-rose-400 text-xs font-semibold tracking-tight btn-press cursor-pointer"
+                title="Sign Out"
+                aria-label="Logout"
+              >
+                <SignOut size={15} weight="bold" />
+                <span>Logout</span>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Mobile Hamburger & Quick Theme */}
+        <div className="flex items-center gap-2 md:hidden z-10">
+          <button
+            onClick={toggleTheme}
+            className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-zinc-200/80 dark:border-white/[0.08] bg-zinc-50 dark:bg-white/[0.03] text-zinc-600 dark:text-zinc-300 btn-press"
+            aria-label="Toggle theme"
+          >
+            <div className="t-icon-swap" data-state={theme === "dark" ? "b" : "a"}>
+              <span className="t-icon" data-icon="a">
+                <Moon size={17} weight="bold" className="text-zinc-600" />
+              </span>
+              <span className="t-icon" data-icon="b">
+                <Sun size={17} weight="bold" className="text-amber-400" />
+              </span>
+            </div>
+          </button>
+
+          <button
+            onClick={toggleMobileMenu}
+            className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-zinc-200/80 dark:border-white/[0.08] bg-zinc-50 dark:bg-white/[0.03] text-zinc-950 dark:text-white btn-press"
+            aria-label="Toggle Menu"
+          >
+            <div className="t-icon-swap" data-state={isMobileMenuOpen ? "b" : "a"}>
+              <span className="t-icon" data-icon="a">
+                <List size={20} weight="bold" />
+              </span>
+              <span className="t-icon" data-icon="b">
+                <X size={20} weight="bold" />
+              </span>
+            </div>
+          </button>
+        </div>
       </div>
-    </nav>
+
+      {/* Mobile Drawer */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-x-0 top-[64px] sm:top-[70px] bottom-0 z-40 bg-white/95 dark:bg-[#080A0F]/95 backdrop-blur-2xl p-6 flex flex-col justify-between overflow-y-auto border-t border-zinc-200/80 dark:border-white/[0.08] animate-materialize">
+          <div className="space-y-6">
+            {isAuthenticated && (
+              <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-white/[0.03] border border-zinc-200/80 dark:border-white/[0.08] flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-sky-500/15 text-sky-600 dark:text-sky-400 flex items-center justify-center font-bold text-sm">
+                    {user?.name ? user.name.charAt(0).toUpperCase() : <User size={18} />}
+                  </div>
+                  <div>
+                    <div className="font-semibold text-sm text-zinc-900 dark:text-white">
+                      {user?.name}
+                    </div>
+                    <div className="font-mono-code text-[11px] text-zinc-400">
+                      {user?.email}
+                    </div>
+                  </div>
+                </div>
+                <span
+                  className={`font-mono-code text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-lg border font-bold ${getRoleBadgeStyle(
+                    user?.role
+                  )}`}
+                >
+                  {user?.role}
+                </span>
+              </div>
+            )}
+
+            <nav className="flex flex-col space-y-1.5">
+              {!isAuthenticated ? (
+                <>
+                  <NavLink
+                    to="/login"
+                    className="h-11 px-4 rounded-xl text-zinc-800 dark:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5 font-semibold text-sm flex items-center gap-3"
+                    onClick={handleLinkClick}
+                  >
+                    <User size={18} />
+                    <span>Sign In</span>
+                  </NavLink>
+                  <NavLink
+                    to="/register"
+                    className="h-11 px-4 rounded-xl bg-sky-600 text-white font-semibold text-sm flex items-center justify-between mt-2"
+                    onClick={handleLinkClick}
+                  >
+                    <span>Create Account</span>
+                    <ArrowUpRight size={16} weight="bold" />
+                  </NavLink>
+                </>
+              ) : (
+                <>
+                  {user?.role === "patient" && (
+                    <>
+                      <NavLink
+                        to="/appointments"
+                        className="h-11 px-4 rounded-xl text-zinc-800 dark:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5 font-semibold text-sm flex items-center gap-3"
+                        onClick={handleLinkClick}
+                      >
+                        <CalendarCheck size={18} />
+                        <span>Consultations</span>
+                      </NavLink>
+                      <NavLink
+                        to="/add"
+                        className="h-11 px-4 rounded-xl text-zinc-800 dark:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5 font-semibold text-sm flex items-center gap-3"
+                        onClick={handleLinkClick}
+                      >
+                        <CalendarPlus size={18} />
+                        <span>Book Visit</span>
+                      </NavLink>
+                    </>
+                  )}
+
+                  {user?.role === "doctor" && (
+                    <NavLink
+                      to="/doctor/dashboard"
+                      className="h-11 px-4 rounded-xl text-zinc-800 dark:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5 font-semibold text-sm flex items-center gap-3"
+                      onClick={handleLinkClick}
+                    >
+                      <House size={18} />
+                      <span>Schedule Matrix</span>
+                    </NavLink>
+                  )}
+
+                  {user?.role === "admin" && (
+                    <>
+                      <NavLink
+                        to="/admin/dashboard"
+                        className="h-11 px-4 rounded-xl text-zinc-800 dark:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5 font-semibold text-sm flex items-center gap-3"
+                        onClick={handleLinkClick}
+                      >
+                        <ChartBar size={18} />
+                        <span>Overview</span>
+                      </NavLink>
+                      <NavLink
+                        to="/admin/users"
+                        className="h-11 px-4 rounded-xl text-zinc-800 dark:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5 font-semibold text-sm flex items-center gap-3"
+                        onClick={handleLinkClick}
+                      >
+                        <UsersThree size={18} />
+                        <span>User Directory</span>
+                      </NavLink>
+                      <NavLink
+                        to="/admin/doctors"
+                        className="h-11 px-4 rounded-xl text-zinc-800 dark:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5 font-semibold text-sm flex items-center gap-3"
+                        onClick={handleLinkClick}
+                      >
+                        <FirstAid size={18} />
+                        <span>Physicians</span>
+                      </NavLink>
+                      <NavLink
+                        to="/admin/appointments"
+                        className="h-11 px-4 rounded-xl text-zinc-800 dark:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5 font-semibold text-sm flex items-center gap-3"
+                        onClick={handleLinkClick}
+                      >
+                        <CalendarCheck size={18} />
+                        <span>Oversight Registry</span>
+                      </NavLink>
+                    </>
+                  )}
+
+                  <NavLink
+                    to="/profile/edit"
+                    className="h-11 px-4 rounded-xl text-zinc-800 dark:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5 font-semibold text-sm flex items-center gap-3 mt-3 pt-3 border-t border-zinc-200 dark:border-white/10"
+                    onClick={handleLinkClick}
+                  >
+                    <User size={18} />
+                    <span>Account Settings</span>
+                  </NavLink>
+                </>
+              )}
+            </nav>
+          </div>
+
+          {isAuthenticated && (
+            <button
+              onClick={handleLogout}
+              className="w-full h-11 rounded-xl text-rose-600 dark:text-rose-400 bg-rose-500/10 hover:bg-rose-500/15 font-semibold text-sm flex items-center justify-center gap-2 transition-colors active:scale-[0.98] cursor-pointer"
+            >
+              <SignOut size={18} weight="bold" />
+              <span>Sign Out</span>
+            </button>
+          )}
+        </div>
+      )}
+    </header>
   );
 };
 

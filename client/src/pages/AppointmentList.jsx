@@ -1,8 +1,21 @@
 import React, { useState, useEffect, useMemo, useContext } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import AuthContext from "../context/AuthContext";
-// Corrected CSS import path assuming the CSS is in the same directory
-import "./AppointmentList.css";
+import {
+  CalendarCheck,
+  CalendarPlus,
+  Clock,
+  User,
+  Stethoscope,
+  ArrowCounterClockwise,
+  XCircle,
+  PencilSimple,
+  CheckCircle,
+  Funnel,
+  WarningCircle,
+  Eye,
+  ArrowUpRight,
+} from "@phosphor-icons/react";
 
 // --- Helper Functions ---
 const formatDate = (dateString) => {
@@ -10,7 +23,7 @@ const formatDate = (dateString) => {
   try {
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return "Invalid Date";
-    const options = { year: "numeric", month: "long", day: "numeric" };
+    const options = { year: "numeric", month: "short", day: "numeric" };
     return date.toLocaleDateString(undefined, options);
   } catch (e) {
     return "Invalid Date";
@@ -75,10 +88,6 @@ const getAppointmentDateTime = (appointment) => {
       throw new Error("Invalid date after setting time");
     return dateTimeResult;
   } catch (e) {
-    console.error(
-      `Error in getAppointmentDateTime for ID ${appointment?._id}:`,
-      e.message
-    );
     return new Date(NaN);
   }
 };
@@ -92,7 +101,6 @@ const isToday = (someDate) => {
   );
 };
 
-// --- Component ---
 const AppointmentList = () => {
   const [allAppointments, setAllAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -106,6 +114,7 @@ const AppointmentList = () => {
   const [filterStartDate, setFilterStartDate] = useState("");
   const [filterEndDate, setFilterEndDate] = useState("");
   const [doctorsList, setDoctorsList] = useState([]);
+
   const handleResetFilters = () => {
     setFilterDoctor("");
     setFilterStatus("");
@@ -113,7 +122,6 @@ const AppointmentList = () => {
     setFilterEndDate("");
   };
 
-  // Fetch doctors list (for filter dropdown)
   useEffect(() => {
     axiosInstance
       .get("/doctors/list")
@@ -125,7 +133,6 @@ const AppointmentList = () => {
       });
   }, [axiosInstance]);
 
-  // Fetch appointments
   const fetchAppointments = async () => {
     setLoading(true);
     setError("");
@@ -153,10 +160,8 @@ const AppointmentList = () => {
     } else {
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, user]);
 
-  // Filter, Categorize and Sort Appointments based on filters
   const categorizedAppointments = useMemo(() => {
     const now = new Date();
     const todayStart = new Date();
@@ -239,7 +244,6 @@ const AppointmentList = () => {
     filterEndDate,
   ]);
 
-  // --- Action Handlers ---
   const handleCancel = async (id) => {
     if (window.confirm("Are you sure you want to cancel this appointment?")) {
       setError("");
@@ -248,13 +252,13 @@ const AppointmentList = () => {
         await axiosInstance.patch(`/appointments/${id}`, {
           status: "cancelled",
         });
-        await fetchAppointments(); // Refresh list
+        await fetchAppointments();
       } catch (err) {
         console.error("Error cancelling appointment:", err);
         setError(
           err.response?.data?.message || "Failed to cancel appointment."
         );
-        setLoading(false); // Important on error
+        setLoading(false);
       }
     }
   };
@@ -263,288 +267,438 @@ const AppointmentList = () => {
     navigate(`/edit/${appointmentId}`);
   };
 
-  // Handler for Book Again
   const handleBookAgain = (appointment) => {
     if (!appointment.doctorId?._id) {
-      console.error(
-        "Cannot rebook, doctor ID missing from appointment data:",
-        appointment
-      );
       setError("Could not prefill doctor information for rebooking.");
       return;
     }
-    console.log("Navigating to /add with prefill:", {
-      doctorId: appointment.doctorId._id,
-      reason: appointment.reason,
-    });
     navigate("/add", {
       state: {
         prefillData: {
-          doctorId: appointment.doctorId._id, // Pass doctor ID
-          reason: appointment.reason, // Pass reason
+          doctorId: appointment.doctorId._id,
+          reason: appointment.reason,
         },
       },
     });
   };
 
-  // --- Render Function for Cards ---
+  const getStatusBadge = (status, isPending) => {
+    if (isPending) {
+      return (
+        <span className="font-mono-code text-[11px] font-semibold px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center gap-1.5">
+          <Clock size={12} weight="bold" />
+          Pending Update
+        </span>
+      );
+    }
+    switch (status?.toLowerCase()) {
+      case "scheduled":
+        return (
+          <span className="font-mono-code text-[11px] font-semibold px-2.5 py-1 rounded-full bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse" />
+            Scheduled
+          </span>
+        );
+      case "completed":
+        return (
+          <span className="font-mono-code text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 flex items-center gap-1.5">
+            <CheckCircle size={12} weight="bold" />
+            Completed
+          </span>
+        );
+      case "cancelled":
+        return (
+          <span className="font-mono-code text-[11px] font-semibold px-2.5 py-1 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 flex items-center gap-1.5">
+            <XCircle size={12} weight="bold" />
+            Cancelled
+          </span>
+        );
+      case "noshow":
+        return (
+          <span className="font-mono-code text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 border border-zinc-500/20 flex items-center gap-1.5">
+            <WarningCircle size={12} weight="bold" />
+            No Show
+          </span>
+        );
+      default:
+        return (
+          <span className="font-mono-code text-[11px] font-semibold px-2.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+            {status}
+          </span>
+        );
+    }
+  };
+
   const renderAppointmentCard = (appointment, section) => {
     if (!appointment || !appointment._id) return null;
     const isPastScheduled =
       section === "pendingUpdate" && appointment.status === "scheduled";
 
-    let displayStatus = appointment.status
-      ? appointment.status.charAt(0).toUpperCase() + appointment.status.slice(1)
-      : "Unknown";
-    if (displayStatus === "Noshow") displayStatus = "No Show";
-    if (isPastScheduled) displayStatus = "Pending";
-
-    let badgeClass = `status-${appointment.status}`;
-    if (isPastScheduled) badgeClass = "status-pending";
-
     return (
-      <div key={appointment._id} className="appointment-card">
-        <div className="card-header">
-          <h3>{appointment.doctorId?.name || "N/A"}</h3>
-          <span className={`status-badge ${badgeClass}`}>{displayStatus}</span>
-        </div>
-        <p>
-          <strong>Specialization:</strong>{" "}
-          {appointment.doctorId?.specialization || "N/A"}
-        </p>
-        <p>
-          <strong>Date:</strong> {formatDate(appointment.appointmentDate)}
-        </p>
-        <p>
-          <strong>Time:</strong> {formatTime12Hour(appointment.startTime)} -{" "}
-          {formatTime12Hour(appointment.endTime)} ({appointment.duration} mins)
-        </p>
-        <p>
-          <strong>Reason:</strong> {appointment.reason}
-        </p>
-        {appointment.status === "completed" && appointment.remarks && (
-          <p className="remarks">
-            <strong>Doctor's Remarks:</strong> {appointment.remarks}
-          </p>
-        )}
-        <div className="appointment-actions">
-          {section === "pendingUpdate" && (
-            <>
-              <button
-                className="action-button reschedule"
-                onClick={() => handleReschedule(appointment._id)}
-              >
-                Reschedule
-              </button>
-              <button
-                className="action-button cancel"
-                onClick={() => handleCancel(appointment._id)}
-              >
-                Cancel
-              </button>
-            </>
+      <div key={appointment._id} className="doppelrand-shell t-card-hover">
+        <div className="doppelrand-core p-5 sm:p-6 flex flex-col justify-between h-full">
+          <div className="specular-hairline" />
+
+          {/* Header */}
+          <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-sky-500/10 border border-sky-500/20 text-sky-600 dark:text-sky-400 flex items-center justify-center font-bold text-sm font-display">
+                {appointment.doctorId?.name
+                  ? appointment.doctorId.name.replace(/^Dr\.\s*/i, "").charAt(0)
+                  : "D"}
+              </div>
+              <div>
+                <h3 className="font-display text-sm sm:text-base font-bold text-zinc-950 dark:text-white leading-snug">
+                  {appointment.doctorId?.name || "Dr. Medical Specialist"}
+                </h3>
+                <p className="text-xs text-sky-600 dark:text-sky-400 font-medium flex items-center gap-1">
+                  <Stethoscope size={13} />
+                  <span>{appointment.doctorId?.specialization || "General Practice"}</span>
+                </p>
+              </div>
+            </div>
+            {getStatusBadge(appointment.status, isPastScheduled)}
+          </div>
+
+          {/* Sunken Telemetry Strip */}
+          <div className="p-3 rounded-xl bg-zinc-50/80 dark:bg-white/[0.02] border border-zinc-200/70 dark:border-white/[0.05] grid grid-cols-2 gap-2 my-2 text-xs font-mono-code">
+            <div>
+              <span className="text-[10px] text-zinc-400 uppercase tracking-wider block">Visit Date</span>
+              <span className="font-semibold text-zinc-800 dark:text-zinc-200">
+                {formatDate(appointment.appointmentDate)}
+              </span>
+            </div>
+            <div>
+              <span className="text-[10px] text-zinc-400 uppercase tracking-wider block">Time & Slot</span>
+              <span className="font-semibold text-zinc-800 dark:text-zinc-200">
+                {formatTime12Hour(appointment.startTime)} <span className="text-zinc-400 font-normal">({appointment.duration}m)</span>
+              </span>
+            </div>
+          </div>
+
+          {/* Clinical Reason */}
+          <div className="mt-2.5 mb-3">
+            <span className="text-[10px] uppercase font-mono-code tracking-wider text-zinc-400 block mb-0.5">
+              Reason for Visit
+            </span>
+            <p className="font-body text-xs sm:text-sm text-zinc-700 dark:text-zinc-300 leading-relaxed">
+              {appointment.reason || "General Medical Consultation"}
+            </p>
+          </div>
+
+          {/* Doctor Remarks (if completed) */}
+          {appointment.status === "completed" && appointment.remarks && (
+            <div className="mt-2 p-3 rounded-xl bg-emerald-500/[0.08] border border-emerald-500/20 text-xs">
+              <span className="font-mono-code font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 block mb-1">
+                Clinical Remarks
+              </span>
+              <p className="text-emerald-950 dark:text-emerald-200 leading-relaxed font-body">
+                {appointment.remarks}
+              </p>
+            </div>
           )}
-          {(section === "today" || section === "upcoming") && (
-            <>
-              <button
-                className="action-button edit"
-                onClick={() => handleReschedule(appointment._id)}
-              >
-                Edit Details
-              </button>
-              <button
-                className="action-button cancel"
-                onClick={() => handleCancel(appointment._id)}
-              >
-                Cancel
-              </button>
-            </>
-          )}
-          {/* *** MODIFIED: History Section Buttons Logic *** */}
-          {section === "history" && (
-            <>
-              {/* Show "Book Again" ONLY for cancelled or noshow */}
-              {(appointment.status === "cancelled" ||
-                appointment.status === "noshow") && (
+
+          {/* Action Pills */}
+          <div className="mt-4 pt-3.5 border-t border-zinc-100 dark:border-white/[0.06] flex flex-wrap items-center justify-end gap-2.5">
+            {(section === "today" || section === "upcoming" || section === "pendingUpdate") && (
+              <>
                 <button
-                  className="action-button book-again"
-                  onClick={() => handleBookAgain(appointment)}
+                  type="button"
+                  onClick={() => handleReschedule(appointment._id)}
+                  className="h-8.5 px-3.5 inline-flex items-center justify-center gap-1.5 rounded-xl border border-zinc-200/80 dark:border-white/[0.08] bg-zinc-50/80 dark:bg-white/[0.03] text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-white/[0.06] active:scale-[0.96] transition-all cursor-pointer leading-none"
                 >
-                  Book Again
+                  <PencilSimple size={14} />
+                  <span>Reschedule</span>
                 </button>
-              )}
-              {/* Show "View Details" for completed appointments */}
-              {appointment.status === "completed" && (
                 <button
-                  className="action-button view"
-                  onClick={() => handleReschedule(appointment._id)} // Still goes to edit form for viewing
+                  type="button"
+                  onClick={() => handleCancel(appointment._id)}
+                  className="h-8.5 px-3.5 inline-flex items-center justify-center gap-1.5 rounded-xl border border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/20 text-xs font-semibold text-rose-600 dark:text-rose-400 active:scale-[0.96] transition-all cursor-pointer leading-none"
                 >
-                  View Details
+                  <XCircle size={14} />
+                  <span>Cancel</span>
                 </button>
-              )}
-              {/* Optional: Add a fallback for other unexpected history statuses if needed */}
-            </>
-          )}
+              </>
+            )}
+
+            {section === "history" && (
+              <>
+                {(appointment.status === "cancelled" || appointment.status === "noshow") && (
+                  <button
+                    type="button"
+                    onClick={() => handleBookAgain(appointment)}
+                    className="h-8.5 px-3.5 inline-flex items-center justify-center gap-1.5 rounded-xl bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 text-xs font-semibold shadow-xs active:scale-[0.96] transition-all cursor-pointer leading-none"
+                  >
+                    <ArrowCounterClockwise size={14} weight="bold" />
+                    <span>Book Again</span>
+                  </button>
+                )}
+                {appointment.status === "completed" && (
+                  <button
+                    type="button"
+                    onClick={() => handleReschedule(appointment._id)}
+                    className="h-8.5 px-3.5 inline-flex items-center justify-center gap-1.5 rounded-xl border border-zinc-200/80 dark:border-white/[0.08] bg-zinc-50/80 dark:bg-white/[0.03] text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-white/[0.06] active:scale-[0.96] transition-all cursor-pointer leading-none"
+                  >
+                    <Eye size={14} />
+                    <span>View Record</span>
+                  </button>
+                )}
+              </>
+            )}
+          </div>
         </div>
       </div>
     );
   };
 
-  // --- Main Render ---
   if (loading && allAppointments.length === 0) {
-    return <div className="loading">Loading your appointments...</div>;
-  }
-  if (error) {
-    return <div className="message error">{error}</div>;
-  }
-  if (!token || !user || user.role !== "patient") {
     return (
-      <div className="message error">
-        Please log in as a patient to view appointments.
+      <div className="max-w-6xl mx-auto px-4 py-24 text-center">
+        <div className="inline-block w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin mb-3" />
+        <p className="font-mono-code text-xs text-zinc-500 dark:text-zinc-400">
+          Syncing patient consultation ledger...
+        </p>
       </div>
     );
   }
 
-  const anyFiltersActive =
-    filterDoctor || filterStatus || filterStartDate || filterEndDate;
-  const totalAppointments = Object.values(categorizedAppointments).reduce(
-    (sum, cat) => sum + cat.length,
-    0
-  );
+  if (error) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-16">
+        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-mono-code font-medium">
+          {error}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="appointment-list">
-      <h1>My Appointments</h1>
+    <div className="w-full max-w-[1650px] mx-auto px-4 sm:px-8 lg:px-12 py-8 sm:py-10 animate-materialize">
+      {/* Top Command Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-zinc-200/80 dark:border-white/[0.08] mb-8">
+        <div>
+          <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-zinc-950 dark:text-white">
+            Patient Consultation Ledger
+          </h1>
+          <p className="font-body text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+            Track booked appointments, review physician remarks, and manage calendar dates.
+          </p>
+        </div>
+        <Link
+          to="/add"
+          className="group relative inline-flex items-center gap-2 pl-4 pr-1.5 py-1.5 rounded-full bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs tracking-tight shadow-sm active:scale-[0.97] transition-all w-fit"
+        >
+          <CalendarPlus size={15} weight="bold" />
+          <span>Book Consultation</span>
+          <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
+            <ArrowUpRight size={12} weight="bold" />
+          </span>
+        </Link>
+      </div>
 
-      {/* Filters */}
-      <div className="controls-container filter-controls">
-        <div className="filter-group">
-          <label htmlFor="filterDoctor">Doctor:</label>
-          <select
-            id="filterDoctor"
-            value={filterDoctor}
-            onChange={(e) => setFilterDoctor(e.target.value)}
-          >
-            <option value="">All Doctors</option>
-            {doctorsList.map((doc) => (
-              <option key={doc._id} value={doc._id}>
-                {doc.name} ({doc.specialization})
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="filter-group">
-          <label htmlFor="filterStatus">Status:</label>
-          <select
-            id="filterStatus"
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-          >
-            <option value="">All Statuses</option>
-            <option value="scheduled">Scheduled</option>
-            <option value="completed">Completed</option>
-            <option value="cancelled">Cancelled</option>
-            <option value="noshow">No Show</option>
-          </select>
-        </div>
-        <div className="filter-group">
-          <label htmlFor="filterStartDate">Date From:</label>
-          <input
-            type="date"
-            id="filterStartDate"
-            value={filterStartDate}
-            onChange={(e) => setFilterStartDate(e.target.value)}
-          />
-        </div>
-        <div className="filter-group">
-          <label htmlFor="filterEndDate">Date To:</label>
-          <input
-            type="date"
-            id="filterEndDate"
-            value={filterEndDate}
-            onChange={(e) => setFilterEndDate(e.target.value)}
-            max={formatDateForInput(new Date())}
-          />
-        </div>
-        <div className="filter-group filter-action-group">
-          {" "}
-          {/* Optional: Group button */}
-          <label>&nbsp;</label> {/* Align with other labels */}
-          <button onClick={handleResetFilters} className="btn btn-reset">
-            Reset Filters
-          </button>
+      {/* Filter Control Chassis */}
+      <div className="doppelrand-shell mb-8">
+        <div className="doppelrand-core p-5">
+          <div className="specular-hairline" />
+          <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-mono-code mb-3">
+            <Funnel size={14} />
+            <span>Filter Consultation Records</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            {/* Doctor */}
+            <div>
+              <label htmlFor="filterDoctor" className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-400 font-mono-code mb-1">
+                Doctor
+              </label>
+              <select
+                id="filterDoctor"
+                value={filterDoctor}
+                onChange={(e) => setFilterDoctor(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-zinc-50/70 dark:bg-white/[0.03] text-zinc-950 dark:text-white text-xs font-mono-code focus:ring-2 focus:ring-sky-500/30 focus:outline-none t-focus-ring"
+              >
+                <option value="">All Specialists</option>
+                {doctorsList.map((doc) => (
+                  <option key={doc._id} value={doc._id}>
+                    {doc.name} ({doc.specialization})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Status */}
+            <div>
+              <label htmlFor="filterStatus" className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-400 font-mono-code mb-1">
+                Status
+              </label>
+              <select
+                id="filterStatus"
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-zinc-50/70 dark:bg-white/[0.03] text-zinc-950 dark:text-white text-xs font-mono-code focus:ring-2 focus:ring-sky-500/30 focus:outline-none t-focus-ring"
+              >
+                <option value="">All Statuses</option>
+                <option value="scheduled">Scheduled</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="noshow">No Show</option>
+              </select>
+            </div>
+
+            {/* Date From */}
+            <div>
+              <label htmlFor="filterStartDate" className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-400 font-mono-code mb-1">
+                From Date
+              </label>
+              <input
+                type="date"
+                id="filterStartDate"
+                value={filterStartDate}
+                onChange={(e) => setFilterStartDate(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-zinc-50/70 dark:bg-white/[0.03] text-zinc-950 dark:text-white text-xs font-mono-code focus:ring-2 focus:ring-sky-500/30 focus:outline-none t-focus-ring"
+              />
+            </div>
+
+            {/* Date To */}
+            <div>
+              <label htmlFor="filterEndDate" className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-400 font-mono-code mb-1">
+                To Date
+              </label>
+              <input
+                type="date"
+                id="filterEndDate"
+                value={filterEndDate}
+                onChange={(e) => setFilterEndDate(e.target.value)}
+                max={formatDateForInput(new Date())}
+                className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-zinc-50/70 dark:bg-white/[0.03] text-zinc-950 dark:text-white text-xs font-mono-code focus:ring-2 focus:ring-sky-500/30 focus:outline-none t-focus-ring"
+              />
+            </div>
+
+            {/* Reset */}
+            <div className="flex items-end">
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                className="w-full h-9 px-3.5 inline-flex items-center justify-center gap-1.5 rounded-xl border border-zinc-200/80 dark:border-white/[0.08] bg-zinc-50/80 dark:bg-white/[0.03] text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-white/[0.06] btn-press cursor-pointer"
+              >
+                <ArrowCounterClockwise size={14} />
+                <span>Reset Filters</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* --- Render Sections --- */}
-      {loading && (
-        <div className="loading" style={{ marginTop: "20px" }}>
-          Refreshing...
-        </div>
-      )}
+      {/* Sections */}
+      <div className="space-y-10">
+        {/* Today's Section */}
+        {categorizedAppointments.today.length > 0 && (
+          <section>
+            <div className="flex items-center gap-2 mb-4">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+              <h2 className="font-display text-base sm:text-lg font-bold text-zinc-950 dark:text-white">
+                Today's Appointments
+              </h2>
+              <span className="font-mono-code text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-semibold">
+                {categorizedAppointments.today.length}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+              {categorizedAppointments.today.map((apt) =>
+                renderAppointmentCard(apt, "today")
+              )}
+            </div>
+          </section>
+        )}
 
-      {totalAppointments === 0 && !loading && (
-        <p style={{ marginTop: "20px", textAlign: "center" }}>
-          {anyFiltersActive
-            ? "No appointments match the current filters."
-            : "You have no appointments scheduled yet."}
-        </p>
-      )}
+        {/* Upcoming Section */}
+        {categorizedAppointments.upcoming.length > 0 && (
+          <section>
+            <div className="flex items-center gap-2 mb-4">
+              <h2 className="font-display text-base sm:text-lg font-bold text-zinc-950 dark:text-white">
+                Upcoming Consultations
+              </h2>
+              <span className="font-mono-code text-xs px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 font-semibold">
+                {categorizedAppointments.upcoming.length}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+              {categorizedAppointments.upcoming.map((apt) =>
+                renderAppointmentCard(apt, "upcoming")
+              )}
+            </div>
+          </section>
+        )}
 
-      {!anyFiltersActive && totalAppointments === 0 && !loading && (
-        <div style={{ textAlign: "center", marginTop: "30px" }}>
-          <button
-            onClick={() => navigate("/add")}
-            className="cta-button primary"
-          >
-            Book New Appointment
-          </button>
-        </div>
-      )}
+        {/* Pending Update Section */}
+        {categorizedAppointments.pendingUpdate.length > 0 && (
+          <section>
+            <div className="flex items-center gap-2 mb-4">
+              <h2 className="font-display text-base sm:text-lg font-bold text-zinc-950 dark:text-white">
+                Pending Status Updates
+              </h2>
+              <span className="font-mono-code text-xs px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20 font-semibold">
+                {categorizedAppointments.pendingUpdate.length}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+              {categorizedAppointments.pendingUpdate.map((apt) =>
+                renderAppointmentCard(apt, "pendingUpdate")
+              )}
+            </div>
+          </section>
+        )}
 
-      {categorizedAppointments.today.length > 0 && (
-        <section>
-          <h2>Today</h2>
-          <div className="appointment-cards">
-            {categorizedAppointments.today.map((apt) =>
-              renderAppointmentCard(apt, "today")
-            )}
-          </div>
-        </section>
-      )}
+        {/* History Section */}
+        {categorizedAppointments.history.length > 0 && (
+          <section>
+            <div className="flex items-center gap-2 mb-4">
+              <h2 className="font-display text-base sm:text-lg font-bold text-zinc-950 dark:text-white">
+                Consultation History
+              </h2>
+              <span className="font-mono-code text-xs px-2 py-0.5 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 font-semibold">
+                {categorizedAppointments.history.length}
+              </span>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-6">
+              {categorizedAppointments.history.map((apt) =>
+                renderAppointmentCard(apt, "history")
+              )}
+            </div>
+          </section>
+        )}
 
-      {categorizedAppointments.pendingUpdate.length > 0 && (
-        <section>
-          <h2>Pending Update</h2>
-          <div className="appointment-cards">
-            {categorizedAppointments.pendingUpdate.map((apt) =>
-              renderAppointmentCard(apt, "pendingUpdate")
-            )}
-          </div>
-        </section>
-      )}
-
-      {categorizedAppointments.upcoming.length > 0 && (
-        <section>
-          <h2>Upcoming</h2>
-          <div className="appointment-cards">
-            {categorizedAppointments.upcoming.map((apt) =>
-              renderAppointmentCard(apt, "upcoming")
-            )}
-          </div>
-        </section>
-      )}
-
-      {categorizedAppointments.history.length > 0 && (
-        <section>
-          <h2>History</h2>
-          <div className="appointment-cards">
-            {categorizedAppointments.history.map((apt) =>
-              renderAppointmentCard(apt, "history")
-            )}
-          </div>
-        </section>
-      )}
+        {/* Empty State */}
+        {categorizedAppointments.today.length === 0 &&
+          categorizedAppointments.upcoming.length === 0 &&
+          categorizedAppointments.pendingUpdate.length === 0 &&
+          categorizedAppointments.history.length === 0 && (
+            <div className="doppelrand-shell">
+              <div className="doppelrand-core p-12 text-center">
+                <div className="specular-hairline" />
+                <div className="w-12 h-12 rounded-2xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center mx-auto mb-4">
+                  <CalendarCheck size={26} />
+                </div>
+                <h3 className="font-display text-base font-bold text-zinc-950 dark:text-white mb-1">
+                  No Consultation Records Found
+                </h3>
+                <p className="font-body text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 max-w-sm mx-auto mb-6">
+                  You don't have any appointments matching the selected filters.
+                </p>
+                <Link
+                  to="/add"
+                  className="group relative inline-flex items-center gap-2 pl-4 pr-1.5 py-1.5 rounded-full bg-sky-600 hover:bg-sky-500 text-white font-semibold text-xs tracking-tight shadow-sm active:scale-[0.97] transition-all"
+                >
+                  <CalendarPlus size={15} weight="bold" />
+                  <span>Book Consultation</span>
+                  <span className="w-6 h-6 rounded-full bg-white/20 flex items-center justify-center transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
+                    <ArrowUpRight size={12} weight="bold" />
+                  </span>
+                </Link>
+              </div>
+            </div>
+          )}
+      </div>
     </div>
   );
 };

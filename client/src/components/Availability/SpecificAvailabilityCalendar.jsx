@@ -9,6 +9,15 @@ import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import AuthContext from "../../context/AuthContext";
 import "./SpecificAvailabilityCalendar.css";
+import {
+  CalendarBlank,
+  Clock,
+  CheckCircle,
+  WarningCircle,
+  Trash,
+  FloppyDisk,
+  Info,
+} from "@phosphor-icons/react";
 
 // --- Constants and Helpers ---
 // Ensure this matches the 'enum' in your Doctor.js model exactly
@@ -375,127 +384,189 @@ const SpecificAvailabilityCalendar = () => {
   const canSaveChanges =
     dayDetails.isDayOff || dayDetails.isEditingSpecificTime;
   return (
-    <div className="override-manager">
-      <h4>Set Specific Date Availability / Time Off</h4>
-      <p className="info-text">
-        Select a date to set specific working hours or mark it as a day off.
-        This overrides your standard weekly schedule for that date only.
-      </p>
+    <div className="doppelrand-shell">
+      <div className="doppelrand-core p-6 sm:p-7 space-y-6">
+        <div className="specular-hairline" />
 
-      {loadingOverrides && <div className="loading">Loading overrides...</div>}
-
-      <div className="calendar-container">
-        <Calendar
-          onChange={handleDateChange}
-          value={selectedDate}
-          minDate={new Date()} // Prevent selecting past dates
-          tileClassName={tileClassName}
-        />
-      </div>
-
-      <div className="selected-day-editor">
-        <h5>Settings for: {formatDateForDisplay(selectedDate)}</h5>
-
-        {/* Display Inline Override Messages Here */}
-        {overrideMessage && (
-          <div className="message success">{overrideMessage}</div>
-        )}
-        {error && <div className="message error">{error}</div>}
-
-        {dayLoading ? (
-          <div className="loading-day">Loading...</div>
-        ) : (
-          <>
-            {/* Checkboxes */}
-            <div className="form-group checkbox-group">
-              <input
-                type="checkbox"
-                id="isEditingSpecificTime"
-                name="isEditingSpecificTime"
-                checked={dayDetails.isEditingSpecificTime}
-                onChange={handleDayInfoChange}
-                disabled={dayDetails.isDayOff}
-              />
-              <label htmlFor="isEditingSpecificTime">
-                Set specific hours for this date?
-              </label>
+        <div className="pb-5 border-b border-zinc-200/80 dark:border-white/[0.08] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center border border-sky-500/20">
+              <CalendarBlank className="w-5 h-5" />
             </div>
-            <div className="form-group checkbox-group">
-              <input
-                type="checkbox"
-                id="isDayOff"
-                name="isDayOff"
-                checked={dayDetails.isDayOff}
-                onChange={handleDayInfoChange}
-              />
-              <label htmlFor="isDayOff">Take the day off?</label>
-            </div>
-
-            {/* Time Inputs - Shown Conditionally */}
-            {dayDetails.isEditingSpecificTime && !dayDetails.isDayOff && (
-              <div className="form-group time-range">
-                <label>Specific Hours:</label>
-                <div>
-                  <input
-                    type="time"
-                    name="startTime"
-                    value={dayDetails.startTime}
-                    onChange={handleDayInfoChange}
-                    required
-                  />
-                  <span> to </span>
-                  <input
-                    type="time"
-                    name="endTime"
-                    value={dayDetails.endTime}
-                    onChange={handleDayInfoChange}
-                    required
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Day Off Indicator */}
-            {dayDetails.isDayOff && (
-              <p className="day-off-indicator">
-                Marked as **Not Working** for this specific date.
+            <div>
+              <h4 className="text-base font-display font-bold text-zinc-950 dark:text-white tracking-tight">
+                Date-Specific Availability & Overrides
+              </h4>
+              <p className="font-body text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                Customize single-day working hours or scheduled clinical leaves.
               </p>
-            )}
-
-            {/* Buttons */}
-            <div className="button-group">
-              <button
-                onClick={saveOverride}
-                disabled={dayLoading || !canSaveChanges}
-                className="save-override-btn"
-                title={
-                  !canSaveChanges
-                    ? "Select an option above to save an override"
-                    : "Save override for this date"
-                }
-              >
-                {dayLoading ? "Saving..." : "Save Override for this Date"}
-              </button>
-              {dayDetails.hasExistingOverride && (
-                <button
-                  onClick={deleteOverride}
-                  disabled={dayLoading}
-                  className="delete-override-btn"
-                >
-                  Remove Override (Use Standard)
-                </button>
-              )}
             </div>
+          </div>
+          <span className="font-mono-code text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-lg bg-zinc-100 dark:bg-white/[0.04] text-zinc-500 dark:text-zinc-400 border border-zinc-200/60 dark:border-white/[0.06] self-start sm:self-auto">
+            Priority Engine Active
+          </span>
+        </div>
 
-            {/* Standard Info Display */}
-            <p className="standard-info">
-              Standard availability for this day:
-              {dayDetails.standardIsWorking
-                ? ` ${dayDetails.standardStartTime} - ${dayDetails.standardEndTime}`
-                : " Not scheduled"}
-            </p>
-          </>
+        {loadingOverrides && (
+          <div className="text-xs font-mono-code text-zinc-400 text-center py-2">
+            Loading practice overrides...
+          </div>
         )}
+
+        {/* Calendar View */}
+        <div className="calendar-container">
+          <Calendar
+            onChange={handleDateChange}
+            value={selectedDate}
+            minDate={new Date()}
+            tileClassName={tileClassName}
+          />
+        </div>
+
+        {/* Legend */}
+        <div className="flex flex-wrap items-center justify-center gap-5 text-xs font-mono-code text-zinc-500 dark:text-zinc-400 py-3 border-y border-zinc-200/60 dark:border-white/[0.06]">
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-md bg-emerald-500/20 border border-emerald-500"></span>
+            <span>Specific Hours Override</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-md bg-rose-500/20 border border-dashed border-rose-400"></span>
+            <span>Clinical Day Off</span>
+          </div>
+        </div>
+
+        {/* Selected Day Editor Box */}
+        <div className="p-5 rounded-2xl bg-zinc-50/80 dark:bg-white/[0.02] border border-zinc-200/80 dark:border-white/[0.07] space-y-4">
+          <div className="flex items-center justify-between">
+            <h5 className="font-display font-semibold text-sm text-zinc-950 dark:text-white">
+              Schedule For: <span className="text-sky-600 dark:text-sky-400 font-mono-code">{formatDateForDisplay(selectedDate)}</span>
+            </h5>
+          </div>
+
+          {/* Display Messages */}
+          {overrideMessage && (
+            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-600 dark:text-emerald-400 text-xs font-medium flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 shrink-0" />
+              <span>{overrideMessage}</span>
+            </div>
+          )}
+          {error && (
+            <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-600 dark:text-rose-400 text-xs font-medium flex items-center gap-2">
+              <WarningCircle className="w-4 h-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {dayLoading ? (
+            <div className="text-xs font-mono-code text-zinc-400 text-center py-4">
+              Synchronizing override parameters...
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Checkboxes */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label className="flex items-center gap-3 p-3.5 rounded-xl border border-zinc-200/80 dark:border-white/[0.06] bg-white dark:bg-[#131720] hover:bg-zinc-50 dark:hover:bg-white/[0.02] cursor-pointer transition-colors">
+                  <input
+                    type="checkbox"
+                    id="isEditingSpecificTime"
+                    name="isEditingSpecificTime"
+                    checked={dayDetails.isEditingSpecificTime}
+                    onChange={handleDayInfoChange}
+                    disabled={dayDetails.isDayOff}
+                    className="w-4 h-4 rounded border-zinc-300 text-sky-600 focus:ring-sky-500 cursor-pointer"
+                  />
+                  <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 select-none">
+                    Define specific hours
+                  </span>
+                </label>
+
+                <label className="flex items-center gap-3 p-3.5 rounded-xl border border-zinc-200/80 dark:border-white/[0.06] bg-white dark:bg-[#131720] hover:bg-zinc-50 dark:hover:bg-white/[0.02] cursor-pointer transition-colors">
+                  <input
+                    type="checkbox"
+                    id="isDayOff"
+                    name="isDayOff"
+                    checked={dayDetails.isDayOff}
+                    onChange={handleDayInfoChange}
+                    className="w-4 h-4 rounded border-zinc-300 text-rose-600 focus:ring-rose-500 cursor-pointer"
+                  />
+                  <span className="text-xs font-semibold text-zinc-800 dark:text-zinc-200 select-none">
+                    Mark as unavailable (day off)
+                  </span>
+                </label>
+              </div>
+
+              {/* Time Inputs */}
+              {dayDetails.isEditingSpecificTime && !dayDetails.isDayOff && (
+                <div className="p-4 rounded-xl bg-white dark:bg-[#131720] border border-zinc-200/80 dark:border-white/[0.08] animate-materialize">
+                  <label className="block text-[10px] font-mono-code uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-2.5 font-semibold">
+                    Specific Operational Hours
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="time"
+                      name="startTime"
+                      value={dayDetails.startTime}
+                      onChange={handleDayInfoChange}
+                      required
+                      className="px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-zinc-50/70 dark:bg-white/[0.02] text-zinc-950 dark:text-white font-mono-code text-xs focus:ring-2 focus:ring-sky-500/30 focus:outline-none"
+                    />
+                    <span className="text-xs font-mono-code text-zinc-400 font-semibold">TO</span>
+                    <input
+                      type="time"
+                      name="endTime"
+                      value={dayDetails.endTime}
+                      onChange={handleDayInfoChange}
+                      required
+                      className="px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-zinc-50/70 dark:bg-white/[0.02] text-zinc-950 dark:text-white font-mono-code text-xs focus:ring-2 focus:ring-sky-500/30 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Day Off Indicator */}
+              {dayDetails.isDayOff && (
+                <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-600 dark:text-rose-400 font-medium flex items-center gap-2">
+                  <WarningCircle className="w-4 h-4 shrink-0" />
+                  <span>Marked as unavailable for consultations on this date.</span>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex flex-wrap items-center gap-3 pt-2">
+                <button
+                  onClick={saveOverride}
+                  disabled={dayLoading || !canSaveChanges}
+                  className="h-9 px-4 rounded-xl bg-sky-600 hover:bg-sky-500 disabled:opacity-50 text-white text-xs font-semibold inline-flex items-center gap-2 shadow-xs transition-all active:scale-[0.97] cursor-pointer"
+                >
+                  <FloppyDisk className="w-4 h-4" />
+                  <span>{dayLoading ? "Saving..." : "Commit Override"}</span>
+                </button>
+
+                {dayDetails.hasExistingOverride && (
+                  <button
+                    onClick={deleteOverride}
+                    disabled={dayLoading}
+                    className="h-9 px-4 rounded-xl bg-rose-500/10 hover:bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/25 text-xs font-semibold inline-flex items-center gap-2 transition-all active:scale-[0.97] cursor-pointer"
+                  >
+                    <Trash className="w-4 h-4" />
+                    <span>Revert to Standard Schedule</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Standard Info */}
+              <div className="pt-3 border-t border-zinc-200/60 dark:border-white/[0.06] flex items-center gap-2 text-[11px] font-mono-code text-zinc-400">
+                <Info className="w-4 h-4 shrink-0 text-sky-500" />
+                <span>Standard Baseline:</span>
+                <span className="text-zinc-700 dark:text-zinc-300 font-semibold">
+                  {dayDetails.standardIsWorking
+                    ? `${dayDetails.standardStartTime} - ${dayDetails.standardEndTime}`
+                    : "Not Scheduled"}
+                </span>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

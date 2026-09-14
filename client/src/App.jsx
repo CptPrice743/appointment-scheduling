@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useContext } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -9,6 +9,7 @@ import {
 // Core Components & Context
 import Navbar from "./components/Navbar/Navbar.jsx";
 import { AuthProvider, AuthContext } from "./context/AuthContext.jsx";
+import { ThemeProvider } from "./context/ThemeContext.jsx";
 import PrivateRoute from "./components/Auth/PrivateRoute.jsx";
 import DoctorRoute from "./components/Auth/DoctorRoute.jsx";
 import AdminRoute from "./components/Auth/AdminRoute.jsx";
@@ -31,31 +32,43 @@ import AppointmentOversight from "./pages/admin/AppointmentOversight.jsx";
 // Global Styles
 import "./index.css"; // Correct path
 
-// Helper component to redirect based on role after login
+// Helper component for role-based redirection from /dashboard
 const RoleBasedRedirect = () => {
-  const { user, isLoading } = React.useContext(AuthContext);
+  const { user } = useContext(AuthContext);
 
-  if (isLoading) {
-    return <div className="loading">Loading...</div>; // Or null, or spinner
+  if (!user) {
+    return <Navigate to="/login" replace />;
   }
 
-  if (user?.role === "admin") {
-    return <Navigate to="/admin/dashboard" replace />; // Redirect admin here
+  if (user.role === "admin") {
+    return <Navigate to="/admin/dashboard" replace />;
   }
 
-  if (user?.role === "doctor") {
+  if (user.role === "doctor") {
     return <Navigate to="/doctor/dashboard" replace />;
   }
+
   // Default redirect for patients or if role is unknown/loading failed
   return <Navigate to="/appointments" replace />;
 };
 
+const CatchAllRoute = () => {
+  const { isAuthenticated } = useContext(AuthContext);
+  return isAuthenticated ? (
+    <Navigate to="/dashboard" replace />
+  ) : (
+    <Navigate to="/" replace />
+  );
+};
+
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <Navbar />
-        <div className="container">
+    <ThemeProvider>
+      <AuthProvider>
+        <Router>
+          <div className="min-h-[100dvh] flex flex-col bg-[#F8F9FA] text-[#090A0C] dark:bg-[#07080A] dark:text-[#F4F5F7] transition-colors duration-300 antialiased selection:bg-sky-500/20 selection:text-sky-600 dark:selection:text-sky-300">
+            <Navbar />
+            <main className="flex-1 w-full relative">
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<Home />} />
@@ -153,27 +166,18 @@ function App() {
                 element={<AppointmentOversight />}
               />
             </Route>
-            {/* Catch-all Route - Redirects unauthenticated to home, authenticated to their dashboard */}
             <Route
-              path="*"
-              element={
-                <AuthContext.Consumer>
-                  {" "}
-                  {/* [cite: 31] */}
-                  {({ isAuthenticated }) =>
-                    isAuthenticated ? (
-                      <Navigate to="/dashboard" replace />
-                    ) : (
-                      <Navigate to="/" replace />
-                    )
-                  }
-                </AuthContext.Consumer>
-              }
+              path="/appointments/book"
+              element={<Navigate to="/add" replace />}
             />
+            {/* Catch-all Route - Redirects unauthenticated to home, authenticated to their dashboard */}
+            <Route path="*" element={<CatchAllRoute />} />
           </Routes>
-        </div>
-      </Router>
-    </AuthProvider> /* [cite: 31] */
+        </main>
+      </div>
+    </Router>
+  </AuthProvider>
+</ThemeProvider>
   );
 }
 

@@ -1,20 +1,30 @@
 import React, { useState, useEffect, useContext, useCallback } from "react";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { useNavigate, useParams, useLocation, Link } from "react-router-dom";
 import AuthContext from "../context/AuthContext";
-// Corrected CSS import path assuming the CSS is in the same directory
-import "./AppointmentForm.css";
+import {
+  CalendarBlank,
+  Clock,
+  User,
+  Stethoscope,
+  Phone,
+  EnvelopeSimple,
+  NotePencil,
+  ArrowLeft,
+  CheckCircle,
+  SpinnerGap,
+  ArrowUpRight,
+} from "@phosphor-icons/react";
 
 // --- Helper Functions ---
 const formatDate = (dateString) => {
   if (!dateString) return "";
   try {
-    // Format for display
     const options = {
       year: "numeric",
       month: "long",
       day: "numeric",
       timeZone: "UTC",
-    }; // Specify UTC for consistency
+    };
     return new Date(dateString).toLocaleDateString(undefined, options);
   } catch (e) {
     return "Invalid Date";
@@ -53,7 +63,6 @@ const formatTime12Hour = (timeStr) => {
     return "Invalid Time";
   }
 };
-// ---
 
 const AppointmentForm = () => {
   const { id } = useParams();
@@ -63,8 +72,6 @@ const AppointmentForm = () => {
 
   const isEditing = !!id;
   const isDoctorView = user?.role === "doctor";
-
-  // Extract prefill data from location state (e.g., for rebooking)
   const prefillData = location.state?.prefillData;
 
   const [formData, setFormData] = useState({
@@ -85,25 +92,21 @@ const AppointmentForm = () => {
     _doctorSpecialization: "",
   });
 
-  // State to store the original time when editing
   const [originalStartTime, setOriginalStartTime] = useState(null);
-  // State to track initial data load to prevent premature validation checks if needed
   const [initialDataLoaded, setInitialDataLoaded] = useState(!isEditing);
-
   const [doctors, setDoctors] = useState([]);
   const [availableSlots, setAvailableSlots] = useState([]);
-  const [loading, setLoading] = useState(isEditing); // Start loading if editing
+  const [loading, setLoading] = useState(isEditing);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [submitMessage, setSubmitMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
-  // Logic to determine if time/date can be changed
   const allowTimeChange = !isEditing || formData.status === "scheduled";
 
-  // Fetch list of doctors (for patient booking dropdown)
+  // Fetch list of doctors
   useEffect(() => {
     if (!isEditing && !isDoctorView) {
-      setLoading(true); // Ensure loading is true while fetching doctors
+      setLoading(true);
       axiosInstance
         .get("/doctors/list")
         .then((res) => {
@@ -127,13 +130,11 @@ const AppointmentForm = () => {
           setLoading(false);
         });
     }
-    // No else needed here, loading state handled by appointment fetch effect when editing
   }, [axiosInstance, isEditing, isDoctorView, prefillData?.doctorId]);
 
   // Fetch appointment data if editing
   useEffect(() => {
     if (isEditing && id) {
-      // setLoading(true); // Loading is set initially
       axiosInstance
         .get(`/appointments/${id}`)
         .then((res) => {
@@ -157,7 +158,7 @@ const AppointmentForm = () => {
             ...prev,
             appointmentDate: formatDateForInput(appointmentDate),
             startTime: startTime || "",
-            duration: fetchedDuration, // Use fetched duration directly
+            duration: fetchedDuration,
             doctorId: populatedDoctorId,
             patientUserId: patientUserId?._id || "",
             patientName: fetchedPatientName || patientUserId?.name || "",
@@ -169,11 +170,9 @@ const AppointmentForm = () => {
             _doctorName: doctorId?.name || "N/A",
             _doctorSpecialization: doctorId?.specialization || "N/A",
           }));
-          setOriginalStartTime(startTime || null); // Store the original time
+          setOriginalStartTime(startTime || null);
 
-          // Fetch doctor's duration if not included in appointment data (or if needed for consistency)
           if (populatedDoctorId) {
-            // Always fetch associated doctor details for consistency, like duration
             axiosInstance
               .get(`/doctors/${populatedDoctorId}`)
               .then((docRes) => {
@@ -185,18 +184,15 @@ const AppointmentForm = () => {
                 }
               })
               .catch((err) =>
-                console.error(
-                  "Could not fetch doctor details on edit load",
-                  err
-                )
+                console.error("Could not fetch doctor details on edit load", err)
               )
               .finally(() => {
-                setLoading(false); // Stop loading after appointment and doctor details are fetched
-                setInitialDataLoaded(true); // Mark initial load complete
+                setLoading(false);
+                setInitialDataLoaded(true);
               });
           } else {
-            setLoading(false); // Stop loading if no doctorId to fetch
-            setInitialDataLoaded(true); // Mark initial load complete
+            setLoading(false);
+            setInitialDataLoaded(true);
           }
         })
         .catch((err) => {
@@ -205,15 +201,14 @@ const AppointmentForm = () => {
             err.response?.data?.message || "Failed to load appointment data."
           );
           setLoading(false);
-          setInitialDataLoaded(true); // Mark load complete even on error
+          setInitialDataLoaded(true);
         });
     }
   }, [id, isEditing, axiosInstance]);
 
-  // --- Fetch Available Slots ---
+  // Fetch available slots
   const fetchAvailableSlots = useCallback(
     async (docId, date) => {
-      // Only fetch if allowed to change time AND doctor/date are present
       if (!docId || !date || !allowTimeChange) {
         setAvailableSlots([]);
         return;
@@ -236,12 +231,10 @@ const AppointmentForm = () => {
         setSlotsLoading(false);
       }
     },
-    [axiosInstance, allowTimeChange] // Dependency includes allowTimeChange
+    [axiosInstance, allowTimeChange]
   );
 
-  // Trigger fetchAvailableSlots when doctorId or appointmentDate changes if allowed
   useEffect(() => {
-    // Only fetch slots if initial data is loaded (for editing) or if creating new
     if (initialDataLoaded) {
       const shouldFetchSlots =
         formData.doctorId && formData.appointmentDate && allowTimeChange;
@@ -249,112 +242,60 @@ const AppointmentForm = () => {
       if (shouldFetchSlots) {
         fetchAvailableSlots(formData.doctorId, formData.appointmentDate);
       } else {
-        setAvailableSlots([]); // Clear slots if conditions aren't met
+        setAvailableSlots([]);
       }
     }
   }, [
     formData.doctorId,
     formData.appointmentDate,
-    allowTimeChange,
-    initialDataLoaded, // Ensure initial data is loaded before fetching slots based on it
     fetchAvailableSlots,
+    initialDataLoaded,
+    allowTimeChange,
   ]);
 
-  // Handle form changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => {
-      let newState = { ...prev, [name]: value };
-
-      if (name === "doctorId" && !isDoctorView) {
-        const selectedDoctor = doctors.find((doc) => doc._id === value);
-        newState.duration = selectedDoctor?.appointmentDuration || "";
-        newState.appointmentDate = formatDateForInput(new Date());
-        newState.startTime = "";
-        setAvailableSlots([]);
-        setOriginalStartTime(null);
+      const updated = { ...prev, [name]: value };
+      if (name === "doctorId") {
+        const selectedDoc = doctors.find((doc) => doc._id === value);
+        updated.duration = selectedDoc ? selectedDoc.appointmentDuration : "";
+        updated.startTime = "";
       }
-
       if (name === "appointmentDate") {
-        // Reset time selection when date changes
-        newState.startTime = "";
-        // Available slots will be cleared and re-fetched by the useEffect hook
+        updated.startTime = "";
       }
-
-      // If doctor changes status TO scheduled, ensure time is still valid or cleared
-      if (
-        name === "status" &&
-        value === "scheduled" &&
-        isDoctorView &&
-        isEditing
-      ) {
-        // If the current time is not in the fetched slots for the current date, clear it
-        // Note: This assumes availableSlots are already fetched for the current date
-        if (
-          newState.startTime &&
-          !availableSlots.includes(newState.startTime)
-        ) {
-          console.log(
-            `Current time ${newState.startTime} not available for status change, clearing.`
-          );
-          // newState.startTime = ''; // Optionally clear, or rely on validation
-        }
-      }
-
-      return newState;
+      return updated;
     });
     setErrorMessage("");
-    setSubmitMessage("");
   };
 
-  // Handle form submission
+  const handleSlotSelect = (slot) => {
+    if (!allowTimeChange) return;
+    setFormData((prev) => ({ ...prev, startTime: slot }));
+    setErrorMessage("");
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMessage("");
     setSubmitMessage("");
 
-    // Validation
-    // Require time selection if user is allowed to change time
+    if (!isEditing && !formData.patientPhone) {
+      setErrorMessage("Please enter your contact phone number.");
+      return;
+    }
+
     if (allowTimeChange && !formData.startTime) {
       setErrorMessage("Please select an available time slot.");
       return;
     }
-    // Ensure selected time is actually in the available slots if changing time
-    if (
-      allowTimeChange &&
-      formData.startTime &&
-      !availableSlots.includes(formData.startTime) &&
-      formData.startTime !== originalStartTime
-    ) {
-      // This case should ideally not happen if dropdown is built correctly, but as a safeguard:
-      setErrorMessage(
-        `Selected time ${formatTime12Hour(
-          formData.startTime
-        )} is not valid for this date. Please select from the list.`
-      );
-      return;
-    }
-    // If the selected time IS the original time, but it's no longer in availableSlots (e.g. doctor changed availability), block update.
-    if (
-      allowTimeChange &&
-      formData.startTime &&
-      formData.startTime === originalStartTime &&
-      !availableSlots.includes(originalStartTime)
-    ) {
-      setErrorMessage(
-        `The original time (${formatTime12Hour(
-          originalStartTime
-        )}) is no longer available for this date. Please select a different time.`
-      );
-      // Clear the invalid selection?
-      // setFormData(prev => ({...prev, startTime: ''}));
+
+    if (!isDoctorView && !formData.doctorId) {
+      setErrorMessage("Please select a physician.");
       return;
     }
 
-    if (!isDoctorView && !formData.doctorId) {
-      setErrorMessage("Please select a doctor.");
-      return;
-    }
     if (
       isEditing &&
       isDoctorView &&
@@ -373,24 +314,18 @@ const AppointmentForm = () => {
     let requestUrl = isEditing ? `/appointments/${id}` : "/appointments";
 
     if (isEditing) {
-      // Determine which fields have actually changed compared to the initial state if needed,
-      // but for simplicity, send relevant fields based on permissions.
       dataToSend = {
         ...(allowTimeChange && { appointmentDate: formData.appointmentDate }),
         ...(allowTimeChange && { startTime: formData.startTime }),
-        reason: formData.reason, // Assuming reason can always be updated if form allows
+        reason: formData.reason,
         ...(isDoctorView && { status: formData.status }),
         ...(isDoctorView && { remarks: formData.remarks }),
       };
-      // Remove fields that weren't allowed to change or don't have values
       Object.keys(dataToSend).forEach((key) => {
         if (dataToSend[key] === undefined || dataToSend[key] === null) {
           delete dataToSend[key];
         }
       });
-      // Prevent sending empty update if nothing relevant changed (optional)
-      // const hasChanges = Object.keys(dataToSend).some(key => /* comparison logic needed */);
-      // if (!hasChanges) { setLoading(false); setErrorMessage("No changes detected."); return; }
     } else {
       dataToSend = {
         doctorId: formData.doctorId,
@@ -401,19 +336,13 @@ const AppointmentForm = () => {
       };
     }
 
-    // Final check for required fields before sending
     if (
       requestMethod === "post" &&
       (!dataToSend.doctorId ||
         !dataToSend.appointmentDate ||
-        !dataToSend.startTime) /*|| !dataToSend.reason - reason might be optional */
+        !dataToSend.startTime)
     ) {
-      setErrorMessage("Missing required fields for scheduling.");
-      setLoading(false);
-      return;
-    }
-    if (requestMethod === "patch" && Object.keys(dataToSend).length === 0) {
-      setErrorMessage("No valid updates provided.");
+      setErrorMessage("Missing required parameters for scheduling.");
       setLoading(false);
       return;
     }
@@ -422,14 +351,14 @@ const AppointmentForm = () => {
       let responseMessage = "";
       if (isEditing) {
         await axiosInstance.patch(requestUrl, dataToSend);
-        responseMessage = "Appointment updated successfully!";
+        responseMessage = "Appointment updated successfully.";
       } else {
         await axiosInstance.post(requestUrl, dataToSend);
-        responseMessage = "Appointment scheduled successfully!";
+        responseMessage = "Appointment scheduled successfully.";
       }
       setSubmitMessage(responseMessage);
       const targetPath = isDoctorView ? "/doctor/dashboard" : "/appointments";
-      setTimeout(() => navigate(targetPath, { replace: true }), 1500);
+      setTimeout(() => navigate(targetPath, { replace: true }), 1000);
     } catch (err) {
       console.error(
         `Error ${isEditing ? "updating" : "scheduling"} appointment:`,
@@ -439,25 +368,20 @@ const AppointmentForm = () => {
         err.response?.data?.message ||
           `Error ${isEditing ? "updating" : "scheduling"} appointment.`
       );
-      setLoading(false); // Set loading false only on error
+      setLoading(false);
     }
-    // Keep loading true on success until redirect timeout
   };
 
-  // --- Derived State for UI ---
-  // Check if remarks are needed for completion status
   const isCompletedDisabled =
     isEditing &&
     isDoctorView &&
     formData.status === "completed" &&
     (!formData.remarks || formData.remarks.trim() === "");
 
-  // Determine if reason field should be editable
   const allowReasonChange =
     !isEditing ||
     (formData.status !== "completed" && formData.status !== "cancelled");
 
-  // ** MODIFICATION: Simplified Submit Button Disabled Logic **
   const isSubmitDisabled =
     loading ||
     (isEditing &&
@@ -465,281 +389,395 @@ const AppointmentForm = () => {
       formData.status === "completed" &&
       isCompletedDisabled);
 
-  // --- Loading State ---
-  // Show loading indicator only if loading is true AND there's no submit/error message yet
-  if (loading && !submitMessage && !errorMessage) {
-    return <div className="loading">Loading...</div>;
-  }
-
   return (
-    <div className="appointment-form-container">
-      <h2>
-        {isEditing
-          ? isDoctorView
-            ? "View/Manage Appointment"
-            : "Edit Appointment"
-          : "Schedule New Appointment"}
-      </h2>
-
-      {submitMessage && <div className="message success">{submitMessage}</div>}
-      {errorMessage && <div className="message error">{errorMessage}</div>}
-
-      <form onSubmit={handleSubmit} className="appointment-form">
-        {/* Patient Details Section */}
-        {isEditing && (
-          <>
-            <div className="form-group">
-              <label>Patient Name</label>
-              <input type="text" value={formData.patientName} disabled />
-            </div>
-            <div className="form-group">
-              <label>Patient Email</label>
-              <input type="email" value={formData.patientEmail} disabled />
-            </div>
-            <div className="form-group">
-              <label>Patient Phone</label>
-              <input
-                type="tel"
-                value={formData.patientPhone || "N/A"}
-                disabled
-              />
-            </div>
-          </>
-        )}
-        {!isEditing && !isDoctorView && (
-          <>
-            <div className="form-group">
-              <label htmlFor="patientName">Your Name</label>
-              <input
-                type="text"
-                id="patientName"
-                value={formData.patientName}
-                disabled
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="patientEmail">Your Email</label>
-              <input
-                type="email"
-                id="patientEmail"
-                value={formData.patientEmail}
-                disabled
-              />
-            </div>
-            <div className="form-group">
-              <label htmlFor="patientPhone">Your Phone</label>
-              <input
-                type="tel"
-                id="patientPhone"
-                name="patientPhone"
-                value={formData.patientPhone}
-                onChange={handleChange}
-                required
-                placeholder="Enter your phone number"
-              />
-            </div>
-          </>
-        )}
-
-        {/* Doctor Section (Conditionally Rendered) */}
-        {!(isEditing && isDoctorView) && (
-          <div className="form-group">
-            <label htmlFor="doctorId">Doctor</label>
-            {!isEditing && !isDoctorView ? (
-              <select
-                id="doctorId"
-                name="doctorId"
-                value={formData.doctorId}
-                onChange={handleChange}
-                required
-                disabled={loading}
-              >
-                <option value="">Select a doctor...</option>
-                {doctors.map((doc) => (
-                  <option key={doc._id} value={doc._id}>
-                    {doc.name} ({doc.specialization})
-                  </option>
-                ))}
-              </select>
-            ) : (
-              <input
-                type="text"
-                value={`${formData._doctorName} (${formData._doctorSpecialization})`}
-                disabled
-              />
-            )}
-          </div>
-        )}
-
-        {/* Date Selection */}
-        <div className="form-group">
-          <label htmlFor="appointmentDate">Appointment Date</label>
-          <input
-            type="date"
-            id="appointmentDate"
-            name="appointmentDate"
-            value={formData.appointmentDate}
-            onChange={handleChange}
-            required
-            disabled={!allowTimeChange || loading}
-          />
-        </div>
-
-        {/* Time Slot Selection */}
-        <div className="form-group">
-          <label htmlFor="startTime">
-            {allowTimeChange ? "Available Time Slots" : "Appointment Time"}
-          </label>
-          <select
-            id="startTime"
-            name="startTime"
-            value={formData.startTime} // Controlled component
-            onChange={handleChange}
-            required={allowTimeChange} // Only require if changeable
-            disabled={!allowTimeChange || slotsLoading || loading}
-          >
-            {/* Default/Placeholder Option */}
-            <option value="">
-              {!allowTimeChange
-                ? formatTime12Hour(formData.startTime) // Show saved time if not changeable
-                : slotsLoading
-                ? "Loading slots..."
-                : availableSlots.length === 0
-                ? "No slots available / Select date" // Simplified placeholder
-                : "Select a time slot..."}
-            </option>
-
-            {/* ** MODIFICATION: Map through available slots and mark original ** */}
-            {allowTimeChange &&
-              availableSlots.map((slot) => {
-                const isOriginal = isEditing && slot === originalStartTime;
-                const displayTime = formatTime12Hour(slot);
-                return (
-                  <option key={slot} value={slot}>
-                    {displayTime}
-                    {isOriginal ? " (Original)" : ""}
-                  </option>
-                );
-              })}
-            {/* Removed the separate blocks that added non-available original times */}
-          </select>
-          {formData.duration &&
-            (!slotsLoading || !allowTimeChange) && ( // Show duration if loaded or not changing time
-              <small> (Appt. Duration: {formData.duration} minutes)</small>
-            )}
-        </div>
-
-        {/* Reason */}
-        <div className="form-group">
-          <label htmlFor="reason">Reason for Visit</label>
-          <textarea
-            id="reason"
-            name="reason"
-            value={formData.reason}
-            onChange={handleChange}
-            required={!isEditing}
-            rows="3"
-            disabled={!allowReasonChange || loading}
-          ></textarea>
-        </div>
-
-        {/* Remarks */}
-        {isEditing && (isDoctorView || formData.remarks) && (
-          <div className="form-group">
-            <label htmlFor="remarks">
-              {isDoctorView ? "Doctor's Remarks" : "Doctor's Remarks"}
-            </label>
-            <textarea
-              id="remarks"
-              name="remarks"
-              value={formData.remarks}
-              onChange={handleChange}
-              rows="4"
-              placeholder={
-                isDoctorView
-                  ? "Add remarks here (required for completion)..."
-                  : ""
-              }
-              disabled={
-                !isDoctorView || formData.status === "cancelled" || loading
-              }
-            ></textarea>
-          </div>
-        )}
-
-        {/* Status */}
-        {isEditing && (
-          <div className="form-group">
-            <label htmlFor="status">Status</label>
-            {isDoctorView ? (
-              <select
-                id="status"
-                name="status"
-                value={formData.status}
-                onChange={handleChange}
-                required
-                disabled={formData.status === "cancelled" || loading}
-              >
-                <option value="scheduled">Scheduled</option>
-                <option
-                  value="completed"
-                  disabled={
-                    isCompletedDisabled && formData.status !== "completed"
-                  } // Disable only if trying to set completed without remarks
-                  title={isCompletedDisabled ? "Add remarks to complete" : ""}
-                >
-                  Completed {isCompletedDisabled ? "(Remarks Required)" : ""}
-                </option>
-                <option value="noshow">No Show</option>
-                <option
-                  value="cancelled"
-                  disabled={formData.status !== "cancelled"}
-                >
-                  Cancelled
-                </option>
-              </select>
-            ) : (
-              <input
-                type="text"
-                value={
-                  formData.status.charAt(0).toUpperCase() +
-                  formData.status.slice(1)
-                }
-                disabled
-              />
-            )}
-          </div>
-        )}
-
-        {/* Submit Button */}
-        {!(
-          isEditing &&
-          !isDoctorView &&
-          (formData.status === "completed" || formData.status === "cancelled")
-        ) && (
-          <button
-            type="submit"
-            className="submit-btn"
-            disabled={isSubmitDisabled} // ** MODIFICATION: Use simplified disabled logic **
-          >
-            {loading
-              ? "Submitting..."
-              : isEditing
-              ? "Update Appointment"
-              : "Schedule Appointment"}
-          </button>
-        )}
-
-        {/* Cancel/Back button */}
+    <div className="w-full max-w-5xl mx-auto px-4 sm:px-8 lg:px-12 py-8 sm:py-10 animate-materialize">
+      {/* Return Button */}
+      <div className="mb-6">
         <button
           type="button"
-          className="cancel-btn"
           onClick={() => navigate(-1)}
-          disabled={loading}
+          className="inline-flex items-center gap-1.5 text-xs font-mono-code text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-white transition-colors active:scale-[0.97]"
         >
-          Cancel / Back {/* Changed text back based on previous request */}
+          <ArrowLeft size={15} />
+          <span>Return to Dashboard</span>
         </button>
-      </form>
+      </div>
+
+      <div className="doppelrand-shell">
+        <div className="doppelrand-core p-7 sm:p-9">
+          <div className="specular-hairline" />
+
+          {/* Title Bar */}
+          <div className="pb-5 mb-7 border-b border-zinc-100 dark:border-white/[0.06] flex items-center justify-between">
+            <div>
+              <h2 className="font-display text-2xl font-bold tracking-tight text-zinc-950 dark:text-white">
+                {isEditing
+                  ? isDoctorView
+                    ? "Clinical Visit Management"
+                    : "Reschedule Consultation"
+                  : "Book Clinical Consultation"}
+              </h2>
+              <p className="font-body text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+                {isDoctorView
+                  ? "Update diagnostic evaluation, consultation status, and clinical remarks."
+                  : "Select your physician, desired appointment date, and verified time slot."}
+              </p>
+            </div>
+          </div>
+
+          {/* Feedback Alerts */}
+          {submitMessage && (
+            <div className="mb-6 p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-medium font-mono-code flex items-center gap-2">
+              <CheckCircle size={17} weight="bold" />
+              <span>{submitMessage}</span>
+            </div>
+          )}
+          {errorMessage && (
+            <div className="mb-6 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-medium font-mono-code">
+              {errorMessage}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Patient Credentials */}
+            <div className="space-y-3.5">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 font-mono-code block">
+                Patient Information
+              </span>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label
+                    htmlFor="patientName"
+                    className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 font-mono-code mb-1.5"
+                  >
+                    Patient Full Name
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-400">
+                      <User size={16} />
+                    </div>
+                    <input
+                      type="text"
+                      id="patientName"
+                      value={formData.patientName}
+                      disabled
+                      className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-zinc-200/80 dark:border-white/[0.06] bg-zinc-100/60 dark:bg-white/[0.02] text-zinc-500 dark:text-zinc-400 text-xs font-medium cursor-not-allowed"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="patientEmail"
+                    className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 font-mono-code mb-1.5"
+                  >
+                    Email Address
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-400">
+                      <EnvelopeSimple size={16} />
+                    </div>
+                    <input
+                      type="email"
+                      id="patientEmail"
+                      value={formData.patientEmail}
+                      disabled
+                      className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-zinc-200/80 dark:border-white/[0.06] bg-zinc-100/60 dark:bg-white/[0.02] text-zinc-500 dark:text-zinc-400 text-xs font-medium cursor-not-allowed"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {!isEditing && !isDoctorView && (
+                <div>
+                  <label
+                    htmlFor="patientPhone"
+                    className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 font-mono-code mb-1.5"
+                  >
+                    Contact Phone Number *
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-400">
+                      <Phone size={16} />
+                    </div>
+                    <input
+                      type="tel"
+                      id="patientPhone"
+                      name="patientPhone"
+                      value={formData.patientPhone}
+                      onChange={handleChange}
+                      required
+                      placeholder="+1 (555) 000-0000"
+                      className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-zinc-50/70 dark:bg-white/[0.03] text-zinc-950 dark:text-white text-xs font-mono-code focus:ring-2 focus:ring-sky-500/30 focus:border-sky-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Doctor Selection */}
+            {!(isEditing && isDoctorView) && (
+              <div className="space-y-3.5 pt-4 border-t border-zinc-100 dark:border-white/[0.06]">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 font-mono-code block">
+                  Healthcare Provider Selection
+                </span>
+
+                <div>
+                  <label
+                    htmlFor="doctorId"
+                    className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 font-mono-code mb-1.5"
+                  >
+                    Physician / Specialist *
+                  </label>
+                  {!isEditing && !isDoctorView ? (
+                    <select
+                      id="doctorId"
+                      name="doctorId"
+                      value={formData.doctorId}
+                      onChange={handleChange}
+                      required
+                      disabled={loading}
+                      className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-zinc-50/70 dark:bg-white/[0.03] text-zinc-950 dark:text-white text-xs font-mono-code focus:ring-2 focus:ring-sky-500/30 focus:border-sky-500 focus:outline-none cursor-pointer"
+                    >
+                      <option value="">Choose physician specialist...</option>
+                      {doctors.map((doc) => (
+                        <option key={doc._id} value={doc._id}>
+                          {doc.name} — {doc.specialization} ({doc.appointmentDuration}m consult)
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={`${formData._doctorName} (${formData._doctorSpecialization})`}
+                      disabled
+                      className="w-full px-4 py-2.5 rounded-xl border border-zinc-200/80 dark:border-white/[0.06] bg-zinc-100/60 dark:bg-white/[0.02] text-zinc-500 dark:text-zinc-400 text-xs font-medium cursor-not-allowed"
+                    />
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Schedule Date & Slot */}
+            <div className="space-y-3.5 pt-4 border-t border-zinc-100 dark:border-white/[0.06]">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 font-mono-code block">
+                Appointment Schedule & Slot Generation
+              </span>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label
+                    htmlFor="appointmentDate"
+                    className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 font-mono-code mb-1.5"
+                  >
+                    Appointment Date *
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-zinc-400">
+                      <CalendarBlank size={16} />
+                    </div>
+                    <input
+                      type="date"
+                      id="appointmentDate"
+                      name="appointmentDate"
+                      value={formData.appointmentDate}
+                      onChange={handleChange}
+                      required
+                      disabled={!allowTimeChange || loading}
+                      className="w-full pl-10 pr-3.5 py-2.5 rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-zinc-50/70 dark:bg-white/[0.03] text-zinc-950 dark:text-white text-xs font-mono-code focus:ring-2 focus:ring-sky-500/30 focus:border-sky-500 focus:outline-none disabled:opacity-60"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="startTime"
+                    className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 font-mono-code mb-1.5"
+                  >
+                    Time Slot *
+                  </label>
+                  <select
+                    id="startTime"
+                    name="startTime"
+                    value={formData.startTime}
+                    onChange={handleChange}
+                    required={allowTimeChange}
+                    disabled={!allowTimeChange || slotsLoading || loading}
+                    className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-zinc-50/70 dark:bg-white/[0.03] text-zinc-950 dark:text-white text-xs font-mono-code focus:ring-2 focus:ring-sky-500/30 focus:border-sky-500 focus:outline-none disabled:opacity-60 cursor-pointer"
+                  >
+                    <option value="">
+                      {!allowTimeChange
+                        ? formatTime12Hour(formData.startTime)
+                        : slotsLoading
+                        ? "Querying clinic slot engine..."
+                        : availableSlots.length === 0
+                        ? "No slots available / Select date"
+                        : "Select verified slot..."}
+                    </option>
+                    {allowTimeChange &&
+                      availableSlots.map((slot) => {
+                        const isOriginal = isEditing && slot === originalStartTime;
+                        return (
+                          <option key={slot} value={slot}>
+                            {formatTime12Hour(slot)} {isOriginal ? "(Current)" : ""}
+                          </option>
+                        );
+                      })}
+                  </select>
+                </div>
+              </div>
+
+              {/* Interactive Visual Slot Pill Matrix */}
+              {allowTimeChange && availableSlots.length > 0 && (
+                <div className="mt-3">
+                  <span className="text-[10px] font-mono-code uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block mb-2">
+                    Direct Slot Selection ({availableSlots.length} available):
+                  </span>
+                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 p-2.5 rounded-2xl bg-zinc-50/80 dark:bg-white/[0.02] border border-zinc-200/70 dark:border-white/[0.06] max-h-48 overflow-y-auto">
+                    {availableSlots.map((slot) => {
+                      const isSelected = formData.startTime === slot;
+                      return (
+                        <button
+                          key={slot}
+                          type="button"
+                          onClick={() => handleSlotSelect(slot)}
+                          className={`py-2 px-2 rounded-xl text-xs font-mono-code transition-all active:scale-[0.95] flex items-center justify-center gap-1 ${
+                            isSelected
+                              ? "bg-sky-500/15 border border-sky-500 text-sky-600 dark:text-sky-400 font-bold shadow-xs"
+                              : "bg-white dark:bg-[#131720] border border-zinc-200/80 dark:border-white/[0.08] text-zinc-700 dark:text-zinc-300 hover:border-sky-500/40"
+                          }`}
+                        >
+                          <span>{formatTime12Hour(slot)}</span>
+                          {isSelected && <CheckCircle size={12} weight="fill" className="text-sky-500" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Reason */}
+            <div className="space-y-3.5 pt-4 border-t border-zinc-100 dark:border-white/[0.06]">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 font-mono-code block">
+                Clinical Context
+              </span>
+
+              <div>
+                <label
+                  htmlFor="reason"
+                  className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 font-mono-code mb-1.5"
+                >
+                  Consultation Purpose / Symptoms
+                </label>
+                <textarea
+                  id="reason"
+                  name="reason"
+                  value={formData.reason}
+                  onChange={handleChange}
+                  required={!isEditing}
+                  rows="3"
+                  disabled={!allowReasonChange || loading}
+                  placeholder="Outline symptoms, reason for consult, or preliminary medical history..."
+                  className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-zinc-50/70 dark:bg-white/[0.03] text-zinc-950 dark:text-white text-xs font-body focus:ring-2 focus:ring-sky-500/30 focus:border-sky-500 focus:outline-none disabled:opacity-60"
+                />
+              </div>
+            </div>
+
+            {/* Doctor Management (Status & Remarks) */}
+            {isEditing && (isDoctorView || formData.remarks) && (
+              <div className="space-y-3.5 pt-4 border-t border-zinc-100 dark:border-white/[0.06] bg-zinc-50/70 dark:bg-white/[0.02] p-4 sm:p-5 rounded-2xl border border-zinc-200/60 dark:border-white/[0.06]">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-sky-600 dark:text-sky-400 font-mono-code block">
+                  Physician Diagnosis & Consultation Outcome
+                </span>
+
+                {isDoctorView && (
+                  <div>
+                    <label
+                      htmlFor="status"
+                      className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 font-mono-code mb-1.5"
+                    >
+                      Consultation Status
+                    </label>
+                    <select
+                      id="status"
+                      name="status"
+                      value={formData.status}
+                      onChange={handleChange}
+                      className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-white dark:bg-[#131720] text-zinc-950 dark:text-white text-xs font-mono-code font-semibold focus:ring-2 focus:ring-sky-500/30 focus:outline-none cursor-pointer"
+                    >
+                      <option value="scheduled">Scheduled</option>
+                      <option value="completed">Completed</option>
+                      <option value="noshow">No Show</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                  </div>
+                )}
+
+                <div>
+                  <label
+                    htmlFor="remarks"
+                    className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 font-mono-code mb-1.5"
+                  >
+                    Clinical Remarks {isDoctorView && formData.status === "completed" ? "*" : ""}
+                  </label>
+                  <textarea
+                    id="remarks"
+                    name="remarks"
+                    value={formData.remarks}
+                    onChange={handleChange}
+                    rows="3"
+                    disabled={!isDoctorView || loading}
+                    placeholder={
+                      isDoctorView
+                        ? "Enter diagnostic findings, therapeutic instructions, or follow-up timelines..."
+                        : "No remarks provided."
+                    }
+                    className="w-full px-4 py-2.5 rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-white dark:bg-[#131720] text-zinc-950 dark:text-white text-xs font-body focus:ring-2 focus:ring-sky-500/30 focus:outline-none disabled:opacity-60"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Bottom Actions */}
+            <div className="pt-6 border-t border-zinc-100 dark:border-white/[0.06] flex flex-wrap items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => navigate(-1)}
+                className="h-10 px-5 rounded-xl border border-zinc-200/80 dark:border-white/[0.08] bg-zinc-50/80 dark:bg-white/[0.03] text-xs font-semibold text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-white/[0.06] active:scale-[0.98] transition-all inline-flex items-center justify-center cursor-pointer"
+              >
+                Cancel / Return
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitDisabled}
+                className="h-10 pl-5 pr-2 rounded-xl bg-zinc-950 dark:bg-white text-white dark:text-zinc-950 font-semibold text-xs tracking-tight inline-flex items-center justify-center gap-2.5 transition-all duration-200 hover:opacity-90 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed shadow-sm cursor-pointer"
+              >
+                {loading ? (
+                  <>
+                    <SpinnerGap size={15} className="animate-spin" />
+                    <span>Synchronizing...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>
+                      {isEditing
+                        ? isDoctorView
+                          ? "Commit Clinical Outcome"
+                          : "Save Updated Visit"
+                        : "Confirm Consultation"}
+                    </span>
+                    <span className="w-6 h-6 rounded-lg bg-white/15 dark:bg-zinc-950/10 flex items-center justify-center transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
+                      <ArrowUpRight size={13} weight="bold" />
+                    </span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
   );
 };

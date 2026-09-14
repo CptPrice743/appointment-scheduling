@@ -1,58 +1,75 @@
 import React, { useState, useEffect, useContext } from "react";
 import AuthContext from "../../context/AuthContext";
-import "./AdminDashboard.css"; // Import the CSS file
-import { Bar, Doughnut } from "react-chartjs-2"; // Import Doughnut
+import { Link } from "react-router-dom";
+import { Bar, Doughnut } from "react-chartjs-2";
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   BarElement,
-  ArcElement, // Import ArcElement for Doughnut/Pie
+  ArcElement,
   Title,
   Tooltip,
   Legend,
 } from "chart.js";
-import { format } from "date-fns"; // For formatting date/time
+import { format } from "date-fns";
+import {
+  CalendarCheck,
+  Clock,
+  UserPlus,
+  Pulse,
+  ChartBar,
+  ChartPieSlice,
+  ShieldCheck,
+  TrendUp,
+  WarningCircle,
+  UsersThree,
+  FirstAid,
+  ArrowUpRight,
+} from "@phosphor-icons/react";
 
-// Register Chart.js components
 ChartJS.register(
   CategoryScale,
   LinearScale,
   BarElement,
-  ArcElement, // Register ArcElement
+  ArcElement,
   Title,
   Tooltip,
   Legend
 );
 
-// Helper function to get status colors (customize as needed)
+// Cold Luxury Clinical Status Colors
 const getStatusColor = (status) => {
   switch (status?.toLowerCase()) {
     case "scheduled":
-      return "rgba(0, 123, 255, 0.7)"; // Blue
+      return "rgba(56, 189, 248, 0.85)"; // Sky
     case "completed":
-      return "rgba(40, 167, 69, 0.7)"; // Green
+      return "rgba(16, 185, 129, 0.85)"; // Emerald
     case "cancelled":
-      return "rgba(220, 53, 69, 0.7)"; // Red
+      return "rgba(244, 63, 94, 0.85)"; // Rose
     case "pending":
-      return "rgba(255, 193, 7, 0.7)"; // Yellow
+      return "rgba(245, 158, 11, 0.85)"; // Amber
+    case "noshow":
+      return "rgba(113, 113, 122, 0.85)"; // Zinc
     default:
-      return "rgba(108, 117, 125, 0.7)"; // Gray
+      return "rgba(148, 163, 184, 0.85)";
   }
 };
-// Generate border colors slightly darker/opaque
+
 const getStatusBorderColor = (status) => {
   switch (status?.toLowerCase()) {
     case "scheduled":
-      return "rgba(0, 123, 255, 1)";
+      return "rgb(56, 189, 248)";
     case "completed":
-      return "rgba(40, 167, 69, 1)";
+      return "rgb(16, 185, 129)";
     case "cancelled":
-      return "rgba(220, 53, 69, 1)";
+      return "rgb(244, 63, 94)";
     case "pending":
-      return "rgba(255, 193, 7, 1)";
+      return "rgb(245, 158, 11)";
+    case "noshow":
+      return "rgb(113, 113, 122)";
     default:
-      return "rgba(108, 117, 125, 1)";
+      return "rgb(148, 163, 184)";
   }
 };
 
@@ -60,17 +77,16 @@ const AdminDashboard = () => {
   const [stats, setStats] = useState({
     totalAppointments: 0,
     appointmentsPerDoctor: [],
-    appointmentsByStatus: [], // Initialize state for status data
+    appointmentsByStatus: [],
     upcomingAppointments: 0,
     newUserRegistrations: 0,
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [currentTime, setCurrentTime] = useState(new Date()); // For the clock
+  const [currentTime, setCurrentTime] = useState(new Date());
   const { axiosInstance } = useContext(AuthContext);
   const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 
-  // Effect for fetching stats
   useEffect(() => {
     const fetchStats = async () => {
       setLoading(true);
@@ -82,14 +98,10 @@ const AdminDashboard = () => {
         setStats({
           totalAppointments: response.data.totalAppointments || 0,
           appointmentsPerDoctor: response.data.appointmentsPerDoctor || [],
-          appointmentsByStatus: response.data.appointmentsByStatus || [], // Set status data
+          appointmentsByStatus: response.data.appointmentsByStatus || [],
           upcomingAppointments: response.data.upcomingAppointments || 0,
           newUserRegistrations: response.data.newUserRegistrations || 0,
         });
-        console.log(
-          "Frontend - Received appointmentsByStatus:",
-          response.data.appointmentsByStatus
-        );
       } catch (err) {
         console.error("Error fetching admin dashboard stats:", err);
         setError(
@@ -102,177 +114,290 @@ const AdminDashboard = () => {
     fetchStats();
   }, [axiosInstance, API_URL]);
 
-  // Effect for updating time every second
   useEffect(() => {
     const timerId = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
-    // Cleanup interval on component unmount
     return () => clearInterval(timerId);
   }, []);
 
-  // --- Chart Data Preparation ---
-
-  // 1. Appointments Per Doctor (Bar Chart)
+  // 1. Appointments Per Doctor
   const appointmentsPerDoctorChartData = {
     labels: stats.appointmentsPerDoctor.map(
       (doc) => doc.doctorName || "Unknown"
     ),
     datasets: [
       {
-        label: "Appointments Count",
+        label: "Consultation Volume",
         data: stats.appointmentsPerDoctor.map((doc) => doc.count),
-        backgroundColor: "rgba(0, 123, 255, 0.6)",
-        borderColor: "rgba(0, 123, 255, 1)",
-        borderWidth: 1,
+        backgroundColor: "rgba(56, 189, 248, 0.7)",
+        borderColor: "rgb(56, 189, 248)",
+        borderWidth: 1.5,
+        borderRadius: 8,
       },
     ],
   };
+
   const appointmentsPerDoctorChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    plugins: { legend: { position: "top" } },
-    scales: { y: { beginAtZero: true, ticks: { stepSize: 1, precision: 0 } } },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: "rgba(13, 16, 22, 0.95)",
+        titleFont: { family: "Geist Mono", size: 12 },
+        bodyFont: { family: "Geist", size: 12 },
+        padding: 10,
+        borderColor: "rgba(255, 255, 255, 0.1)",
+        borderWidth: 1,
+      },
+    },
+    scales: {
+      x: {
+        grid: { display: false },
+        ticks: {
+          color: "#71717A",
+          font: { family: "Geist Mono", size: 11 },
+        },
+      },
+      y: {
+        grid: { color: "rgba(113, 113, 122, 0.1)" },
+        ticks: {
+          color: "#71717A",
+          font: { family: "Geist Mono", size: 11 },
+          stepSize: 1,
+        },
+      },
+    },
   };
 
-  // 2. Appointments By Status (Doughnut Chart)
+  // 2. Status Distribution
   const appointmentsByStatusChartData = {
-    labels: stats.appointmentsByStatus.map(
-      (item) => item.status.charAt(0).toUpperCase() + item.status.slice(1)
-    ), // Capitalize status
+    labels: stats.appointmentsByStatus.map((item) => {
+      const s = item.status || item._id || "Unknown";
+      return s.charAt(0).toUpperCase() + s.slice(1);
+    }),
     datasets: [
       {
-        label: "Appointments by Status",
         data: stats.appointmentsByStatus.map((item) => item.count),
         backgroundColor: stats.appointmentsByStatus.map((item) =>
-          getStatusColor(item.status)
+          getStatusColor(item.status || item._id)
         ),
         borderColor: stats.appointmentsByStatus.map((item) =>
-          getStatusBorderColor(item.status)
+          getStatusBorderColor(item.status || item._id)
         ),
-        borderWidth: 1,
-        hoverOffset: 4, // Slight grow effect on hover
+        borderWidth: 1.5,
       },
     ],
   };
+
   const appointmentsByStatusChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: {
-        position: "right", // Position legend to the side
+        position: "bottom",
         labels: {
-          padding: 15, // Add some padding to legend items
-        },
-      },
-      title: {
-        display: true,
-        text: "Appointments Distribution by Status",
-        font: { size: 16 },
-        padding: { top: 10, bottom: 20 },
-      },
-      tooltip: {
-        callbacks: {
-          // Optional: Customize tooltip label
-          label: function (context) {
-            let label = context.label || "";
-            if (label) {
-              label += ": ";
-            }
-            if (context.parsed !== null) {
-              label += context.parsed;
-            }
-            // You could add percentages here if desired
-            // const total = context.dataset.data.reduce((acc, value) => acc + value, 0);
-            // const percentage = ((context.parsed / total) * 100).toFixed(1) + '%';
-            // label += ` (${percentage})`;
-            return label;
-          },
+          color: "#71717A",
+          font: { family: "Geist Mono", size: 11 },
+          padding: 14,
+          usePointStyle: true,
         },
       },
     },
-    cutout: "60%", // Make it a doughnut chart (adjust percentage for thickness)
+    cutout: "72%",
   };
 
-  // --- Render Logic ---
-  if (loading) return <div className="loading">Loading dashboard...</div>;
-  if (error) return <div className="message error">{error}</div>;
-
   return (
-    <div className="admin-dashboard-container">
-      {/* Header Area */}
-      <div className="dashboard-header">
-        <h2>Admin Dashboard</h2>
-        {/* Creative Twist: Live Clock & Location Context */}
-        <div className="dashboard-context">
-          <span>{format(currentTime, "PPpp")}</span>{" "}
-          {/* Format: Apr 18, 2025, 6:04:27 AM */}
+    <div className="w-full max-w-[1650px] mx-auto px-4 sm:px-8 lg:px-12 py-8 sm:py-10 animate-materialize">
+      {/* Header & Telemetry */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-zinc-200/80 dark:border-white/[0.08] mb-8">
+        <div>
+          <div className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 font-mono-code text-[10px] uppercase font-semibold mb-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
+            Institutional Telemetry
+          </div>
+          <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-zinc-950 dark:text-white">
+            Administrative Command Console
+          </h1>
+          <p className="font-body text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-0.5">
+            System overview, clinical metrics, and multi-specialty appointment throughput.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 px-3.5 py-2 rounded-full bg-zinc-100/70 dark:bg-white/[0.03] border border-zinc-200/80 dark:border-white/[0.08] text-zinc-600 dark:text-zinc-400 text-xs font-mono-code">
+          <Clock size={14} />
+          <span>{format(currentTime, "EEE, MMM d, yyyy HH:mm:ss")}</span>
         </div>
       </div>
 
-      {/* Grid for Stat Cards */}
-      <div className="stats-grid">
-        <div className="stat-card">
-          <h3>Total Appointments</h3>
-          <p>{stats.totalAppointments}</p>
+      {error && (
+        <div className="mb-8 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-mono-code">
+          {error}
         </div>
-        <div className="stat-card">
-          <h3>Upcoming Appointments</h3>
-          <p>{stats.upcomingAppointments}</p>
-        </div>
-        <div className="stat-card">
-          <h3>New Users (Last 7 days)</h3>
-          <p>{stats.newUserRegistrations}</p>
-        </div>
-        {/* Add more stat cards here if needed */}
-      </div>
+      )}
 
-      {/* Grid for Charts */}
-      <div className="charts-grid">
-        {" "}
-        {/* New grid specifically for charts */}
-        {/* Appointments by Status Chart */}
-        {stats.appointmentsByStatus.length > 0 ? (
-          <div className="chart-container doughnut-container">
-            {" "}
-            {/* Use a specific class */}
-            {/* Title moved to chart options */}
-            <div style={{ height: "350px", position: "relative" }}>
-              {" "}
-              {/* Adjusted height */}
-              <Doughnut
-                options={appointmentsByStatusChartOptions}
-                data={appointmentsByStatusChartData}
-              />
+      {/* KPI Cards in Double-Bezel */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+        <div className="doppelrand-shell">
+          <div className="doppelrand-core p-5 flex items-center justify-between">
+            <div className="specular-hairline" />
+            <div>
+              <p className="text-[10px] font-mono-code uppercase font-semibold tracking-wider text-zinc-400">
+                Total Consultations
+              </p>
+              <h3 className="font-display text-2xl font-bold text-zinc-950 dark:text-white mt-1">
+                {stats.totalAppointments}
+              </h3>
+            </div>
+            <div className="w-10 h-10 rounded-2xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center">
+              <CalendarCheck size={20} weight="regular" />
             </div>
           </div>
-        ) : (
-          <div className="chart-container doughnut-container">
-            <h3>Appointments Distribution by Status</h3>
-            <p>No appointment status data available.</p>
+        </div>
+
+        <div className="doppelrand-shell">
+          <div className="doppelrand-core p-5 flex items-center justify-between">
+            <div className="specular-hairline" />
+            <div>
+              <p className="text-[10px] font-mono-code uppercase font-semibold tracking-wider text-zinc-400">
+                Upcoming Confirmed
+              </p>
+              <h3 className="font-display text-2xl font-bold text-sky-600 dark:text-sky-400 mt-1">
+                {stats.upcomingAppointments}
+              </h3>
+            </div>
+            <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+              <Clock size={20} weight="regular" />
+            </div>
           </div>
-        )}
-        {/* Appointments Per Doctor Chart */}
-        {stats.appointmentsPerDoctor.length > 0 ? (
-          <div className="chart-container bar-container">
-            {" "}
-            {/* Use a specific class */}
-            <h3>Appointments Per Doctor</h3>
-            <div style={{ height: "350px", position: "relative" }}>
-              {" "}
-              {/* Adjusted height */}
+        </div>
+
+        <div className="doppelrand-shell">
+          <div className="doppelrand-core p-5 flex items-center justify-between">
+            <div className="specular-hairline" />
+            <div>
+              <p className="text-[10px] font-mono-code uppercase font-semibold tracking-wider text-zinc-400">
+                Active Clinicians
+              </p>
+              <h3 className="font-display text-2xl font-bold text-zinc-950 dark:text-white mt-1">
+                {stats.appointmentsPerDoctor.length}
+              </h3>
+            </div>
+            <div className="w-10 h-10 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+              <FirstAid size={20} weight="regular" />
+            </div>
+          </div>
+        </div>
+
+        <div className="doppelrand-shell">
+          <div className="doppelrand-core p-5 flex items-center justify-between">
+            <div className="specular-hairline" />
+            <div>
+              <p className="text-[10px] font-mono-code uppercase font-semibold tracking-wider text-zinc-400">
+                Patient Profiles
+              </p>
+              <h3 className="font-display text-2xl font-bold text-zinc-950 dark:text-white mt-1">
+                {stats.newUserRegistrations}
+              </h3>
+            </div>
+            <div className="w-10 h-10 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+              <UserPlus size={20} weight="regular" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Analytics Visualizations */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 mb-10">
+        <div className="lg:col-span-7 doppelrand-shell">
+          <div className="doppelrand-core p-6 h-80 flex flex-col justify-between">
+            <div className="specular-hairline" />
+            <div className="flex items-center gap-2 text-[11px] font-mono-code uppercase font-semibold text-zinc-400">
+              <ChartBar size={14} />
+              <span>Physician Consultation Load</span>
+            </div>
+            <div className="h-56 mt-2">
               <Bar
-                options={appointmentsPerDoctorChartOptions}
                 data={appointmentsPerDoctorChartData}
+                options={appointmentsPerDoctorChartOptions}
               />
             </div>
           </div>
-        ) : (
-          <div className="chart-container bar-container">
-            <h3>Appointments Per Doctor</h3>
-            <p>No appointment data available for doctors.</p>
+        </div>
+
+        <div className="lg:col-span-5 doppelrand-shell">
+          <div className="doppelrand-core p-6 h-80 flex flex-col justify-between">
+            <div className="specular-hairline" />
+            <div className="flex items-center gap-2 text-[11px] font-mono-code uppercase font-semibold text-zinc-400">
+              <ChartPieSlice size={14} />
+              <span>Status Ledger Distribution</span>
+            </div>
+            <div className="h-56 mt-2">
+              <Doughnut
+                data={appointmentsByStatusChartData}
+                options={appointmentsByStatusChartOptions}
+              />
+            </div>
           </div>
-        )}
+        </div>
+      </div>
+
+      {/* Quick Navigation Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        <Link to="/admin/users" className="doppelrand-shell group">
+          <div className="doppelrand-core p-6 flex items-center justify-between">
+            <div className="specular-hairline" />
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-sky-500/10 text-sky-600 dark:text-sky-400 flex items-center justify-center">
+                <UsersThree size={20} />
+              </div>
+              <div>
+                <h4 className="font-display font-bold text-sm text-zinc-950 dark:text-white">
+                  User Registry
+                </h4>
+                <p className="text-[11px] text-zinc-400 font-mono-code">Accounts & Roles</p>
+              </div>
+            </div>
+            <ArrowUpRight size={16} className="text-zinc-400 group-hover:text-sky-500 transition-colors" />
+          </div>
+        </Link>
+
+        <Link to="/admin/doctors" className="doppelrand-shell group">
+          <div className="doppelrand-core p-6 flex items-center justify-between">
+            <div className="specular-hairline" />
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                <FirstAid size={20} />
+              </div>
+              <div>
+                <h4 className="font-display font-bold text-sm text-zinc-950 dark:text-white">
+                  Doctor Directory
+                </h4>
+                <p className="text-[11px] text-zinc-400 font-mono-code">Physicians & Specialties</p>
+              </div>
+            </div>
+            <ArrowUpRight size={16} className="text-zinc-400 group-hover:text-emerald-500 transition-colors" />
+          </div>
+        </Link>
+
+        <Link to="/admin/appointments" className="doppelrand-shell group">
+          <div className="doppelrand-core p-6 flex items-center justify-between">
+            <div className="specular-hairline" />
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                <CalendarCheck size={20} />
+              </div>
+              <div>
+                <h4 className="font-display font-bold text-sm text-zinc-950 dark:text-white">
+                  Appointment Ledger
+                </h4>
+                <p className="text-[11px] text-zinc-400 font-mono-code">Global Consultation Audit</p>
+              </div>
+            </div>
+            <ArrowUpRight size={16} className="text-zinc-400 group-hover:text-purple-500 transition-colors" />
+          </div>
+        </Link>
       </div>
     </div>
   );
