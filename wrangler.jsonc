@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "doctor-appointment-scheduler",
+  "name": "deadlines",
   "main": "server/src/index.ts",
   "compatibility_date": "2024-11-01",
   "compatibility_flags": ["nodejs_compat"],
@@ -13,7 +13,7 @@
     {
       "binding": "DB",
       "database_name": "appointment_scheduling_db",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "4a2e8ced-f26e-458e-8476-50a99887ef09",
       "migrations_dir": "server/d1/migrations"
     }
   ],
