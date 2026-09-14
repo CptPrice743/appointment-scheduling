@@ -4,13 +4,13 @@ Live Production: [https://deadlines.vyom-uchat.workers.dev](https://deadlines.vy
 
 A multi-tenant healthcare appointment scheduling application engineered for Cloudflare's serverless edge platform. Migrated from a traditional containerized Node.js/MongoDB architecture to a unified Cloudflare Worker running Hono, Cloudflare D1 (Serverless SQLite), Drizzle ORM, and a React 18 single-page application.
 
-The primary system design objective is zero cold starts, zero compute sleep timeouts, and edge-adjacent data locality without ongoing infrastructure costs.
+Built to avoid cold starts, instance sleep timeouts, and container hosting bills.
 
 ---
 
 ## Architecture Overview
 
-The system runs on Cloudflare's global edge network. A single Cloudflare Worker serves both the compiled React frontend static assets and the REST API endpoints under a single domain, eliminating cross-origin preflight latency and CORS configuration drift.
+The system runs on Cloudflare's global edge network. A single Cloudflare Worker serves the React frontend and REST API under one domain, which cuts preflight latency and removes CORS drift.
 
 ```mermaid
 graph TD
@@ -82,7 +82,7 @@ graph TD
 - **Decision**: Standardize authentication on standard Web APIs:
   - Token handling: `hono/jwt` using the Web Crypto API (`HMAC-SHA256`).
   - Password hashing: `bcrypt-ts`, a pure TypeScript implementation compatible with edge workers.
-- **Trade-Off**: Marginally higher CPU execution time during password hashing compared to native C libraries, offset by eliminating external infrastructure dependencies and ensuring compatibility across standards-based runtimes.
+- **Trade-Off**: Hashing is slower than native C binaries, but it runs directly on standard Web APIs with no external dependencies.
 
 ### 5. Auto-Rolling Demo Lifecycle
 - **Context**: Reviewers and recruiters evaluate portfolio projects unpredictably months after the code was deployed. Hardcoded seed dates expire, resulting in empty schedule views and historical-only appointments.
