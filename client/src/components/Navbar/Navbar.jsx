@@ -123,7 +123,7 @@ const Navbar = () => {
         </div>
 
         {/* Center: Segmented Route Switcher (Dead-Center Aligned) */}
-        <nav className="hidden md:flex absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 items-center gap-1 p-1 rounded-xl bg-zinc-100/80 dark:bg-white/[0.03] border border-zinc-200/60 dark:border-white/[0.05] z-10">
+        <nav className="hidden lg:flex absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 items-center gap-1 p-1 rounded-xl bg-zinc-100/80 dark:bg-white/[0.03] border border-zinc-200/60 dark:border-white/[0.05] z-10">
           {!isAuthenticated ? (
             <>
               <NavLink to="/login" className={navLinkClass}>
@@ -180,7 +180,7 @@ const Navbar = () => {
         </nav>
 
         {/* Right: Perfectly Centered & Uniform-Height Utilities */}
-        <div className="hidden md:flex items-center gap-2.5 z-10">
+        <div className="hidden lg:flex items-center gap-2.5 z-10">
           {/* Theme Switcher Button */}
           <button
             onClick={toggleTheme}
@@ -236,7 +236,7 @@ const Navbar = () => {
         </div>
 
         {/* Mobile Hamburger & Quick Theme */}
-        <div className="flex items-center gap-2 md:hidden z-10">
+        <div className="flex items-center gap-2 lg:hidden z-10">
           <button
             onClick={toggleTheme}
             className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-zinc-200/80 dark:border-white/[0.08] bg-zinc-50 dark:bg-white/[0.03] text-zinc-600 dark:text-zinc-300 btn-press"
