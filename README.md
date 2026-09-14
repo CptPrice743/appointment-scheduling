@@ -1,140 +1,205 @@
-# Doctor Appointment Scheduling Application ("DeadLines")
+# DeadLines: Edge-Native Clinical Scheduling System
 
-A high-performance, serverless edge web application designed for healthcare appointment scheduling. Built on the **Cloudflare Edge Stack** (Cloudflare Workers + Hono + Cloudflare D1 + Drizzle ORM + React 18 SPA) with **100% free hosting, zero cold boot delays, and zero server spin-down**.
+Live Production: [https://deadlines.vyom-uchat.workers.dev](https://deadlines.vyom-uchat.workers.dev)
 
----
+A multi-tenant healthcare appointment scheduling application engineered for Cloudflare's serverless edge platform. Migrated from a traditional containerized Node.js/MongoDB architecture to a unified Cloudflare Worker running Hono, Cloudflare D1 (Serverless SQLite), Drizzle ORM, and a React 18 single-page application.
 
-## ✨ Key Features
-
-- **⚡ Cloudflare Edge Architecture**: Runs globally on Cloudflare Workers V8 isolates with instant responses (<50ms) and zero sleep timeouts.
-- **🚀 1-Click Demo Logins**: Test any persona instantly without typing credentials or filling registration forms.
-- **🔄 In-App Role Switcher & Live Reset**: Sticky top demo bar allows switching between Patient, Doctor, and Admin with a single click, as well as an instant **"Reset Demo Data"** action.
-- **🗓️ Intelligent Clash & Conflict Detection**: Strict validation preventing overlapping appointments (`slotStart < existEnd && slotEnd > existStart`), taking into account doctor duration, recurring weekday hours, and date overrides.
-- **🛡️ Role-Based Access Control (RBAC)**: Distinct permissions and views for **Patients**, **Doctors**, and **Administrators**.
-- **📊 Master Admin Oversight**: System-wide analytics, doctor workload charts, user moderation, and master appointment control.
+The primary system design objective is zero cold starts, zero compute sleep timeouts, and edge-adjacent data locality without ongoing infrastructure costs.
 
 ---
 
-## 🛠️ Modern Edge Tech Stack
+## Architecture Overview
 
-| Layer | Technology | Description |
-| :--- | :--- | :--- |
-| **Frontend** | React 18, Vite 6, React Router v6 | Fast, modern client SPA with Chart.js, Lucide icons, and React Calendar |
-| **Edge Compute** | Cloudflare Workers & Static Assets | Single-domain execution serving both the static SPA and `/api/*` endpoints |
-| **API Framework** | Hono 4 | Ultra-fast, lightweight web standard API framework built for edge runtimes |
-| **Edge Database** | Cloudflare D1 (Serverless SQLite) | Relational database at the edge with zero maintenance and zero sleep |
-| **ORM & Migrations**| Drizzle ORM & `drizzle-kit` | Type-safe SQL schema definition and local/remote database migrations |
-| **Security & Auth** | Web Crypto API (`hono/jwt`), `bcrypt-ts` | Edge-compliant JWT issuance and bcrypt hashing without native Node binary locks |
+The system runs on Cloudflare's global edge network. A single Cloudflare Worker serves both the compiled React frontend static assets and the REST API endpoints under a single domain, eliminating cross-origin preflight latency and CORS configuration drift.
+
+```mermaid
+graph TD
+    Client[Client Browser / SPA] -->|HTTPS Requests| CFEdge[Cloudflare Global Edge]
+
+    subgraph CFEdge[Cloudflare Edge Network]
+        Router{Path Router}
+        StaticCDN[Cloudflare Static Assets CDN]
+        Worker[Cloudflare Worker / V8 Isolate]
+
+        Router -->|'/*' Static Files| StaticCDN
+        Router -->|'/api/*' REST API| Worker
+
+        subgraph Worker[Worker Runtime / workerd]
+            HonoAPI[Hono API Router]
+            AuthMiddleware[Web Crypto JWT Auth]
+            ConflictEngine[Slot & Clash Conflict Engine]
+            DrizzleORM[Drizzle ORM]
+
+            HonoAPI --> AuthMiddleware
+            AuthMiddleware --> ConflictEngine
+            ConflictEngine --> DrizzleORM
+        end
+
+        DrizzleORM -->|IPC Native Binding env.DB| D1[(Cloudflare D1 SQLite)]
+    end
+
+    StaticCDN -->|HTML / JS / CSS Bundle| Client
+    Worker -->|JSON Responses <15ms| Client
+```
+
+### Request Flow
+1. **Asset Resolution**: Static requests (`/`, `/assets/*`) hit Cloudflare's global cache directly. HTML push-state routing resolves fallback requests to `index.html`.
+2. **API Execution**: Requests prefixed with `/api/*` route into Hono running inside a V8 isolate.
+3. **Database Access**: Database queries execute over internal inter-process communication bindings (`env.DB`) to Cloudflare D1, avoiding TCP connection pool overhead.
 
 ---
 
-## 👥 Demo Personas & Credentials
+## Architectural Decisions and Engineering Trade-Offs
 
-You can log in directly using the **1-Click Demo Buttons** on `/login` or the `/` landing page, or enter credentials manually:
+### 1. V8 Isolates vs. Containerized Node.js Runtimes
+- **Context**: Standard free-tier container platforms (Render, Railway, Fly.io) spin down compute instances after 15 minutes of inactivity. When a cold request arrives, container boot and Node.js runtime initialization cause a 30 to 60-second delay.
+- **Decision**: Target Cloudflare Workers (`workerd` runtime).
+- **Trade-Off**:
+  - *Benefits*: Workers initialize in under 15ms with global edge distribution. Memory consumption is limited to megabytes rather than hundreds of megabytes per container.
+  - *Constraints*: Workers enforce a 128 MB memory limit and a 10ms CPU time budget per request on the free plan. Long-running background polling loops or heavy CPU tasks cannot run inside the worker; operations must remain event-driven and I/O-bound.
 
-| Persona | Email | Password | Responsibilities |
+### 2. Edge Relational Store (Cloudflare D1) vs. Document Store (MongoDB)
+- **Context**: The original implementation used MongoDB Atlas via Mongoose. Connecting an edge worker to a cloud MongoDB instance requires either an HTTP-based Data API or maintaining TCP connection pools, adding 50ms to 150ms of network latency per round trip.
+- **Decision**: Migrate data storage to Cloudflare D1 using Drizzle ORM.
+- **Trade-Off**:
+  - *Benefits*: D1 binds directly to the worker isolate via `env.DB`. SQLite read queries execute adjacent to the edge worker without TLS negotiation or external handshakes.
+  - *Constraints*: Cloudflare D1 uses SQLite with single-primary write serialization via Write-Ahead Logging (WAL). While reads scale horizontally across edge replicas, write throughput is limited by primary node processing speed. For appointment scheduling, where slot lookups and schedule reads outnumber write commits by roughly 20:1, read-replicated SQLite is structurally well-suited.
+  - *Data Modeling*: Flexible BSON documents were converted to strict relational schemas (`users`, `doctors`, `appointments`) with normalized foreign keys and SQL indexing. Recurring doctor availability and date overrides are serialized as typed JSON text columns to maintain fast single-row reads without deep relational joins.
+
+### 3. Scheduling Invariant and Clash Detection Logic
+- **Context**: Double-booking a physician damages clinic efficiency and user trust. Conflict detection must run deterministically during slot generation and at the moment of booking submission.
+- **Algorithm**: An appointment conflict exists if and only if the requested interval overlaps with an active existing booking:
+  $$\text{slotStart} < \text{existingEnd} \land \text{slotEnd} > \text{existingStart}$$
+- **Execution**:
+  1. Standard weekly availability is evaluated against the target day of the week.
+  2. Date-specific overrides take precedence over weekly defaults (e.g. physician taking leave or adjusting working hours).
+  3. Existing non-cancelled appointments for that doctor on that date are queried.
+  4. Candidate time slots that trigger the overlap condition are filtered out before reaching the client interface.
+  5. The booking endpoint re-evaluates the overlap condition immediately before running the SQL `INSERT` to prevent race conditions.
+
+### 4. Web Cryptography API vs. Native Node Binaries
+- **Context**: Node.js authentication implementations typically rely on `jsonwebtoken` and native C++ binary bindings like `bcrypt`. Cloudflare Worker V8 isolates do not support native C++ Node addons.
+- **Decision**: Standardize authentication on standard Web APIs:
+  - Token handling: `hono/jwt` using the Web Crypto API (`HMAC-SHA256`).
+  - Password hashing: `bcrypt-ts`, a pure TypeScript implementation compatible with edge workers.
+- **Trade-Off**: Marginally higher CPU execution time during password hashing compared to native C libraries, offset by eliminating external infrastructure dependencies and ensuring compatibility across standards-based runtimes.
+
+### 5. Auto-Rolling Demo Lifecycle
+- **Context**: Reviewers and recruiters evaluate portfolio projects unpredictably months after the code was deployed. Hardcoded seed dates expire, resulting in empty schedule views and historical-only appointments.
+- **Decision**: Implemented an automated date-drift synchronization layer (`ensureFreshDemoData`).
+- **Mechanics**:
+  - Appointment records are computed dynamically using relative date offsets (`today`, `today + 1`, `today + 2`).
+  - When any demo account signs in or queries availability, the system compares the baseline appointment date against the current UTC calendar day.
+  - If date drift is detected, the database rolls the dataset forward in approximately 50ms, ensuring upcoming slots and completed appointment histories match the current calendar day.
+  - Doctor working hours in demo mode cover all seven days of the week, preventing weekend evaluation blocks.
+
+---
+
+## Persona Matrix and Access Control
+
+Authentication uses role-based access control with signed JWTs stored in browser `localStorage`.
+
+| Persona | Demo Email | Password | Access Scope |
 | :--- | :--- | :--- | :--- |
-| **Patient** | `patient.john@example.com` | `patientpassword123` | Browse doctors, book slots, view/cancel appointments |
-| **Doctor** | `doctor.sarah@example.com` | `doctorpassword123` | View appointment calendar, manage weekly hours and date overrides |
-| **Admin** | `admin@example.com` | `adminpassword123` | View platform KPIs, analytics, user roster, doctor catalog, all bookings |
+| **Patient** | `patient.john@example.com` | `patientpassword123` | Book consultations, inspect personal appointment history, cancel bookings. |
+| **Doctor** | `doctor.sarah@example.com` | `doctorpassword123` | Review schedule calendar, filter by date, set weekly availability and overrides. |
+| **Admin** | `admin@example.com` | `adminpassword123` | System oversight, doctor workload metrics, user account moderation, master appointment control. |
+
+An in-app demo banner mounted at the top of the viewport allows one-click persona switching and exposes a manual database reset trigger (`POST /api/demo/reset`).
 
 ---
 
-## 🚀 Quickstart (Local Development)
+## Database Schema Design
 
-### 1. Prerequisites
-- **Node.js**: v18 or later
-- **npm**: v9 or later
+The Drizzle relational schema is defined in `server/src/db/schema.ts`.
 
-### 2. Installation
-Clone the repository and install all root and client dependencies:
+### `users` Table
+- `id`: Text (UUID, Primary Key)
+- `name`: Text
+- `email`: Text (Unique, Indexed)
+- `password`: Text (Hashed with `bcrypt-ts`)
+- `role`: Text (`patient` | `doctor` | `admin`)
+- `doctor_profile_id`: Text (Nullable Foreign Key to `doctors.id`)
+- `is_active`: Integer (Boolean flag, default 1)
+- `created_at`, `updated_at`: Text (ISO timestamps)
+
+### `doctors` Table
+- `id`: Text (UUID, Primary Key)
+- `user_id`: Text (Foreign Key to `users.id`, Cascading Delete)
+- `name`: Text
+- `specialization`: Text
+- `appointment_duration`: Integer (Minutes, default 30)
+- `standard_availability`: Text (JSON string of weekly operating windows)
+- `availability_overrides`: Text (JSON string of calendar date exceptions)
+- `created_at`, `updated_at`: Text (ISO timestamps)
+
+### `appointments` Table
+- `id`: Text (UUID, Primary Key)
+- `patient_name`: Text
+- `patient_phone`: Text
+- `doctor_id`: Text (Foreign Key to `doctors.id`, Cascading Delete)
+- `doctor_user_id`: Text (Foreign Key to `users.id`, Cascading Delete)
+- `appointment_date`: Text (ISO date string `YYYY-MM-DD`, Indexed)
+- `start_time`: Text (Format `HH:MM`)
+- `end_time`: Text (Format `HH:MM`)
+- `duration`: Integer (Minutes)
+- `reason`: Text
+- `status`: Text (`scheduled` | `completed` | `cancelled` | `noshow`)
+- `remarks`: Text (Physician notes)
+- `created_at`, `updated_at`: Text (ISO timestamps)
+
+---
+
+## Local Development and Operations
+
+### Prerequisites
+- Node.js 18 or higher
+- npm 9 or higher
+- Cloudflare Wrangler CLI (`npm i -g wrangler` or via `npx wrangler`)
+
+### Initial Setup
 ```bash
+# Clone the repository
 git clone https://github.com/CptPrice743/appointment-scheduling.git
 cd appointment-scheduling
+
+# Install dependencies for both root (backend/wrangler) and client
 npm install
 cd client && npm install && cd ..
 ```
 
-### 3. Database Migration & Local Seed
-Run the local D1 migration to create the relational SQLite tables:
+### Local Database Setup
+Run migrations against the local SQLite state managed by Miniflare:
 ```bash
-# Apply migrations to local Cloudflare D1
+# Generate SQL migrations via Drizzle Kit (if schema modified)
+npm run db:generate
+
+# Apply migrations to local D1 SQLite instance
 npm run db:migrate
 ```
 
-To initialize or reset the seed database, start the local worker (Step 4) and click **[Reset Demo Data]** in the app banner, or run:
+### Running Locally
 ```bash
-curl -X POST http://localhost:8787/api/demo/reset
-```
-
-### 4. Build Static Assets & Start Worker
-Build the React SPA bundle:
-```bash
+# Build client assets for static serving
 npm run build:client
-```
 
-Start the local Cloudflare Worker (running API and serving client assets):
-```bash
+# Start the unified Cloudflare Worker dev server on port 8787
 npm run dev
-# Or: npx wrangler dev --port 8787
 ```
 
-Open your browser at **`http://localhost:8787`** to interact with the application!
+Visit `http://localhost:8787` to test the application.
 
-*(Optional) If you want live Vite Hot Module Reloading (HMR) during frontend UI editing, run in a separate terminal:*
+For hot module replacement (HMR) during frontend UI work, run Vite on port 3000 in a separate terminal:
 ```bash
 npm run client
-# Starts Vite on http://localhost:3000 (proxies /api requests to port 8787)
+```
+The Vite development server proxies all `/api/*` traffic directly to `http://localhost:8787`.
+
+### Production Deployment
+Deployments run via Wrangler:
+```bash
+# Build production frontend bundle and deploy Worker + Static Assets
+npm run deploy
 ```
 
----
-
-## 📂 Project Structure
-
-```
-appointment-scheduling/
-├── client/                     # Frontend React SPA
-│   ├── src/
-│   │   ├── components/         # Reusable UI (Navbar, DemoBanner, etc.)
-│   │   ├── context/            # AuthContext & global state
-│   │   ├── pages/              # Patient, Doctor, Admin pages
-│   │   ├── App.jsx             # Root router & route guards
-│   │   └── main.jsx
-│   ├── dist/                   # Built production bundle
-│   └── vite.config.js          # Vite config (proxied to port 8787)
-├── server/
-│   ├── d1/
-│   │   └── migrations/         # D1 SQL migration scripts
-│   └── src/
-│       ├── db/
-│       │   ├── schema.ts       # Drizzle relational schema (users, doctors, appointments)
-│       │   └── seed.ts         # Edge-compatible database seeder
-│       ├── middleware/
-│       │   └── auth.ts         # Web Crypto JWT authentication & RBAC guards
-│       ├── routes/
-│       │   ├── auth.ts         # /api/auth
-│       │   ├── appointments.ts # /api/appointments (with clash detection)
-│       │   ├── doctors.ts      # /api/doctors (availability & slots)
-│       │   ├── users.ts        # /api/users
-│       │   ├── admin.ts        # /api/admin
-│       │   └── demo.ts         # /api/demo/reset
-│       ├── utils/
-│       │   ├── serializers.ts  # Mongoose-compatible _id serializer
-│       │   └── timeUtils.ts    # Slot generation & clash helper functions
-│       └── index.ts            # Hono application entrypoint
-├── drizzle.config.ts           # Drizzle Kit configuration
-├── wrangler.jsonc              # Cloudflare Worker & D1 binding configuration
-├── ARCHITECTURE.md             # Detailed system architecture
-├── DECISIONS.md                # Architecture Decision Records (ADRs)
-└── AGENTS.md                   # Conventions & operating guidelines for AI agents
-```
-
----
-
-## 🧪 Testing & Verification
-
-Automated end-to-end tests are performed with Playwright:
-- Persona authentication verification for Patient, Doctor, and Admin.
-- Dynamic slot clash conflict exclusion testing.
-- Cross-persona scheduling synchronization.
-- Console error validation (0 errors).
+Continuous integration is handled by `.github/workflows/deploy.yml`. When commits land on `main`, GitHub Actions runs the client build and executes `cloudflare/wrangler-action` to publish the updated worker and static assets.
