@@ -454,7 +454,7 @@ const ScheduleView = () => {
             <span>Filter Practice Schedule</span>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
             <div>
               <label htmlFor="filterPatientName" className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-400 font-mono-code mb-1">
                 Patient Name

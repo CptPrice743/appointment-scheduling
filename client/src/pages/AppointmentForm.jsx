@@ -543,7 +543,7 @@ const AppointmentForm = () => {
                       <option value="">Choose physician specialist...</option>
                       {doctors.map((doc) => (
                         <option key={doc._id} value={doc._id}>
-                          {doc.name} — {doc.specialization} ({doc.appointmentDuration}m consult)
+                          {doc.name} - {doc.specialization} ({doc.appointmentDuration}m consult)
                         </option>
                       ))}
                     </select>
@@ -634,7 +634,7 @@ const AppointmentForm = () => {
                   <span className="text-[10px] font-mono-code uppercase tracking-wider text-zinc-400 dark:text-zinc-500 block mb-2">
                     Direct Slot Selection ({availableSlots.length} available):
                   </span>
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 p-2.5 rounded-2xl bg-zinc-50/80 dark:bg-white/[0.02] border border-zinc-200/70 dark:border-white/[0.06] max-h-48 overflow-y-auto">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 p-2.5 rounded-2xl bg-zinc-50/80 dark:bg-white/[0.02] border border-zinc-200/70 dark:border-white/[0.06] max-h-48 overflow-y-auto">
                     {availableSlots.map((slot) => {
                       const isSelected = formData.startTime === slot;
                       return (

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useContext, useCallback } from "react";
+import { createPortal } from "react-dom";
 import axios from "axios";
 import AuthContext from "../../context/AuthContext";
 import {
@@ -14,15 +15,14 @@ import {
   X,
   ArrowCounterClockwise,
   WarningCircle,
+  CheckCircle,
 } from "@phosphor-icons/react";
 
-// Helper to format date as YYYY-MM-DD, adjusting for timezone
 const formatDateForInput = (dateStr) => {
   if (!dateStr) return "";
   try {
     const date = new Date(dateStr);
-    // Adjust for timezone offset to get the correct local date string
-    const timezoneOffset = date.getTimezoneOffset() * 60000; // Offset in milliseconds
+    const timezoneOffset = date.getTimezoneOffset() * 60000;
     const localDate = new Date(date.getTime() - timezoneOffset);
     return localDate.toISOString().split("T")[0];
   } catch (e) {
@@ -31,15 +31,32 @@ const formatDateForInput = (dateStr) => {
   }
 };
 
-const AppointmentOversight = () => {
-  const [appointments, setAppointments] = useState([]); // Holds the currently displayed list based on filters
-  const [doctors, setDoctors] = useState([]); // For filter dropdown
-  const [patients, setPatients] = useState([]); // For filter dropdown
-  const [isLoading, setIsLoading] = useState(true); // Start loading initially
-  const [error, setError] = useState(null); // To hold error messages
-  const [editingAppointment, setEditingAppointment] = useState(null); // Track appointment being edited
+const formatTime12Hour = (timeStr) => {
+  if (!timeStr || !timeStr.includes(":")) return "N/A";
+  try {
+    const [hour, minute] = timeStr.split(":");
+    const date = new Date();
+    date.setHours(parseInt(hour, 10));
+    date.setMinutes(parseInt(minute, 10));
+    if (isNaN(date.getHours()) || isNaN(date.getMinutes())) return "Invalid Time";
+    return date.toLocaleTimeString([], {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  } catch (e) {
+    return "Invalid Time";
+  }
+};
 
-  // State for filter values
+const AppointmentOversight = () => {
+  const [appointments, setAppointments] = useState([]);
+  const [doctors, setDoctors] = useState([]);
+  const [patients, setPatients] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [editingAppointment, setEditingAppointment] = useState(null);
+
   const [filters, setFilters] = useState({
     patientId: "",
     doctorId: "",
@@ -48,18 +65,13 @@ const AppointmentOversight = () => {
     status: "",
   });
 
-  const { token } = useContext(AuthContext); // Get auth token
-  // Define the base API URL, using environment variable or fallback
+  const { token } = useContext(AuthContext);
   const API_URL = import.meta.env.VITE_API_URL || "/api";
 
-  // Fetch data based on current filters
   const fetchData = useCallback(async () => {
-    setIsLoading(true); // Set loading true for every fetch attempt
-    // Don't clear error immediately, only on success
+    setIsLoading(true);
     try {
-      const config = { headers: { Authorization: `Bearer ${token}` } }; // Auth header
-
-      // Build query string from filter state
+      const config = { headers: { Authorization: `Bearer ${token}` } };
       const queryParams = new URLSearchParams();
       if (filters.patientId) queryParams.append("patientId", filters.patientId);
       if (filters.doctorId) queryParams.append("doctorId", filters.doctorId);
@@ -67,72 +79,54 @@ const AppointmentOversight = () => {
       if (filters.dateEnd) queryParams.append("dateEnd", filters.dateEnd);
       if (filters.status) queryParams.append("status", filters.status);
 
-      // Fetch appointments based on filters
       const appointmentsRes = await axios.get(
         `${API_URL}/admin/appointments/all?${queryParams.toString()}`,
         config
       );
 
-      // Validate API response for appointments
       if (Array.isArray(appointmentsRes.data)) {
         setAppointments(appointmentsRes.data);
-        setError(null); // Clear previous errors on successful fetch
+        setError(null);
       } else {
         console.error(
           "API did not return an array for appointments:",
           appointmentsRes.data
         );
-        setAppointments([]); // Reset appointments if data is invalid
-        setError("Received unexpected data format from server."); // Set specific error
+        setAppointments([]);
+        setError("Received unexpected data format from server.");
       }
 
-      // Fetch doctors and patients list for filters, only if they haven't been fetched yet
-      // Optimization: Check if doctors or patients arrays are empty before fetching
       if (doctors.length === 0) {
         const doctorsRes = await axios.get(`${API_URL}/admin/doctors`, config);
         if (Array.isArray(doctorsRes.data)) {
           setDoctors(doctorsRes.data);
-        } else {
-          console.error(
-            "API did not return an array for doctors:",
-            doctorsRes.data
-          );
         }
       }
       if (patients.length === 0) {
         const usersRes = await axios.get(`${API_URL}/admin/users`, config);
         if (Array.isArray(usersRes.data)) {
           setPatients(usersRes.data.filter((user) => user.role === "patient"));
-        } else {
-          console.error(
-            "API did not return an array for users:",
-            usersRes.data
-          );
         }
       }
     } catch (err) {
       console.error("Error fetching oversight data:", err);
-      // Set specific error messages based on error type
       if (err.code === "ERR_NETWORK") {
         setError(
           "Connection failed. Please ensure the server is running and accessible."
         );
       } else if (err.response) {
-        // Use server's error message if available
         setError(
           `Failed to fetch data: ${err.response.data.message || err.message}`
         );
       } else {
         setError("An unexpected error occurred while fetching data.");
       }
-      setAppointments([]); // Clear appointment data on error
+      setAppointments([]);
     } finally {
-      setIsLoading(false); // Set loading false after fetch attempt completes
+      setIsLoading(false);
     }
-    // Dependencies for useCallback: ensures function is re-created if these change
-  }, [token, API_URL, filters, doctors.length, patients.length]); // Added lengths to dependencies
+  }, [token, API_URL, filters, doctors.length, patients.length]);
 
-  // Effect to run initial data fetch when component mounts and token is available
   useEffect(() => {
     if (token) {
       fetchData();
@@ -140,35 +134,21 @@ const AppointmentOversight = () => {
       setError("Authentication token not found.");
       setIsLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]); // Run only when token changes (effectively once on login)
+  }, [token]);
 
-  // Trigger refetch when filters change
   useEffect(() => {
-    // Optional: Add debounce here if needed to avoid rapid firing on date changes
     if (token) {
-      // Ensure token exists before fetching on filter change
       fetchData();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, token]); // Refetch when filters change
+  }, [filters, token]);
 
-  // Handler for changes in filter inputs
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Handler for applying filters button (Now just confirms current filters, fetch happens via useEffect)
-  const applyFilters = () => {
-    // Optional: Could add visual feedback here, but fetch is automatic
-    console.log("Applying filters:", filters);
-  };
-
-  // Handler for clearing filters button
   const clearFilters = () => {
     setFilters({
-      // Reset state, which triggers useEffect -> fetchData
       patientId: "",
       doctorId: "",
       dateStart: "",
@@ -177,13 +157,11 @@ const AppointmentOversight = () => {
     });
   };
 
-  // --- Edit Modal Logic ---
-  const [editFormData, setEditFormData] = useState({}); // State for edit form data
+  // Edit Modal
+  const [editFormData, setEditFormData] = useState({});
 
-  // Set up edit form when edit button is clicked
   const handleEditClick = (appointment) => {
-    setEditingAppointment(appointment); // Store the appointment being edited
-    // Pre-fill form data
+    setEditingAppointment(appointment);
     setEditFormData({
       appointmentDate: formatDateForInput(appointment.appointmentDate),
       startTime: appointment.startTime,
@@ -191,19 +169,14 @@ const AppointmentOversight = () => {
       reason: appointment.reason || "",
       remarks: appointment.remarks || "",
       patientPhone: appointment.patientPhone || "",
-      // Include endTime and duration if they are part of the Appointment model and editable
-      // endTime: appointment.endTime,
-      // duration: appointment.duration,
     });
   };
 
-  // Update edit form state on input change
   const handleEditFormChange = (e) => {
     const { name, value } = e.target;
     setEditFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Handle submission of the edit form
   const handleUpdateAppointment = async (e) => {
     e.preventDefault();
     if (!editingAppointment) return;
@@ -215,21 +188,19 @@ const AppointmentOversight = () => {
           "Content-Type": "application/json",
         },
       };
-      // Send only the editable fields from the form state
       const updatePayload = { ...editFormData };
       const response = await axios.put(
-        `${API_URL}/admin/appointments/${editingAppointment._id}`, // Correct API endpoint
+        `${API_URL}/admin/appointments/${editingAppointment._id}`,
         updatePayload,
         config
       );
 
-      // Update appointments list in state with the updated appointment
       const updatedAppt = response.data.appointment;
       setAppointments((prev) =>
         prev.map((appt) => (appt._id === updatedAppt._id ? updatedAppt : appt))
       );
 
-      setEditingAppointment(null); // Close the edit modal
+      setEditingAppointment(null);
       alert("Appointment updated successfully!");
     } catch (err) {
       console.error("Error updating appointment:", err);
@@ -237,12 +208,10 @@ const AppointmentOversight = () => {
     }
   };
 
-  // Close the edit modal without saving
   const handleCancelEdit = () => {
     setEditingAppointment(null);
   };
 
-  // --- Delete Logic ---
   const handleDeleteAppointment = async (appointmentId) => {
     if (
       window.confirm(
@@ -252,10 +221,9 @@ const AppointmentOversight = () => {
       try {
         const config = { headers: { Authorization: `Bearer ${token}` } };
         await axios.delete(
-          `${API_URL}/admin/appointments/${appointmentId}`, // Correct API endpoint
+          `${API_URL}/admin/appointments/${appointmentId}`,
           config
         );
-        // Remove the deleted appointment from state
         setAppointments((prev) =>
           prev.filter((appt) => appt._id !== appointmentId)
         );
@@ -267,7 +235,6 @@ const AppointmentOversight = () => {
     }
   };
 
-  // --- Cancel Logic (Set Status) ---
   const handleCancelAppointment = async (appointmentId) => {
     if (
       window.confirm(
@@ -281,21 +248,18 @@ const AppointmentOversight = () => {
             "Content-Type": "application/json",
           },
         };
-        // Send request to update only the status field
         const response = await axios.put(
-          `${API_URL}/admin/appointments/${appointmentId}`, // Correct API endpoint
-          { status: "cancelled" }, // Payload to set status
+          `${API_URL}/admin/appointments/${appointmentId}`,
+          { status: "cancelled" },
           config
         );
 
-        // Update the appointment list in state with the updated status
         const updatedAppt = response.data.appointment;
         setAppointments((prev) =>
           prev.map((appt) =>
             appt._id === updatedAppt._id ? updatedAppt : appt
           )
         );
-
         alert(`Appointment ${appointmentId} cancelled successfully.`);
       } catch (err) {
         console.error("Error cancelling appointment:", err);
@@ -304,484 +268,554 @@ const AppointmentOversight = () => {
     }
   };
 
-  // --- Conditional Rendering Logic ---
-  const renderContent = () => {
-    if (isLoading && appointments.length === 0) {
-      return (
-        <div className="loading status-message min-h-[40vh] flex items-center justify-center text-sm text-slate-400">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mr-3"></div>
-          Loading appointments...
-        </div>
-      );
+  const getStatusBadge = (status) => {
+    switch (status?.toLowerCase()) {
+      case "scheduled":
+        return (
+          <span className="font-mono-code text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
+            Scheduled
+          </span>
+        );
+      case "completed":
+        return (
+          <span className="font-mono-code text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+            Completed
+          </span>
+        );
+      case "cancelled":
+        return (
+          <span className="font-mono-code text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+            Cancelled
+          </span>
+        );
+      case "noshow":
+        return (
+          <span className="font-mono-code text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-zinc-500/10 text-zinc-600 dark:text-zinc-400 border border-zinc-500/20">
+            No Show
+          </span>
+        );
+      default:
+        return (
+          <span className="font-mono-code text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300">
+            {status}
+          </span>
+        );
     }
-    if (error) {
-      return (
-        <div className="error-message status-message p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 rounded-xl text-rose-700 dark:text-rose-300 text-sm flex items-center gap-2">
-          <WarningCircle className="w-5 h-5 shrink-0" />
-          <span>{error}</span>
-        </div>
-      );
-    }
-    if (!Array.isArray(appointments)) {
-      return (
-        <div className="error-message status-message p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 rounded-xl text-rose-700 dark:text-rose-300 text-sm">
-          Failed to load appointment data correctly.
-        </div>
-      );
-    }
-    if (appointments.length === 0) {
-      const filtersApplied =
-        filters.patientId ||
-        filters.doctorId ||
-        filters.dateStart ||
-        filters.dateEnd ||
-        filters.status;
-      return (
-        <div className="info-message status-message bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-12 text-center text-slate-400 text-sm">
-          {filtersApplied
-            ? "No appointments found matching the current filter criteria."
-            : "There are currently no appointments in the system."}
-        </div>
-      );
-    }
-
-    return (
-      <div className="appointments-table-container bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden relative">
-        {isLoading && (
-          <div className="loading-overlay absolute inset-0 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-10 text-xs font-semibold text-teal-700 dark:text-teal-300">
-            Updating schedules...
-          </div>
-        )}
-        <div className="overflow-x-auto">
-          <table className="appointments-table w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-800/40 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                <th className="py-3.5 px-4 sm:px-6">Date</th>
-                <th className="py-3.5 px-4">Time</th>
-                <th className="py-3.5 px-4">Patient</th>
-                <th className="py-3.5 px-4">Physician</th>
-                <th className="py-3.5 px-4">Consultation Reason</th>
-                <th className="py-3.5 px-4">Status</th>
-                <th className="py-3.5 px-4 sm:px-6 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/70 text-xs text-slate-800 dark:text-slate-200">
-              {appointments.map((appt) => {
-                const statusStyles = {
-                  scheduled: "bg-teal-50 text-teal-700 dark:bg-teal-950/50 dark:text-teal-300 border-teal-200/80 dark:border-teal-800/60",
-                  completed: "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 border-emerald-200/80 dark:border-emerald-800/60",
-                  cancelled: "bg-rose-50 text-rose-700 dark:bg-rose-950/50 dark:text-rose-300 border-rose-200/80 dark:border-rose-800/60",
-                  noshow: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700",
-                }[appt.status?.toLowerCase()] || "bg-slate-50 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200";
-
-                return (
-                  <tr
-                    key={appt._id}
-                    className="hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors"
-                  >
-                    {/* Date */}
-                    <td data-label="Date" className="py-4 px-4 sm:px-6 font-mono font-medium text-slate-900 dark:text-white">
-                      {formatDateForInput(appt.appointmentDate)}
-                    </td>
-
-                    {/* Time */}
-                    <td data-label="Time" className="py-4 px-4 font-mono text-slate-600 dark:text-slate-400">
-                      <span className="inline-flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5 text-slate-400" />
-                        {appt.startTime} - {appt.endTime}
-                      </span>
-                    </td>
-
-                    {/* Patient */}
-                    <td data-label="Patient" className="py-4 px-4">
-                      <div className="font-medium text-slate-900 dark:text-white">
-                        {appt.patientUserId?.name || "N/A"}
-                      </div>
-                      <span className="patient-email text-[11px] font-mono text-slate-400 block">
-                        {appt.patientUserId?.email || "N/A"}
-                      </span>
-                    </td>
-
-                    {/* Doctor */}
-                    <td data-label="Doctor" className="py-4 px-4">
-                      <div className="font-medium text-slate-900 dark:text-white">
-                        {appt.doctorId?.name || "N/A"}
-                      </div>
-                      <span className="doctor-specialty text-[11px] text-teal-600 dark:text-teal-400 block font-medium">
-                        {appt.doctorId?.specialization || "General"}
-                      </span>
-                    </td>
-
-                    {/* Reason */}
-                    <td data-label="Reason" title={appt.reason} className="py-4 px-4 max-w-[200px] truncate text-slate-600 dark:text-slate-400">
-                      {appt.reason || "Routine Consultation"}
-                    </td>
-
-                    {/* Status */}
-                    <td data-label="Status" className="py-4 px-4">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border ${statusStyles}`}>
-                        {appt.status ? appt.status.charAt(0).toUpperCase() + appt.status.slice(1) : "Scheduled"}
-                      </span>
-                    </td>
-
-                    {/* Actions */}
-                    <td data-label="Actions" className="action-buttons-cell py-4 px-4 sm:px-6 text-right">
-                      <div className="action-buttons inline-flex items-center justify-end gap-1.5">
-                        <button
-                          onClick={() => handleEditClick(appt)}
-                          className="btn btn-edit px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium transition-colors inline-flex items-center gap-1"
-                          title="Edit Appointment"
-                          disabled={isLoading}
-                        >
-                          <PencilSimple className="w-3.5 h-3.5" />
-                          Edit
-                        </button>
-                        {appt.status === "scheduled" && (
-                          <button
-                            onClick={() => handleCancelAppointment(appt._id)}
-                            className="btn btn-cancel px-2.5 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border border-amber-200/80 dark:border-amber-900/60 rounded-lg text-xs font-medium transition-colors"
-                            title="Cancel Appointment"
-                            disabled={isLoading}
-                          >
-                            Cancel
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleDeleteAppointment(appt._id)}
-                          className="btn btn-delete px-2 py-1.5 text-rose-600 hover:text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg text-xs font-medium transition-colors"
-                          title="Delete Appointment"
-                          disabled={isLoading}
-                        >
-                          <Trash className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
   };
 
-  // --- Main Component Return ---
   return (
-    <div className="appointment-oversight-container w-full max-w-[1650px] mx-auto py-8 sm:py-10 px-4 sm:px-8 lg:px-12 space-y-8 animate-materialize">
+    <div className="w-full max-w-[1650px] mx-auto px-4 sm:px-8 lg:px-12 py-8 sm:py-10 animate-materialize space-y-8">
       {/* Header Area */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <CalendarCheck className="w-6 h-6 text-teal-600 dark:text-teal-400" />
-            <h2 className="text-2xl font-heading font-bold text-slate-900 dark:text-white">
-              Global Appointment Oversight
-            </h2>
-          </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Auditing, rescheduling, and comprehensive operational monitoring across all clinic appointments.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 px-3.5 py-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300">
-          <span>Active Bookings:</span>
-          <span className="font-mono font-bold text-teal-600 dark:text-teal-400">
-            {appointments.length}
-          </span>
-        </div>
-      </div>
-
-      {/* Filter Section */}
-      <div className="filter-section card bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-xs space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
-          <h3 className="text-sm font-heading font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-            <Funnel className="w-4 h-4 text-teal-600 dark:text-teal-400" />
-            Filter & Search Consultations
-          </h3>
-
-          <div className="filter-actions">
-            <button
-              onClick={clearFilters}
-              className="btn btn-secondary px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-medium inline-flex items-center gap-1.5 transition-colors cursor-pointer"
-              disabled={isLoading}
-            >
-              <ArrowCounterClockwise className="w-3.5 h-3.5" />
-              Clear Filters
-            </button>
-          </div>
-        </div>
-
-        <div className="filter-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
-          {/* Patient Filter */}
-          <div className="filter-item">
-            <label
-              htmlFor="patientId"
-              className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1"
-            >
-              Patient:
-            </label>
-            <select
-              id="patientId"
-              name="patientId"
-              value={filters.patientId}
-              onChange={handleFilterChange}
-              disabled={isLoading}
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none"
-            >
-              <option value="">All Patients</option>
-              {patients.map((p) => (
-                <option key={p._id} value={p._id}>
-                  {p.name} ({p.email})
-                </option>
-              ))}
-            </select>
+      <div className="doppelrand-shell">
+        <div className="doppelrand-core p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="specular-hairline" />
+          <div>
+            <div className="flex items-center gap-2.5 mb-1">
+              <CalendarCheck size={24} className="text-sky-600 dark:text-sky-400" />
+              <h1 className="text-2xl sm:text-3xl font-display font-bold text-zinc-950 dark:text-white tracking-tight">
+                Global Appointment Oversight
+              </h1>
+            </div>
+            <p className="font-body text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
+              Auditing, rescheduling, and comprehensive operational monitoring across all clinic appointments.
+            </p>
           </div>
 
-          {/* Doctor Filter */}
-          <div className="filter-item">
-            <label
-              htmlFor="doctorId"
-              className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1"
-            >
-              Doctor:
-            </label>
-            <select
-              id="doctorId"
-              name="doctorId"
-              value={filters.doctorId}
-              onChange={handleFilterChange}
-              disabled={isLoading}
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none"
-            >
-              <option value="">All Doctors</option>
-              {doctors.map((d) => (
-                <option key={d._id} value={d._id}>
-                  {d.name} ({d.specialization || "N/A"})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Date Start Filter */}
-          <div className="filter-item">
-            <label
-              htmlFor="dateStart"
-              className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1"
-            >
-              Date From:
-            </label>
-            <input
-              type="date"
-              id="dateStart"
-              name="dateStart"
-              value={filters.dateStart}
-              onChange={handleFilterChange}
-              disabled={isLoading}
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-xs focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none"
-            />
-          </div>
-
-          {/* Date End Filter */}
-          <div className="filter-item">
-            <label
-              htmlFor="dateEnd"
-              className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1"
-            >
-              Date To:
-            </label>
-            <input
-              type="date"
-              id="dateEnd"
-              name="dateEnd"
-              value={filters.dateEnd}
-              onChange={handleFilterChange}
-              disabled={isLoading}
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-xs focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none"
-            />
-          </div>
-
-          {/* Status Filter */}
-          <div className="filter-item">
-            <label
-              htmlFor="status"
-              className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1"
-            >
-              Status:
-            </label>
-            <select
-              id="status"
-              name="status"
-              value={filters.status}
-              onChange={handleFilterChange}
-              disabled={isLoading}
-              className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none"
-            >
-              <option value="">All Statuses</option>
-              <option value="scheduled">Scheduled</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
-              <option value="noshow">No Show</option>
-            </select>
+          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-zinc-100/80 dark:bg-white/[0.03] border border-zinc-200/80 dark:border-white/[0.08] text-xs font-mono-code text-zinc-600 dark:text-zinc-400 w-fit">
+            <span>Active Bookings:</span>
+            <span className="font-bold text-sky-600 dark:text-sky-400">
+              {appointments.length}
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Dynamic Content Area: Shows Loading, Error, No Data, or Table */}
-      <div className="content-area">{renderContent()}</div>
-
-      {/* Edit Modal */}
-      {editingAppointment && (
-        <div className="modal-overlay fixed inset-0 bg-slate-950/70 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="modal-content bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 max-w-lg w-full shadow-2xl max-h-[90vh] overflow-y-auto animate-materialize space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
-              <h3 className="text-base font-heading font-semibold text-slate-900 dark:text-white">
-                Edit Consultation Details
-              </h3>
-              <button
-                type="button"
-                onClick={handleCancelEdit}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
-              >
-                <X className="w-5 h-5" />
-              </button>
+      {/* Filter Control Chassis */}
+      <div className="doppelrand-shell">
+        <div className="doppelrand-core p-5">
+          <div className="specular-hairline" />
+          <div className="flex items-center justify-between border-b border-zinc-100 dark:border-white/[0.06] pb-3 mb-3">
+            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500 font-mono-code">
+              <Funnel size={14} />
+              <span>Filter & Search Consultations</span>
             </div>
 
-            <form onSubmit={handleUpdateAppointment} className="space-y-4">
-              {/* Date Input */}
-              <div className="form-group">
-                <label
-                  htmlFor="editApptDate"
-                  className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1"
-                >
-                  Appointment Date:
-                </label>
-                <input
-                  type="date"
-                  id="editApptDate"
-                  name="appointmentDate"
-                  value={editFormData.appointmentDate}
-                  onChange={handleEditFormChange}
-                  required
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-xs focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none"
-                />
-              </div>
+            <button
+              onClick={clearFilters}
+              className="h-7 px-2.5 inline-flex items-center gap-1.5 rounded-lg border border-zinc-200/80 dark:border-white/[0.08] bg-zinc-50 dark:bg-white/[0.03] text-[11px] font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-white/[0.06] active:scale-[0.96] transition-all cursor-pointer"
+              disabled={isLoading}
+            >
+              <ArrowCounterClockwise size={12} />
+              <span>Clear Filters</span>
+            </button>
+          </div>
 
-              {/* Start Time Input */}
-              <div className="form-group">
-                <label
-                  htmlFor="editStartTime"
-                  className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1"
-                >
-                  Start Time (HH:MM):
-                </label>
-                <input
-                  type="time"
-                  id="editStartTime"
-                  name="startTime"
-                  value={editFormData.startTime}
-                  onChange={handleEditFormChange}
-                  required
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-xs focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none"
-                />
-              </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            {/* Patient */}
+            <div>
+              <label htmlFor="patientId" className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-400 font-mono-code mb-1">
+                Patient
+              </label>
+              <select
+                id="patientId"
+                name="patientId"
+                value={filters.patientId}
+                onChange={handleFilterChange}
+                disabled={isLoading}
+                className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-zinc-50/70 dark:bg-white/[0.03] text-zinc-950 dark:text-white text-xs font-mono-code focus:ring-2 focus:ring-sky-500/30 focus:outline-none"
+              >
+                <option value="">All Patients</option>
+                {patients.map((p) => (
+                  <option key={p._id} value={p._id}>
+                    {p.name} ({p.email})
+                  </option>
+                ))}
+              </select>
+            </div>
 
-              {/* Status Select */}
-              <div className="form-group">
-                <label
-                  htmlFor="editStatus"
-                  className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1"
-                >
-                  Status:
-                </label>
-                <select
-                  id="editStatus"
-                  name="status"
-                  value={editFormData.status}
-                  onChange={handleEditFormChange}
-                  required
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none"
-                >
-                  <option value="scheduled">Scheduled</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                  <option value="noshow">No Show</option>
-                </select>
-              </div>
+            {/* Doctor */}
+            <div>
+              <label htmlFor="doctorId" className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-400 font-mono-code mb-1">
+                Doctor
+              </label>
+              <select
+                id="doctorId"
+                name="doctorId"
+                value={filters.doctorId}
+                onChange={handleFilterChange}
+                disabled={isLoading}
+                className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-zinc-50/70 dark:bg-white/[0.03] text-zinc-950 dark:text-white text-xs font-mono-code focus:ring-2 focus:ring-sky-500/30 focus:outline-none"
+              >
+                <option value="">All Doctors</option>
+                {doctors.map((d) => (
+                  <option key={d._id} value={d._id}>
+                    {d.name} ({d.specialization})
+                  </option>
+                ))}
+              </select>
+            </div>
 
-              {/* Reason Textarea */}
-              <div className="form-group">
-                <label
-                  htmlFor="editReason"
-                  className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1"
-                >
-                  Reason for Visit:
-                </label>
-                <textarea
-                  id="editReason"
-                  name="reason"
-                  value={editFormData.reason}
-                  onChange={handleEditFormChange}
-                  rows="2"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none"
-                ></textarea>
-              </div>
+            {/* From Date */}
+            <div>
+              <label htmlFor="dateStart" className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-400 font-mono-code mb-1">
+                From Date
+              </label>
+              <input
+                type="date"
+                id="dateStart"
+                name="dateStart"
+                value={filters.dateStart}
+                onChange={handleFilterChange}
+                disabled={isLoading}
+                className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-zinc-50/70 dark:bg-white/[0.03] text-zinc-950 dark:text-white text-xs font-mono-code focus:ring-2 focus:ring-sky-500/30 focus:outline-none"
+              />
+            </div>
 
-              {/* Remarks Textarea */}
-              <div className="form-group">
-                <label
-                  htmlFor="editRemarks"
-                  className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1"
-                >
-                  Clinical Remarks / Doctor Notes:
-                </label>
-                <textarea
-                  id="editRemarks"
-                  name="remarks"
-                  value={editFormData.remarks}
-                  onChange={handleEditFormChange}
-                  rows="2"
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none"
-                ></textarea>
-              </div>
+            {/* To Date */}
+            <div>
+              <label htmlFor="dateEnd" className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-400 font-mono-code mb-1">
+                To Date
+              </label>
+              <input
+                type="date"
+                id="dateEnd"
+                name="dateEnd"
+                value={filters.dateEnd}
+                onChange={handleFilterChange}
+                disabled={isLoading}
+                className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-zinc-50/70 dark:bg-white/[0.03] text-zinc-950 dark:text-white text-xs font-mono-code focus:ring-2 focus:ring-sky-500/30 focus:outline-none"
+              />
+            </div>
 
-              {/* Patient Phone Input */}
-              <div className="form-group">
-                <label
-                  htmlFor="editPatientPhone"
-                  className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1"
-                >
-                  Patient Phone:
-                </label>
-                <input
-                  type="tel"
-                  id="editPatientPhone"
-                  name="patientPhone"
-                  value={editFormData.patientPhone}
-                  onChange={handleEditFormChange}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-mono text-xs focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none"
-                />
-              </div>
+            {/* Status */}
+            <div>
+              <label htmlFor="status" className="block text-[10px] font-semibold uppercase tracking-wider text-zinc-400 font-mono-code mb-1">
+                Status
+              </label>
+              <select
+                id="status"
+                name="status"
+                value={filters.status}
+                onChange={handleFilterChange}
+                disabled={isLoading}
+                className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-zinc-50/70 dark:bg-white/[0.03] text-zinc-950 dark:text-white text-xs font-mono-code focus:ring-2 focus:ring-sky-500/30 focus:outline-none"
+              >
+                <option value="">All Statuses</option>
+                <option value="scheduled">Scheduled</option>
+                <option value="completed">Completed</option>
+                <option value="cancelled">Cancelled</option>
+                <option value="noshow">No Show</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
 
-              {/* Modal Action Buttons */}
-              <div className="modal-actions flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100 dark:border-slate-800">
+      {error && (
+        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-mono-code">
+          {error}
+        </div>
+      )}
+
+      {/* Content Rendering */}
+      {isLoading && appointments.length === 0 ? (
+        <div className="py-20 text-center font-mono-code text-xs text-zinc-500">
+          <div className="inline-block w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin mb-3" />
+          <p>Syncing oversight consultation database...</p>
+        </div>
+      ) : appointments.length === 0 ? (
+        <div className="doppelrand-shell">
+          <div className="doppelrand-core p-12 text-center text-zinc-400 font-mono-code text-xs">
+            No appointments found matching the selected filter criteria.
+          </div>
+        </div>
+      ) : (
+        <>
+          {/* Mobile Card View (md:hidden) */}
+          <div className="md:hidden space-y-4">
+            {appointments.map((appt) => (
+              <div key={appt._id} className="doppelrand-shell">
+                <div className="doppelrand-core p-5 space-y-4">
+                  <div className="specular-hairline" />
+
+                  {/* Header */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="font-display text-sm font-bold text-zinc-950 dark:text-white">
+                        {appt.patientUserId?.name || appt.patientName || "Patient"}
+                      </h3>
+                      <p className="text-xs text-zinc-400 font-mono-code">
+                        {appt.patientUserId?.email || "No email on record"}
+                      </p>
+                    </div>
+                    {getStatusBadge(appt.status)}
+                  </div>
+
+                  {/* Telemetry Strip */}
+                  <div className="p-3 rounded-xl bg-zinc-50/80 dark:bg-white/[0.02] border border-zinc-200/70 dark:border-white/[0.05] grid grid-cols-2 gap-2 text-xs font-mono-code">
+                    <div>
+                      <span className="text-[10px] text-zinc-400 uppercase tracking-wider block">Doctor</span>
+                      <span className="font-semibold text-zinc-800 dark:text-zinc-200 truncate block">
+                        {appt.doctorId?.name || "Dr. Assigned"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-zinc-400 uppercase tracking-wider block">Date & Time</span>
+                      <span className="font-semibold text-zinc-800 dark:text-zinc-200 block">
+                        {formatDateForInput(appt.appointmentDate)} • {formatTime12Hour(appt.startTime)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Reason */}
+                  <div>
+                    <span className="text-[10px] uppercase font-mono-code tracking-wider text-zinc-400 block mb-0.5">
+                      Reason
+                    </span>
+                    <p className="text-xs text-zinc-700 dark:text-zinc-300 font-body">
+                      {appt.reason || "Routine Consultation"}
+                    </p>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="pt-2 border-t border-zinc-100 dark:border-white/[0.06] flex items-center justify-end gap-2">
+                    <button
+                      onClick={() => handleEditClick(appt)}
+                      className="h-8 px-3 rounded-xl border border-zinc-200/80 dark:border-white/[0.08] bg-zinc-50 dark:bg-white/[0.03] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-white/[0.06] text-xs font-semibold inline-flex items-center gap-1.5 active:scale-[0.96] transition-all cursor-pointer"
+                    >
+                      <PencilSimple size={14} />
+                      <span>Edit</span>
+                    </button>
+                    {appt.status === "scheduled" && (
+                      <button
+                        onClick={() => handleCancelAppointment(appt._id)}
+                        className="h-8 px-3 rounded-xl border border-amber-500/20 bg-amber-500/10 hover:bg-amber-500/15 text-amber-600 dark:text-amber-400 text-xs font-semibold active:scale-[0.96] transition-all cursor-pointer"
+                      >
+                        <span>Cancel</span>
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleDeleteAppointment(appt._id)}
+                      className="h-8 px-2.5 rounded-xl border border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-semibold inline-flex items-center justify-center active:scale-[0.96] transition-all cursor-pointer"
+                      title="Delete Record"
+                    >
+                      <Trash size={14} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop Table View (hidden md:block) */}
+          <div className="hidden md:block doppelrand-shell">
+            <div className="doppelrand-core p-0 overflow-hidden">
+              <div className="specular-hairline" />
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-zinc-200/80 dark:border-white/[0.08] bg-zinc-50/70 dark:bg-white/[0.02] text-[11px] font-mono-code uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                      <th className="py-4 px-6 font-semibold">Date</th>
+                      <th className="py-4 px-4 font-semibold">Time</th>
+                      <th className="py-4 px-4 font-semibold">Patient</th>
+                      <th className="py-4 px-4 font-semibold">Physician</th>
+                      <th className="py-4 px-4 font-semibold">Reason</th>
+                      <th className="py-4 px-4 font-semibold">Status</th>
+                      <th className="py-4 px-6 text-right font-semibold">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-100 dark:divide-white/[0.05] text-xs font-body">
+                    {appointments.map((appt) => (
+                      <tr
+                        key={appt._id}
+                        className="hover:bg-zinc-50/80 dark:hover:bg-white/[0.02] transition-colors"
+                      >
+                        <td className="py-4 px-6 font-mono-code font-semibold text-zinc-950 dark:text-white">
+                          {formatDateForInput(appt.appointmentDate)}
+                        </td>
+
+                        <td className="py-4 px-4 font-mono-code text-zinc-600 dark:text-zinc-400">
+                          <span className="inline-flex items-center gap-1">
+                            <Clock size={13} className="text-zinc-400" />
+                            <span>{formatTime12Hour(appt.startTime)}</span>
+                          </span>
+                        </td>
+
+                        <td className="py-4 px-4">
+                          <div className="font-semibold text-zinc-950 dark:text-white">
+                            {appt.patientUserId?.name || appt.patientName || "N/A"}
+                          </div>
+                          <span className="text-[11px] font-mono-code text-zinc-400 block">
+                            {appt.patientUserId?.email || "N/A"}
+                          </span>
+                        </td>
+
+                        <td className="py-4 px-4">
+                          <div className="font-semibold text-zinc-950 dark:text-white">
+                            {appt.doctorId?.name || "N/A"}
+                          </div>
+                          <span className="text-[11px] text-sky-600 dark:text-sky-400 block font-medium">
+                            {appt.doctorId?.specialization || "General"}
+                          </span>
+                        </td>
+
+                        <td className="py-4 px-4 max-w-[200px] truncate text-zinc-600 dark:text-zinc-400">
+                          {appt.reason || "Routine Consultation"}
+                        </td>
+
+                        <td className="py-4 px-4">
+                          {getStatusBadge(appt.status)}
+                        </td>
+
+                        <td className="py-4 px-6 text-right">
+                          <div className="inline-flex items-center justify-end gap-1.5">
+                            <button
+                              onClick={() => handleEditClick(appt)}
+                              className="h-8 px-2.5 rounded-xl border border-zinc-200/80 dark:border-white/[0.08] bg-zinc-50/80 dark:bg-white/[0.03] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-white/[0.06] text-xs font-semibold inline-flex items-center gap-1 active:scale-[0.96] transition-all cursor-pointer"
+                              title="Edit Appointment"
+                            >
+                              <PencilSimple size={14} />
+                              <span>Edit</span>
+                            </button>
+                            {appt.status === "scheduled" && (
+                              <button
+                                onClick={() => handleCancelAppointment(appt._id)}
+                                className="h-8 px-2.5 rounded-xl border border-amber-500/20 bg-amber-500/10 hover:bg-amber-500/15 text-amber-600 dark:text-amber-400 text-xs font-semibold active:scale-[0.96] transition-all cursor-pointer"
+                                title="Cancel Appointment"
+                              >
+                                <span>Cancel</span>
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleDeleteAppointment(appt._id)}
+                              className="h-8 px-2 rounded-xl border border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-semibold active:scale-[0.96] transition-all cursor-pointer"
+                              title="Delete Appointment"
+                            >
+                              <Trash size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Edit Modal */}
+      {editingAppointment &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-materialize">
+            <div className="w-full max-w-lg doppelrand-shell max-h-[90vh] overflow-y-auto">
+            <div className="doppelrand-core p-6 sm:p-7">
+              <div className="specular-hairline" />
+
+              <div className="flex items-center justify-between pb-4 mb-5 border-b border-zinc-100 dark:border-white/[0.06]">
+                <h3 className="font-display font-semibold text-base text-zinc-950 dark:text-white flex items-center gap-2">
+                  <PencilSimple size={18} className="text-sky-600 dark:text-sky-400" />
+                  <span>Edit Appointment Record</span>
+                </h3>
                 <button
                   type="button"
                   onClick={handleCancelEdit}
-                  className="btn btn-cancel px-3.5 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl text-xs font-medium transition-colors"
+                  className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-1 cursor-pointer"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn btn-save px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-xl text-xs font-medium inline-flex items-center gap-1.5 shadow-xs transition-colors btn-press cursor-pointer"
-                >
-                  <FloppyDisk className="w-4 h-4" />
-                  Save Changes
+                  <X size={18} />
                 </button>
               </div>
-            </form>
+
+              <form onSubmit={handleUpdateAppointment} className="space-y-4">
+                <div className="p-3.5 rounded-xl bg-zinc-50/80 dark:bg-white/[0.02] border border-zinc-200/70 dark:border-white/[0.05] grid grid-cols-2 gap-2 text-xs font-mono-code mb-2">
+                  <div>
+                    <span className="text-[10px] text-zinc-400 uppercase tracking-wider block">Patient</span>
+                    <span className="font-semibold text-zinc-800 dark:text-zinc-200 truncate block">
+                      {editingAppointment.patientUserId?.name || editingAppointment.patientName || "N/A"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-zinc-400 uppercase tracking-wider block">Doctor</span>
+                    <span className="font-semibold text-zinc-800 dark:text-zinc-200 truncate block">
+                      {editingAppointment.doctorId?.name || "N/A"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <label
+                      htmlFor="editApptDate"
+                      className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 font-mono-code mb-1.5"
+                    >
+                      Appointment Date
+                    </label>
+                    <input
+                      type="date"
+                      id="editApptDate"
+                      name="appointmentDate"
+                      value={editFormData.appointmentDate}
+                      onChange={handleEditFormChange}
+                      required
+                      className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-zinc-50/70 dark:bg-white/[0.03] text-zinc-950 dark:text-white font-mono-code text-xs focus:ring-2 focus:ring-sky-500/30 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="editStartTime"
+                      className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 font-mono-code mb-1.5"
+                    >
+                      Start Time
+                    </label>
+                    <input
+                      type="time"
+                      id="editStartTime"
+                      name="startTime"
+                      value={editFormData.startTime}
+                      onChange={handleEditFormChange}
+                      required
+                      className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-zinc-50/70 dark:bg-white/[0.03] text-zinc-950 dark:text-white font-mono-code text-xs focus:ring-2 focus:ring-sky-500/30 focus:outline-none"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="editStatus"
+                    className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 font-mono-code mb-1.5"
+                  >
+                    Consultation Status
+                  </label>
+                  <select
+                    id="editStatus"
+                    name="status"
+                    value={editFormData.status}
+                    onChange={handleEditFormChange}
+                    required
+                    className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-zinc-50/70 dark:bg-white/[0.03] text-zinc-950 dark:text-white text-xs font-mono-code focus:ring-2 focus:ring-sky-500/30 focus:outline-none cursor-pointer"
+                  >
+                    <option value="scheduled">Scheduled</option>
+                    <option value="completed">Completed</option>
+                    <option value="cancelled">Cancelled</option>
+                    <option value="noshow">No Show</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="editReason"
+                    className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 font-mono-code mb-1.5"
+                  >
+                    Reason for Visit
+                  </label>
+                  <textarea
+                    id="editReason"
+                    name="reason"
+                    value={editFormData.reason}
+                    onChange={handleEditFormChange}
+                    rows="2"
+                    className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-zinc-50/70 dark:bg-white/[0.03] text-zinc-950 dark:text-white text-xs focus:ring-2 focus:ring-sky-500/30 focus:outline-none"
+                  ></textarea>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="editRemarks"
+                    className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 font-mono-code mb-1.5"
+                  >
+                    Doctor Remarks / Clinical Notes
+                  </label>
+                  <textarea
+                    id="editRemarks"
+                    name="remarks"
+                    value={editFormData.remarks}
+                    onChange={handleEditFormChange}
+                    rows="2"
+                    className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-zinc-50/70 dark:bg-white/[0.03] text-zinc-950 dark:text-white text-xs focus:ring-2 focus:ring-sky-500/30 focus:outline-none"
+                  ></textarea>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="editPatientPhone"
+                    className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 font-mono-code mb-1.5"
+                  >
+                    Patient Contact Phone
+                  </label>
+                  <input
+                    type="tel"
+                    id="editPatientPhone"
+                    name="patientPhone"
+                    value={editFormData.patientPhone}
+                    onChange={handleEditFormChange}
+                    className="w-full px-3 py-2 rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-zinc-50/70 dark:bg-white/[0.03] text-zinc-950 dark:text-white font-mono-code text-xs focus:ring-2 focus:ring-sky-500/30 focus:outline-none"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-zinc-100 dark:border-white/[0.06]">
+                  <button
+                    type="button"
+                    onClick={handleCancelEdit}
+                    className="h-9 px-3.5 rounded-xl border border-zinc-200/80 dark:border-white/[0.08] bg-zinc-50 dark:bg-white/[0.03] text-zinc-700 dark:text-zinc-300 text-xs font-semibold active:scale-[0.97] transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="h-9 px-4 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold inline-flex items-center gap-1.5 shadow-xs active:scale-[0.97] transition-all cursor-pointer"
+                  >
+                    <FloppyDisk size={15} />
+                    <span>Save Changes</span>
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

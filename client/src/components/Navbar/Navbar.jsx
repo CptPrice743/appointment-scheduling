@@ -78,7 +78,7 @@ const Navbar = () => {
     }`;
 
   return (
-    <header className="sticky top-0 z-50 w-full backdrop-blur-2xl bg-white/85 dark:bg-[#080A0F]/85 border-b border-zinc-200/80 dark:border-white/[0.07] transition-colors duration-300">
+    <nav className="w-full backdrop-blur-2xl bg-white/85 dark:bg-[#080A0F]/85 border-b border-zinc-200/80 dark:border-white/[0.07] transition-colors duration-300 relative z-30">
       <div className="relative w-full max-w-[1700px] mx-auto px-4 sm:px-8 lg:px-12 h-16 sm:h-[70px] flex items-center justify-between gap-4">
         
         {/* Left: Brand Mark & Telemetry */}
@@ -179,9 +179,9 @@ const Navbar = () => {
           )}
         </nav>
 
-        {/* Right: Perfectly Centered & Uniform-Height Utilities */}
-        <div className="hidden lg:flex items-center gap-2.5 z-10">
-          {/* Theme Switcher Button */}
+        {/* Right Utilities & Authentication Controls */}
+        <div className="flex items-center gap-2.5 z-10">
+          {/* Quick Theme Switcher */}
           <button
             onClick={toggleTheme}
             className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-zinc-200/80 dark:border-white/[0.08] bg-zinc-50 dark:bg-white/[0.03] text-zinc-600 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/[0.06] btn-press cursor-pointer"
@@ -198,8 +198,9 @@ const Navbar = () => {
             </div>
           </button>
 
-          {isAuthenticated && (
-            <div className="flex items-center gap-2">
+          {/* Desktop Authentication Controls (lg+) */}
+          {isAuthenticated ? (
+            <div className="hidden lg:flex items-center gap-2">
               {/* Role Pill */}
               <div
                 className={`h-9 px-3 inline-flex items-center justify-center rounded-xl border font-mono-code text-[10px] font-bold uppercase tracking-wider select-none ${getRoleBadgeStyle(
@@ -214,8 +215,9 @@ const Navbar = () => {
                 to="/profile/edit"
                 className="h-9 px-3 inline-flex items-center justify-center gap-2 rounded-xl border border-zinc-200/80 dark:border-white/[0.08] bg-zinc-50 dark:bg-white/[0.03] hover:bg-zinc-100 dark:hover:bg-white/[0.06] text-zinc-800 dark:text-zinc-200 text-xs font-semibold tracking-tight btn-press cursor-pointer"
                 title="Account Settings"
+                onClick={handleLinkClick}
               >
-                <div className="w-5.5 h-5.5 rounded-lg bg-sky-500/15 text-sky-600 dark:text-sky-400 flex items-center justify-center text-[10px] font-bold">
+                <div className="w-5.5 h-5.5 rounded-lg bg-sky-500/15 text-sky-600 dark:text-sky-400 flex items-center justify-center text-[10px] font-bold shrink-0">
                   {user?.name ? user.name.charAt(0).toUpperCase() : <User size={12} />}
                 </div>
                 <span className="max-w-[120px] truncate">{user?.name}</span>
@@ -232,29 +234,18 @@ const Navbar = () => {
                 <span>Logout</span>
               </button>
             </div>
-          )}
-        </div>
-
-        {/* Mobile Hamburger & Quick Theme */}
-        <div className="flex items-center gap-2 lg:hidden z-10">
-          <button
-            onClick={toggleTheme}
-            className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-zinc-200/80 dark:border-white/[0.08] bg-zinc-50 dark:bg-white/[0.03] text-zinc-600 dark:text-zinc-300 btn-press"
-            aria-label="Toggle theme"
-          >
-            <div className="t-icon-swap" data-state={theme === "dark" ? "b" : "a"}>
-              <span className="t-icon" data-icon="a">
-                <Moon size={17} weight="bold" className="text-zinc-600" />
-              </span>
-              <span className="t-icon" data-icon="b">
-                <Sun size={17} weight="bold" className="text-amber-400" />
-              </span>
+          ) : (
+            <div className="hidden lg:flex items-center gap-2">
+              <NavLink to="/login" className={navLinkClass}>
+                Sign In
+              </NavLink>
             </div>
-          </button>
+          )}
 
+          {/* Mobile & Tablet Hamburger Toggle */}
           <button
             onClick={toggleMobileMenu}
-            className="h-9 w-9 inline-flex items-center justify-center rounded-xl border border-zinc-200/80 dark:border-white/[0.08] bg-zinc-50 dark:bg-white/[0.03] text-zinc-950 dark:text-white btn-press"
+            className="h-9 w-9 inline-flex lg:hidden items-center justify-center rounded-xl border border-zinc-200/80 dark:border-white/[0.08] bg-zinc-50 dark:bg-white/[0.03] text-zinc-950 dark:text-white btn-press cursor-pointer"
             aria-label="Toggle Menu"
           >
             <div className="t-icon-swap" data-state={isMobileMenuOpen ? "b" : "a"}>
@@ -269,25 +260,25 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Mobile Drawer */}
+      {/* Mobile & Tablet Drawer Menu */}
       {isMobileMenuOpen && (
-        <div className="fixed inset-x-0 top-[64px] sm:top-[70px] bottom-0 z-40 bg-white/95 dark:bg-[#080A0F]/95 backdrop-blur-2xl p-6 flex flex-col justify-between overflow-y-auto border-t border-zinc-200/80 dark:border-white/[0.08] animate-materialize">
-          <div className="space-y-6">
-            {isAuthenticated && (
-              <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-white/[0.03] border border-zinc-200/80 dark:border-white/[0.08] flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-sky-500/15 text-sky-600 dark:text-sky-400 flex items-center justify-center font-bold text-sm">
-                    {user?.name ? user.name.charAt(0).toUpperCase() : <User size={18} />}
+        <div className="absolute inset-x-0 top-full max-h-[calc(100dvh-100%)] z-40 bg-white/95 dark:bg-[#080A0F]/95 backdrop-blur-2xl p-5 sm:p-6 flex flex-col gap-5 overflow-y-auto border-t border-zinc-200/80 dark:border-white/[0.08] shadow-2xl animate-materialize">
+          {isAuthenticated && (
+            <div className="p-4 rounded-2xl bg-zinc-50 dark:bg-white/[0.03] border border-zinc-200/80 dark:border-white/[0.08] flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 shrink-0 rounded-xl bg-sky-500/15 text-sky-600 dark:text-sky-400 flex items-center justify-center font-bold text-sm">
+                  {user?.name ? user.name.charAt(0).toUpperCase() : <User size={18} />}
+                </div>
+                <div className="min-w-0">
+                  <div className="font-semibold text-sm text-zinc-900 dark:text-white truncate">
+                    {user?.name}
                   </div>
-                  <div>
-                    <div className="font-semibold text-sm text-zinc-900 dark:text-white">
-                      {user?.name}
-                    </div>
-                    <div className="font-mono-code text-[11px] text-zinc-400">
-                      {user?.email}
-                    </div>
+                  <div className="font-mono-code text-[11px] text-zinc-400 truncate">
+                    {user?.email}
                   </div>
                 </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
                 <span
                   className={`font-mono-code text-[10px] uppercase tracking-wider px-2.5 py-1 rounded-lg border font-bold ${getRoleBadgeStyle(
                     user?.role
@@ -295,125 +286,124 @@ const Navbar = () => {
                 >
                   {user?.role}
                 </span>
+                <button
+                  onClick={handleLogout}
+                  className="h-9 px-3 rounded-xl border border-rose-500/25 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-semibold inline-flex items-center gap-1.5 active:scale-[0.96] transition-all cursor-pointer"
+                  title="Sign Out"
+                  aria-label="Logout"
+                >
+                  <SignOut size={15} weight="bold" />
+                  <span>Logout</span>
+                </button>
               </div>
-            )}
+            </div>
+          )}
 
-            <nav className="flex flex-col space-y-1.5">
-              {!isAuthenticated ? (
-                <>
-                  <NavLink
-                    to="/login"
-                    className="h-11 px-4 rounded-xl text-zinc-800 dark:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5 font-semibold text-sm flex items-center gap-3"
-                    onClick={handleLinkClick}
-                  >
-                    <User size={18} />
-                    <span>Sign In</span>
-                  </NavLink>
-                  <NavLink
-                    to="/register"
-                    className="h-11 px-4 rounded-xl bg-sky-600 text-white font-semibold text-sm flex items-center justify-between mt-2"
-                    onClick={handleLinkClick}
-                  >
-                    <span>Create Account</span>
-                    <ArrowUpRight size={16} weight="bold" />
-                  </NavLink>
-                </>
-              ) : (
-                <>
-                  {user?.role === "patient" && (
-                    <>
-                      <NavLink
-                        to="/appointments"
-                        className="h-11 px-4 rounded-xl text-zinc-800 dark:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5 font-semibold text-sm flex items-center gap-3"
-                        onClick={handleLinkClick}
-                      >
-                        <CalendarCheck size={18} />
-                        <span>Consultations</span>
-                      </NavLink>
-                      <NavLink
-                        to="/add"
-                        className="h-11 px-4 rounded-xl text-zinc-800 dark:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5 font-semibold text-sm flex items-center gap-3"
-                        onClick={handleLinkClick}
-                      >
-                        <CalendarPlus size={18} />
-                        <span>Book Visit</span>
-                      </NavLink>
-                    </>
-                  )}
-
-                  {user?.role === "doctor" && (
+          <nav className="flex flex-col space-y-1.5">
+            {!isAuthenticated ? (
+              <>
+                <NavLink
+                  to="/login"
+                  className="h-11 px-4 rounded-xl text-zinc-800 dark:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5 font-semibold text-sm flex items-center gap-3"
+                  onClick={handleLinkClick}
+                >
+                  <User size={18} />
+                  <span>Sign In</span>
+                </NavLink>
+                <NavLink
+                  to="/register"
+                  className="h-11 px-4 rounded-xl bg-sky-600 text-white font-semibold text-sm flex items-center justify-between mt-2"
+                  onClick={handleLinkClick}
+                >
+                  <span>Create Account</span>
+                  <ArrowUpRight size={16} weight="bold" />
+                </NavLink>
+              </>
+            ) : (
+              <>
+                {user?.role === "patient" && (
+                  <>
                     <NavLink
-                      to="/doctor/dashboard"
+                      to="/appointments"
                       className="h-11 px-4 rounded-xl text-zinc-800 dark:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5 font-semibold text-sm flex items-center gap-3"
                       onClick={handleLinkClick}
                     >
-                      <House size={18} />
-                      <span>Schedule Matrix</span>
+                      <CalendarCheck size={18} />
+                      <span>Consultations</span>
                     </NavLink>
-                  )}
+                    <NavLink
+                      to="/add"
+                      className="h-11 px-4 rounded-xl text-zinc-800 dark:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5 font-semibold text-sm flex items-center gap-3"
+                      onClick={handleLinkClick}
+                    >
+                      <CalendarPlus size={18} />
+                      <span>Book Visit</span>
+                    </NavLink>
+                  </>
+                )}
 
-                  {user?.role === "admin" && (
-                    <>
-                      <NavLink
-                        to="/admin/dashboard"
-                        className="h-11 px-4 rounded-xl text-zinc-800 dark:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5 font-semibold text-sm flex items-center gap-3"
-                        onClick={handleLinkClick}
-                      >
-                        <ChartBar size={18} />
-                        <span>Overview</span>
-                      </NavLink>
-                      <NavLink
-                        to="/admin/users"
-                        className="h-11 px-4 rounded-xl text-zinc-800 dark:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5 font-semibold text-sm flex items-center gap-3"
-                        onClick={handleLinkClick}
-                      >
-                        <UsersThree size={18} />
-                        <span>User Directory</span>
-                      </NavLink>
-                      <NavLink
-                        to="/admin/doctors"
-                        className="h-11 px-4 rounded-xl text-zinc-800 dark:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5 font-semibold text-sm flex items-center gap-3"
-                        onClick={handleLinkClick}
-                      >
-                        <FirstAid size={18} />
-                        <span>Physicians</span>
-                      </NavLink>
-                      <NavLink
-                        to="/admin/appointments"
-                        className="h-11 px-4 rounded-xl text-zinc-800 dark:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5 font-semibold text-sm flex items-center gap-3"
-                        onClick={handleLinkClick}
-                      >
-                        <CalendarCheck size={18} />
-                        <span>Oversight Registry</span>
-                      </NavLink>
-                    </>
-                  )}
-
+                {user?.role === "doctor" && (
                   <NavLink
-                    to="/profile/edit"
-                    className="h-11 px-4 rounded-xl text-zinc-800 dark:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5 font-semibold text-sm flex items-center gap-3 mt-3 pt-3 border-t border-zinc-200 dark:border-white/10"
+                    to="/doctor/dashboard"
+                    className="h-11 px-4 rounded-xl text-zinc-800 dark:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5 font-semibold text-sm flex items-center gap-3"
                     onClick={handleLinkClick}
                   >
-                    <User size={18} />
-                    <span>Account Settings</span>
+                    <House size={18} />
+                    <span>Schedule Matrix</span>
                   </NavLink>
-                </>
-              )}
-            </nav>
-          </div>
+                )}
 
-          {isAuthenticated && (
-            <button
-              onClick={handleLogout}
-              className="w-full h-11 rounded-xl text-rose-600 dark:text-rose-400 bg-rose-500/10 hover:bg-rose-500/15 font-semibold text-sm flex items-center justify-center gap-2 transition-colors active:scale-[0.98] cursor-pointer"
-            >
-              <SignOut size={18} weight="bold" />
-              <span>Sign Out</span>
-            </button>
-          )}
+                {user?.role === "admin" && (
+                  <>
+                    <NavLink
+                      to="/admin/dashboard"
+                      className="h-11 px-4 rounded-xl text-zinc-800 dark:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5 font-semibold text-sm flex items-center gap-3"
+                      onClick={handleLinkClick}
+                    >
+                      <ChartBar size={18} />
+                      <span>Overview</span>
+                    </NavLink>
+                    <NavLink
+                      to="/admin/users"
+                      className="h-11 px-4 rounded-xl text-zinc-800 dark:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5 font-semibold text-sm flex items-center gap-3"
+                      onClick={handleLinkClick}
+                    >
+                      <UsersThree size={18} />
+                      <span>User Directory</span>
+                    </NavLink>
+                    <NavLink
+                      to="/admin/doctors"
+                      className="h-11 px-4 rounded-xl text-zinc-800 dark:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5 font-semibold text-sm flex items-center gap-3"
+                      onClick={handleLinkClick}
+                    >
+                      <FirstAid size={18} />
+                      <span>Physicians</span>
+                    </NavLink>
+                    <NavLink
+                      to="/admin/appointments"
+                      className="h-11 px-4 rounded-xl text-zinc-800 dark:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5 font-semibold text-sm flex items-center gap-3"
+                      onClick={handleLinkClick}
+                    >
+                      <CalendarCheck size={18} />
+                      <span>Oversight Registry</span>
+                    </NavLink>
+                  </>
+                )}
+
+                <NavLink
+                  to="/profile/edit"
+                  className="h-11 px-4 rounded-xl text-zinc-800 dark:text-zinc-200 hover:bg-black/5 dark:hover:bg-white/5 font-semibold text-sm flex items-center gap-3 mt-3 pt-3 border-t border-zinc-200/80 dark:border-white/[0.08]"
+                  onClick={handleLinkClick}
+                >
+                  <User size={18} />
+                  <span>Account Settings</span>
+                </NavLink>
+              </>
+            )}
+          </nav>
         </div>
       )}
-    </header>
+    </nav>
   );
 };
 

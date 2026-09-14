@@ -11,27 +11,27 @@ import {
   WarningCircle,
   FloppyDisk,
   X,
+  CalendarBlank,
+  Clock,
+  Sparkle,
 } from "@phosphor-icons/react";
 
 const UserManagement = () => {
   const [users, setUsers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [editingRoleUserId, setEditingRoleUserId] = useState(null); // Track which user's role is being edited
+  const [editingRoleUserId, setEditingRoleUserId] = useState(null);
   const [selectedRole, setSelectedRole] = useState("");
 
-  const { token } = useContext(AuthContext); // Get token for API requests
+  const { token } = useContext(AuthContext);
+  const API_URL = import.meta.env.VITE_API_URL || "/api";
 
-  const API_URL = import.meta.env.VITE_API_URL || "/api"; // Use environment variable
-
-  // --- Fetch users ---
   const fetchUsers = async () => {
     setIsLoading(true);
     setError(null);
     try {
       const config = {
         headers: {
-          // Content-Type is not needed for GET request usually
           Authorization: `Bearer ${token}`,
         },
       };
@@ -53,13 +53,12 @@ const UserManagement = () => {
             "Failed to fetch users. Are you logged in as an admin?"
         );
       }
-      setUsers([]); // Clear users on error
+      setUsers([]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Fetch users on component mount
   useEffect(() => {
     if (token) {
       fetchUsers();
@@ -67,12 +66,8 @@ const UserManagement = () => {
       setError("Authentication token not found.");
       setIsLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token]); // Depend only on token for initial fetch
+  }, [token]);
 
-  // --- Action Handlers ---
-
-  // Handler for Activate/Deactivate button
   const handleToggleStatus = async (userId, currentStatus) => {
     const newStatus = !currentStatus;
     if (
@@ -85,17 +80,16 @@ const UserManagement = () => {
       try {
         const config = {
           headers: {
-            "Content-Type": "application/json", // Needed for PUT with body
+            "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
         };
         await axios.put(
           `${API_URL}/admin/users/${userId}/status`,
-          { isActive: newStatus }, // Request body
+          { isActive: newStatus },
           config
         );
 
-        // Update user list locally for immediate feedback
         setUsers((prevUsers) =>
           prevUsers.map((user) =>
             user._id === userId ? { ...user, isActive: newStatus } : user
@@ -109,7 +103,6 @@ const UserManagement = () => {
     }
   };
 
-  // Handler for Delete button
   const handleDeleteUser = async (userId, userName) => {
     if (
       window.confirm(
@@ -119,12 +112,11 @@ const UserManagement = () => {
       try {
         const config = {
           headers: {
-            Authorization: `Bearer ${token}`, // Content-Type not needed for DELETE
+            Authorization: `Bearer ${token}`,
           },
         };
         await axios.delete(`${API_URL}/admin/users/${userId}`, config);
 
-        // Remove user from list locally
         setUsers((prevUsers) =>
           prevUsers.filter((user) => user._id !== userId)
         );
@@ -136,24 +128,20 @@ const UserManagement = () => {
     }
   };
 
-  // Handler to start editing role
   const handleEditRoleClick = (user) => {
     setEditingRoleUserId(user._id);
     setSelectedRole(user.role);
   };
 
-  // Handler to cancel editing role
   const handleCancelEditRole = () => {
     setEditingRoleUserId(null);
     setSelectedRole("");
   };
 
-  // Handler for Role change dropdown selection
   const handleRoleChange = (event) => {
     setSelectedRole(event.target.value);
   };
 
-  // Handler to save the updated role
   const handleSaveRole = async (userId) => {
     if (!selectedRole) {
       alert("Please select a role.");
@@ -162,26 +150,24 @@ const UserManagement = () => {
     try {
       const config = {
         headers: {
-          "Content-Type": "application/json", // Needed for PUT with body
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
       };
       const response = await axios.put(
         `${API_URL}/admin/users/${userId}/role`,
-        { role: selectedRole }, // Request body
+        { role: selectedRole },
         config
       );
 
-      // Update user list locally using data from response if needed, or just selectedRole
-      const updatedUser = response.data.user; // Assuming backend returns updated user
+      const updatedUser = response.data.user;
       setUsers((prevUsers) =>
-        prevUsers.map(
-          (user) =>
-            user._id === userId ? { ...user, role: updatedUser.role } : user // Use response data
+        prevUsers.map((user) =>
+          user._id === userId ? { ...user, role: updatedUser.role } : user
         )
       );
       alert(`User role updated to ${selectedRole} successfully.`);
-      setEditingRoleUserId(null); // Exit editing mode
+      setEditingRoleUserId(null);
       setSelectedRole("");
     } catch (err) {
       console.error("Error updating user role:", err);
@@ -189,22 +175,46 @@ const UserManagement = () => {
     }
   };
 
-  // --- Render Logic ---
+  const getRoleBadge = (role) => {
+    switch (role) {
+      case "admin":
+        return (
+          <span className="font-mono-code text-[11px] font-semibold px-2.5 py-1 rounded-full bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+            Admin
+          </span>
+        );
+      case "doctor":
+        return (
+          <span className="font-mono-code text-[11px] font-semibold px-2.5 py-1 rounded-full bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
+            Doctor
+          </span>
+        );
+      case "patient":
+      default:
+        return (
+          <span className="font-mono-code text-[11px] font-semibold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+            Patient
+          </span>
+        );
+    }
+  };
 
   if (isLoading) {
     return (
-      <div className="loading status-message min-h-[50vh] flex items-center justify-center text-sm text-slate-400">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600 mr-3"></div>
-        Loading users...
+      <div className="max-w-6xl mx-auto px-4 py-24 text-center">
+        <div className="inline-block w-8 h-8 border-2 border-sky-500 border-t-transparent rounded-full animate-spin mb-3" />
+        <p className="font-mono-code text-xs text-zinc-500 dark:text-zinc-400">
+          Syncing user directory and authorizations...
+        </p>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="max-w-6xl mx-auto p-6">
-        <div className="error-message status-message p-4 bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-900/60 rounded-xl text-rose-700 dark:text-rose-300 text-sm flex items-center gap-2">
-          <WarningCircle className="w-5 h-5 shrink-0" />
+      <div className="max-w-4xl mx-auto px-4 py-16">
+        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-mono-code font-medium flex items-center gap-2">
+          <WarningCircle size={18} className="shrink-0" />
           <span>{error}</span>
         </div>
       </div>
@@ -212,193 +222,298 @@ const UserManagement = () => {
   }
 
   return (
-    <div className="user-management-container w-full max-w-[1650px] mx-auto py-8 sm:py-10 px-4 sm:px-8 lg:px-12 space-y-8 animate-materialize">
+    <div className="w-full max-w-[1650px] mx-auto px-4 sm:px-8 lg:px-12 py-8 sm:py-10 animate-materialize space-y-8">
       {/* Header Area */}
-      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2.5">
-            <Users className="w-6 h-6 text-teal-600 dark:text-teal-400" />
-            <h2 className="text-2xl font-heading font-bold text-slate-900 dark:text-white">
-              User Directory & Access Control
-            </h2>
+      <div className="doppelrand-shell">
+        <div className="doppelrand-core p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="specular-hairline" />
+          <div>
+            <div className="flex items-center gap-2.5 mb-1">
+              <Users size={24} className="text-sky-600 dark:text-sky-400" />
+              <h1 className="text-2xl sm:text-3xl font-display font-bold text-zinc-950 dark:text-white tracking-tight">
+                User Directory & Access Control
+              </h1>
+            </div>
+            <p className="font-body text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
+              Manage account privileges, clinical roles, and active platform memberships.
+            </p>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Manage account privileges, clinical roles, and active platform memberships.
-          </p>
-        </div>
 
-        <div className="flex items-center gap-2 bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-700/60 px-3.5 py-2 rounded-xl text-xs font-medium text-slate-700 dark:text-slate-300">
-          <span>Total Records:</span>
-          <span className="font-mono font-bold text-teal-600 dark:text-teal-400">
-            {users.length}
-          </span>
+          <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-zinc-100/80 dark:bg-white/[0.03] border border-zinc-200/80 dark:border-white/[0.08] text-xs font-mono-code text-zinc-600 dark:text-zinc-400 w-fit">
+            <span>Total Records:</span>
+            <span className="font-bold text-sky-600 dark:text-sky-400">
+              {users.length}
+            </span>
+          </div>
         </div>
       </div>
 
       {!Array.isArray(users) || users.length === 0 ? (
-        <div className="info-message status-message bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-12 text-center text-slate-400 text-sm">
-          No user accounts found on platform.
+        <div className="doppelrand-shell">
+          <div className="doppelrand-core p-12 text-center text-zinc-400 font-mono-code text-xs">
+            No user accounts found on platform.
+          </div>
         </div>
       ) : (
-        <div className="users-table-container bg-white dark:bg-slate-900 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-xs overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="users-table w-full text-left border-collapse">
-              <thead>
-                <tr className="border-b border-slate-200/80 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-800/40 text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                  <th className="py-3.5 px-4 sm:px-6">Name</th>
-                  <th className="py-3.5 px-4">Email</th>
-                  <th className="py-3.5 px-4">Role</th>
-                  <th className="py-3.5 px-4">Status</th>
-                  <th className="py-3.5 px-4">Joined</th>
-                  <th className="py-3.5 px-4 sm:px-6 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/70 text-xs text-slate-800 dark:text-slate-200">
-                {users.map((user) => {
-                  const roleBadgeStyles = {
-                    admin: "bg-purple-50 text-purple-700 dark:bg-purple-950/50 dark:text-purple-300 border-purple-200 dark:border-purple-800/60",
-                    doctor: "bg-teal-50 text-teal-700 dark:bg-teal-950/50 dark:text-teal-300 border-teal-200 dark:border-teal-800/60",
-                    patient: "bg-sky-50 text-sky-700 dark:bg-sky-950/50 dark:text-sky-300 border-sky-200 dark:border-sky-800/60",
-                  }[user.role] || "bg-slate-50 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700";
+        <>
+          {/* Mobile Card View (md:hidden) — 100% responsive, never overflows */}
+          <div className="md:hidden space-y-4">
+            {users.map((user) => {
+              const isEditingThis = editingRoleUserId === user._id;
 
-                  return (
-                    <tr
-                      key={user._id}
-                      className={`hover:bg-slate-50/60 dark:hover:bg-slate-800/30 transition-colors ${
-                        !user.isActive ? "inactive-user opacity-60 bg-slate-50/30 dark:bg-slate-900/40" : ""
-                      }`}
-                    >
-                      {/* Name */}
-                      <td data-label="Name" className="py-4 px-4 sm:px-6 font-medium text-slate-900 dark:text-white">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold flex items-center justify-center text-xs">
-                            {user.name ? user.name.charAt(0).toUpperCase() : "U"}
-                          </div>
-                          <span>{user.name || "N/A"}</span>
+              return (
+                <div key={user._id} className="doppelrand-shell">
+                  <div className="doppelrand-core p-5 space-y-4">
+                    <div className="specular-hairline" />
+
+                    {/* User Header */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-10 h-10 rounded-2xl bg-sky-500/10 border border-sky-500/20 text-sky-600 dark:text-sky-400 font-bold text-sm font-display flex items-center justify-center shrink-0">
+                          {user.name ? user.name.charAt(0).toUpperCase() : "U"}
                         </div>
-                      </td>
+                        <div className="min-w-0">
+                          <h3 className="font-display text-sm font-bold text-zinc-950 dark:text-white truncate">
+                            {user.name || "N/A"}
+                          </h3>
+                          <p className="text-xs font-mono-code text-zinc-400 truncate">
+                            {user.email || "N/A"}
+                          </p>
+                        </div>
+                      </div>
 
-                      {/* Email */}
-                      <td data-label="Email" className="py-4 px-4 font-mono text-slate-600 dark:text-slate-400">
-                        {user.email || "N/A"}
-                      </td>
+                      {user.isActive ? (
+                        <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold font-mono-code bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                          Active
+                        </span>
+                      ) : (
+                        <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold font-mono-code bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                          Inactive
+                        </span>
+                      )}
+                    </div>
 
-                      {/* Role */}
-                      <td data-label="Role" className="py-4 px-4">
-                        {editingRoleUserId === user._id ? (
+                    {/* Metadata Strip */}
+                    <div className="p-3 rounded-xl bg-zinc-50/80 dark:bg-white/[0.02] border border-zinc-200/70 dark:border-white/[0.05] grid grid-cols-2 gap-2 text-xs font-mono-code">
+                      <div>
+                        <span className="text-[10px] text-zinc-400 uppercase tracking-wider block">Role</span>
+                        {isEditingThis ? (
                           <select
                             value={selectedRole}
                             onChange={handleRoleChange}
-                            className="px-2.5 py-1.5 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 outline-none"
+                            className="mt-1 w-full px-2 py-1 rounded-lg border border-zinc-200 dark:border-white/[0.1] bg-white dark:bg-[#131720] text-zinc-950 dark:text-white text-xs"
                           >
                             <option value="patient">Patient</option>
                             <option value="doctor">Doctor</option>
                             <option value="admin">Admin</option>
                           </select>
                         ) : (
-                          <span
-                            className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-semibold border ${roleBadgeStyles}`}
+                          <div className="mt-0.5">{getRoleBadge(user.role)}</div>
+                        )}
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-zinc-400 uppercase tracking-wider block">Joined</span>
+                        <span className="font-semibold text-zinc-700 dark:text-zinc-300">
+                          {user.createdAt
+                            ? new Date(user.createdAt).toLocaleDateString()
+                            : "N/A"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="pt-2 border-t border-zinc-100 dark:border-white/[0.06] flex flex-wrap items-center justify-end gap-2">
+                      {isEditingThis ? (
+                        <>
+                          <button
+                            onClick={() => handleSaveRole(user._id)}
+                            className="h-8 px-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold inline-flex items-center gap-1 shadow-xs active:scale-[0.96] transition-all cursor-pointer"
                           >
-                            {user.role
-                              ? user.role.charAt(0).toUpperCase() + user.role.slice(1)
-                              : "N/A"}
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Status */}
-                      <td data-label="Status" className="py-4 px-4">
-                        {user.isActive ? (
-                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200/80 dark:border-emerald-800/60">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                            Active
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-rose-50 dark:bg-rose-950/50 text-rose-700 dark:text-rose-300 border border-rose-200/80 dark:border-rose-800/60">
-                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
-                            Inactive
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Joined Date */}
-                      <td data-label="Joined" className="py-4 px-4 font-mono text-[11px] text-slate-500 dark:text-slate-400">
-                        {user.createdAt
-                          ? new Date(user.createdAt).toLocaleDateString()
-                          : "N/A"}
-                      </td>
-
-                      {/* Actions */}
-                      <td data-label="Actions" className="action-buttons-cell py-4 px-4 sm:px-6 text-right">
-                        <div className="action-buttons inline-flex items-center justify-end gap-1.5">
-                          {editingRoleUserId === user._id ? (
-                            <>
-                              <button
-                                onClick={() => handleSaveRole(user._id)}
-                                className="btn btn-save px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-xs font-medium inline-flex items-center gap-1 transition-colors shadow-xs"
-                              >
-                                <FloppyDisk className="w-3.5 h-3.5" />
-                                Save Role
-                              </button>
-                              <button
-                                onClick={handleCancelEditRole}
-                                className="btn btn-cancel px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-medium inline-flex items-center gap-1 transition-colors"
-                              >
-                                <X className="w-3.5 h-3.5" />
-                                Cancel
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              {/* Activate/Deactivate Button */}
-                              <button
-                                onClick={() =>
-                                  handleToggleStatus(user._id, user.isActive)
-                                }
-                                className={`btn btn-status px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
-                                  user.isActive
-                                    ? "btn-deactivate bg-amber-50 hover:bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300 border-amber-200/80 dark:border-amber-900/60"
-                                    : "btn-activate bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 border-emerald-200/80 dark:border-emerald-900/60"
-                                }`}
-                                title={
-                                  user.isActive
-                                    ? "Deactivate User"
-                                    : "Activate User"
-                                }
-                              >
-                                {user.isActive ? "Deactivate" : "Activate"}
-                              </button>
-
-                              {/* Change Role Button */}
-                              <button
-                                onClick={() => handleEditRoleClick(user)}
-                                className="btn btn-edit px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-medium transition-colors"
-                                title="Change Role"
-                              >
-                                Change Role
-                              </button>
-
-                              {/* Delete User Button */}
-                              <button
-                                onClick={() =>
-                                  handleDeleteUser(user._id, user.name)
-                                }
-                                className="btn btn-delete px-2 py-1.5 text-rose-600 hover:text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg text-xs font-medium transition-colors"
-                                title="Delete User"
-                              >
-                                <Trash className="w-3.5 h-3.5" />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                            <FloppyDisk size={14} />
+                            <span>Save Role</span>
+                          </button>
+                          <button
+                            onClick={handleCancelEditRole}
+                            className="h-8 px-3 rounded-xl border border-zinc-200/80 dark:border-white/[0.08] bg-zinc-50 dark:bg-white/[0.03] text-zinc-700 dark:text-zinc-300 text-xs font-semibold inline-flex items-center gap-1 active:scale-[0.96] transition-all cursor-pointer"
+                          >
+                            <X size={14} />
+                            <span>Cancel</span>
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => handleToggleStatus(user._id, user.isActive)}
+                            className={`h-8 px-3 rounded-xl text-xs font-semibold inline-flex items-center gap-1 border transition-all active:scale-[0.96] cursor-pointer ${
+                              user.isActive
+                                ? "bg-amber-500/10 hover:bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20"
+                                : "bg-emerald-500/10 hover:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                            }`}
+                          >
+                            {user.isActive ? "Deactivate" : "Activate"}
+                          </button>
+                          <button
+                            onClick={() => handleEditRoleClick(user)}
+                            className="h-8 px-3 rounded-xl border border-zinc-200/80 dark:border-white/[0.08] bg-zinc-50 dark:bg-white/[0.03] text-zinc-700 dark:text-zinc-300 text-xs font-semibold inline-flex items-center gap-1 hover:bg-zinc-100 dark:hover:bg-white/[0.06] active:scale-[0.96] transition-all cursor-pointer"
+                          >
+                            <span>Change Role</span>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteUser(user._id, user.name)}
+                            className="h-8 px-2.5 rounded-xl border border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/15 text-rose-600 dark:text-rose-400 text-xs font-semibold inline-flex items-center justify-center active:scale-[0.96] transition-all cursor-pointer"
+                            title="Delete User"
+                          >
+                            <Trash size={14} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        </div>
+
+          {/* Desktop Table View (hidden md:block) */}
+          <div className="hidden md:block doppelrand-shell">
+            <div className="doppelrand-core p-0 overflow-hidden">
+              <div className="specular-hairline" />
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="border-b border-zinc-200/80 dark:border-white/[0.08] bg-zinc-50/70 dark:bg-white/[0.02] text-[11px] font-mono-code uppercase tracking-wider text-zinc-400 dark:text-zinc-500">
+                      <th className="py-4 px-6 font-semibold">Name</th>
+                      <th className="py-4 px-4 font-semibold">Email</th>
+                      <th className="py-4 px-4 font-semibold">Role</th>
+                      <th className="py-4 px-4 font-semibold">Status</th>
+                      <th className="py-4 px-4 font-semibold">Joined</th>
+                      <th className="py-4 px-6 text-right font-semibold">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-100 dark:divide-white/[0.05] text-xs font-body">
+                    {users.map((user) => (
+                      <tr
+                        key={user._id}
+                        className={`hover:bg-zinc-50/80 dark:hover:bg-white/[0.02] transition-colors ${
+                          !user.isActive ? "opacity-60 bg-zinc-50/40 dark:bg-white/[0.01]" : ""
+                        }`}
+                      >
+                        {/* Name */}
+                        <td className="py-4 px-6 font-medium text-zinc-950 dark:text-white">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-600 dark:text-sky-400 font-bold text-xs flex items-center justify-center font-display">
+                              {user.name ? user.name.charAt(0).toUpperCase() : "U"}
+                            </div>
+                            <span>{user.name || "N/A"}</span>
+                          </div>
+                        </td>
+
+                        {/* Email */}
+                        <td className="py-4 px-4 font-mono-code text-zinc-500 dark:text-zinc-400">
+                          {user.email || "N/A"}
+                        </td>
+
+                        {/* Role */}
+                        <td className="py-4 px-4">
+                          {editingRoleUserId === user._id ? (
+                            <select
+                              value={selectedRole}
+                              onChange={handleRoleChange}
+                              className="px-2.5 py-1.5 rounded-lg border border-zinc-200 dark:border-white/[0.1] bg-white dark:bg-[#131720] text-zinc-950 dark:text-white text-xs focus:ring-2 focus:ring-sky-500/30 focus:outline-none"
+                            >
+                              <option value="patient">Patient</option>
+                              <option value="doctor">Doctor</option>
+                              <option value="admin">Admin</option>
+                            </select>
+                          ) : (
+                            getRoleBadge(user.role)
+                          )}
+                        </td>
+
+                        {/* Status */}
+                        <td className="py-4 px-4 font-mono-code">
+                          {user.isActive ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                              Active
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20">
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                              Inactive
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Joined Date */}
+                        <td className="py-4 px-4 font-mono-code text-[11px] text-zinc-400">
+                          {user.createdAt
+                            ? new Date(user.createdAt).toLocaleDateString()
+                            : "N/A"}
+                        </td>
+
+                        {/* Actions */}
+                        <td className="py-4 px-6 text-right">
+                          <div className="inline-flex items-center justify-end gap-1.5">
+                            {editingRoleUserId === user._id ? (
+                              <>
+                                <button
+                                  onClick={() => handleSaveRole(user._id)}
+                                  className="h-8 px-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold inline-flex items-center gap-1 shadow-xs active:scale-[0.96] transition-all cursor-pointer"
+                                >
+                                  <FloppyDisk size={14} />
+                                  <span>Save</span>
+                                </button>
+                                <button
+                                  onClick={handleCancelEditRole}
+                                  className="h-8 px-2.5 rounded-xl border border-zinc-200/80 dark:border-white/[0.08] bg-zinc-50 dark:bg-white/[0.03] text-zinc-700 dark:text-zinc-300 text-xs font-semibold inline-flex items-center gap-1 active:scale-[0.96] transition-all cursor-pointer"
+                                >
+                                  <X size={14} />
+                                </button>
+                              </>
+                            ) : (
+                              <>
+                                <button
+                                  onClick={() =>
+                                    handleToggleStatus(user._id, user.isActive)
+                                  }
+                                  className={`h-8 px-3 rounded-xl text-xs font-semibold transition-all active:scale-[0.96] border cursor-pointer ${
+                                    user.isActive
+                                      ? "bg-amber-500/10 hover:bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20"
+                                      : "bg-emerald-500/10 hover:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
+                                  }`}
+                                >
+                                  {user.isActive ? "Deactivate" : "Activate"}
+                                </button>
+                                <button
+                                  onClick={() => handleEditRoleClick(user)}
+                                  className="h-8 px-3 rounded-xl border border-zinc-200/80 dark:border-white/[0.08] bg-zinc-50/80 dark:bg-white/[0.03] text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-white/[0.06] text-xs font-semibold active:scale-[0.96] transition-all cursor-pointer"
+                                >
+                                  Change Role
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handleDeleteUser(user._id, user.name)
+                                  }
+                                  className="h-8 px-2.5 rounded-xl border border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 text-xs font-semibold active:scale-[0.96] transition-all cursor-pointer"
+                                  title="Delete User"
+                                >
+                                  <Trash size={14} />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

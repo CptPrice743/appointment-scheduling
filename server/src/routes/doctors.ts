@@ -180,6 +180,24 @@ doctorRouter.put('/availability/standard', protect, isDoctor, async (c) => {
   return c.json(availabilitySlots);
 });
 
+// GET /api/doctors/availability/overrides
+doctorRouter.get('/availability/overrides', protect, isDoctor, async (c) => {
+  const user = c.get('user');
+  const doctorId = user.doctorProfile?.id || user.doctorProfile?._id;
+  if (!doctorId) {
+    return c.json({ message: 'Doctor profile ID not found.' }, 404);
+  }
+
+  const db = drizzle(c.env.DB);
+  const [doc] = await db.select().from(doctors).where(eq(doctors.id, doctorId)).limit(1);
+  if (!doc) {
+    return c.json({ message: 'Doctor profile not found.' }, 404);
+  }
+
+  const overrides: any[] = JSON.parse(doc.availabilityOverrides || '[]');
+  return c.json(overrides);
+});
+
 // POST /api/doctors/availability/overrides
 doctorRouter.post('/availability/overrides', protect, isDoctor, async (c) => {
   const user = c.get('user');

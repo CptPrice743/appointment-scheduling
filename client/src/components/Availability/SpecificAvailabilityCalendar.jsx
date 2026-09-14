@@ -119,7 +119,8 @@ const SpecificAvailabilityCalendar = () => {
     try {
       const res = await axiosInstance.get("/doctors/availability/overrides");
       const fetchedOverrides = {};
-      (res.data || []).forEach((ov) => {
+      const dataList = Array.isArray(res.data) ? res.data : [];
+      dataList.forEach((ov) => {
         const ovDate = new Date(ov.date); // Date from backend (likely UTC)
         // Create key using YYYY-MM-DD format from UTC parts
         const year = ovDate.getUTCFullYear();
@@ -501,14 +502,14 @@ const SpecificAvailabilityCalendar = () => {
                   <label className="block text-[10px] font-mono-code uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-2.5 font-semibold">
                     Specific Operational Hours
                   </label>
-                  <div className="flex items-center gap-3">
+                  <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3">
                     <input
                       type="time"
                       name="startTime"
                       value={dayDetails.startTime}
                       onChange={handleDayInfoChange}
                       required
-                      className="px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-zinc-50/70 dark:bg-white/[0.02] text-zinc-950 dark:text-white font-mono-code text-xs focus:ring-2 focus:ring-sky-500/30 focus:outline-none"
+                      className="flex-1 min-w-[120px] px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-zinc-50/70 dark:bg-white/[0.02] text-zinc-950 dark:text-white font-mono-code text-xs focus:ring-2 focus:ring-sky-500/30 focus:outline-none"
                     />
                     <span className="text-xs font-mono-code text-zinc-400 font-semibold">TO</span>
                     <input
@@ -517,7 +518,7 @@ const SpecificAvailabilityCalendar = () => {
                       value={dayDetails.endTime}
                       onChange={handleDayInfoChange}
                       required
-                      className="px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-zinc-50/70 dark:bg-white/[0.02] text-zinc-950 dark:text-white font-mono-code text-xs focus:ring-2 focus:ring-sky-500/30 focus:outline-none"
+                      className="flex-1 min-w-[120px] px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-zinc-50/70 dark:bg-white/[0.02] text-zinc-950 dark:text-white font-mono-code text-xs focus:ring-2 focus:ring-sky-500/30 focus:outline-none"
                     />
                   </div>
                 </div>

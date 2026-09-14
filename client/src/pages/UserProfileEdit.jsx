@@ -452,14 +452,14 @@ const UserProfileEdit = () => {
                       <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 font-mono-code mb-2">
                         Weekday Hours (Monday to Friday)
                       </label>
-                      <div className="flex items-center gap-3">
+                      <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3">
                         <input
                           type="time"
                           name="weekdayStartTime"
                           value={stdAvailabilityData.weekdayStartTime}
                           onChange={handleAvailabilityChange}
                           required
-                          className="px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-white dark:bg-[#131720] text-zinc-950 dark:text-white font-mono-code text-xs focus:ring-2 focus:ring-sky-500/30 focus:outline-none t-focus-ring"
+                          className="flex-1 min-w-[120px] px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-white dark:bg-[#131720] text-zinc-950 dark:text-white font-mono-code text-xs focus:ring-2 focus:ring-sky-500/30 focus:outline-none t-focus-ring"
                         />
                         <span className="text-xs font-mono-code text-zinc-400 font-semibold">TO</span>
                         <input
@@ -468,7 +468,7 @@ const UserProfileEdit = () => {
                           value={stdAvailabilityData.weekdayEndTime}
                           onChange={handleAvailabilityChange}
                           required
-                          className="px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-white dark:bg-[#131720] text-zinc-950 dark:text-white font-mono-code text-xs focus:ring-2 focus:ring-sky-500/30 focus:outline-none t-focus-ring"
+                          className="flex-1 min-w-[120px] px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-white dark:bg-[#131720] text-zinc-950 dark:text-white font-mono-code text-xs focus:ring-2 focus:ring-sky-500/30 focus:outline-none t-focus-ring"
                         />
                       </div>
                     </div>
@@ -494,14 +494,14 @@ const UserProfileEdit = () => {
                         <label className="block text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 font-mono-code mb-2">
                           Weekend Operating Window
                         </label>
-                        <div className="flex items-center gap-3">
+                        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3">
                           <input
                             type="time"
                             name="weekendStartTime"
                             value={stdAvailabilityData.weekendStartTime}
                             onChange={handleAvailabilityChange}
                             required={stdAvailabilityData.worksWeekends}
-                            className="px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-white dark:bg-[#131720] text-zinc-950 dark:text-white font-mono-code text-xs focus:ring-2 focus:ring-sky-500/30 focus:outline-none t-focus-ring"
+                            className="flex-1 min-w-[120px] px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-white dark:bg-[#131720] text-zinc-950 dark:text-white font-mono-code text-xs focus:ring-2 focus:ring-sky-500/30 focus:outline-none t-focus-ring"
                           />
                           <span className="text-xs font-mono-code text-zinc-400 font-semibold">TO</span>
                           <input
@@ -510,7 +510,7 @@ const UserProfileEdit = () => {
                             value={stdAvailabilityData.weekendEndTime}
                             onChange={handleAvailabilityChange}
                             required={stdAvailabilityData.worksWeekends}
-                            className="px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-white dark:bg-[#131720] text-zinc-950 dark:text-white font-mono-code text-xs focus:ring-2 focus:ring-sky-500/30 focus:outline-none t-focus-ring"
+                            className="flex-1 min-w-[120px] px-3.5 py-2 rounded-xl border border-zinc-200 dark:border-white/[0.08] bg-white dark:bg-[#131720] text-zinc-950 dark:text-white font-mono-code text-xs focus:ring-2 focus:ring-sky-500/30 focus:outline-none t-focus-ring"
                           />
                         </div>
                       </div>
@@ -715,7 +715,7 @@ const UserProfileEdit = () => {
 
               {/* Admin Footnote */}
               <div className="pt-4 border-t border-zinc-200/60 dark:border-white/[0.05] flex items-center justify-between text-[11px] font-mono-code text-zinc-500 dark:text-zinc-400">
-                <span>Database Node: MongoDB 7.0 (Local Cluster)</span>
+                <span>Database: Cloudflare D1 (Serverless SQLite)</span>
                 <span className="text-emerald-500 font-semibold">SYNCHRONIZED</span>
               </div>
             </div>

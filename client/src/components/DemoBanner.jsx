@@ -92,7 +92,7 @@ const DemoBanner = () => {
   return (
     <aside
       aria-label="Demo environment controls"
-      className="sticky top-0 z-50 w-full bg-zinc-950 text-white border-b border-sky-500/30 px-3 py-1.5 sm:px-4 sm:py-2 text-xs font-mono shadow-md backdrop-blur-md bg-zinc-950/95"
+      className="w-full bg-zinc-950 text-white border-b border-sky-500/30 px-3 py-1.5 sm:px-4 sm:py-2 text-xs font-mono shadow-md backdrop-blur-md bg-zinc-950/95 relative z-20"
     >
       <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2 sm:gap-4">
         {/* Current Persona Badge */}
