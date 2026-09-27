@@ -16,8 +16,5 @@
       "database_id": "4a2e8ced-f26e-458e-8476-50a99887ef09",
       "migrations_dir": "server/d1/migrations"
     }
-  ],
-  "vars": {
-    "JWT_SECRET": "appointment_secret_key_1234567890_edge_secure"
-  }
+  ]
 }
