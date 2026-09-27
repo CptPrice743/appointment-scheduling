@@ -6,8 +6,8 @@
   "scripts": {
     "dev": "wrangler dev --port 8787",
     "dev:full": "concurrently \"wrangler dev --port 8787\" \"cd client && npm run dev\"",
-    "build:client": "cd client && npm run build",
-    "build": "cd client && npm run build",
+    "build:client": "npm --prefix client ci && npm --prefix client run build",
+    "build": "npm --prefix client ci && npm --prefix client run build",
     "db:migrate": "wrangler d1 migrations apply appointment_scheduling_db --local",
     "db:migrate:remote": "wrangler d1 migrations apply appointment_scheduling_db --remote",
     "db:generate": "drizzle-kit generate",
