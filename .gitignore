@@ -131,9 +131,17 @@ dist
 
 # Environment files
 .env
+.env*
 *.env
-client/.env
-server/.env
+*.env.*
+client/.env*
+server/.env*
+
+# Credentials & Keys
+*.pem
+*.key
+*.cert
+*.crt
 
 # Local development and Playwright CLI artifacts
 .playwright-cli/
